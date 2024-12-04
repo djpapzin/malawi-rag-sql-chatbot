@@ -19,6 +19,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.ipynb_checkpoints/
 
 # Virtual Environment
 .env
@@ -56,6 +57,10 @@ credentials/
 .cache/
 .models/
 .vector_db/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
 
 # Documentation
 docs/_build/

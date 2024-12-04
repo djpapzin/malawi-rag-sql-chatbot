@@ -7,6 +7,7 @@ pydantic==2.4.2
 pydantic-settings==2.0.3
 python-dotenv==1.0.0
 jinja2==3.1.2
+python-multipart==0.0.6
 
 # Database and ORM
 sqlalchemy==2.0.23
@@ -16,7 +17,6 @@ cachetools==5.3.2
 # Data Processing
 pandas==2.1.2
 numpy==1.24.4
-python-multipart==0.0.6
 
 # AI and Language Models
 langchain==0.0.330
@@ -24,30 +24,10 @@ langchain-community==0.0.10
 faiss-cpu==1.7.4
 sentence-transformers==2.2.2
 openai==1.3.3
-
-# Translation
-deep-translator==1.10.1
-
-# Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.1
-
-# Core dependencies
-fastapi==0.104.1
-uvicorn==0.24.0
-pydantic==2.4.2
-python-multipart==0.0.6
-jinja2==3.1.2
-
-# Database
-sqlite3  # Usually comes with Python
-pandas==2.1.2
-numpy==1.24.4
-
-# AI and ML
 torch==2.1.1
 transformers==4.35.2
+
+# Translation and Language Detection
 deep-translator==1.11.4
 langdetect==1.0.9
 
@@ -55,8 +35,5 @@ langdetect==1.0.9
 pytest==7.4.3
 pytest-asyncio==0.21.1
 httpx==0.25.1
-
-# Optional utilities
-python-dotenv==1.0.0
 black==23.11.0
 flake8==6.1.0
