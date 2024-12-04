@@ -8,12 +8,12 @@ import logging
 from typing import Optional, List, Dict, Any
 
 # Import our custom modules
-from models import ChatQuery, ChatResponse, QueryParser
-from dependencies import get_templates, get_query_parser, get_model, get_tokenizer
-from response_generator import ResponseGenerator
-from translation_service import TranslationService
-from suggestion_generator import SuggestionGenerator
-from database.query_builder import DatabaseManager
+from app.models import ChatQuery, ChatResponse, QueryParser
+from app.dependencies import get_templates, get_query_parser, get_model, get_tokenizer
+from app.response_generator import ResponseGenerator
+from app.translation_service import TranslationService
+from app.suggestion_generator import SuggestionGenerator
+from app.database.query_builder import DatabaseManager
 
 # Set up logging
 logging.basicConfig(
