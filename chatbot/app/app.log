@@ -1,0 +1,1663 @@
+2024-11-29 12:44:25,396 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 13:06:08,464 - main - INFO - Received query: Show me projects in Central Region
+2024-11-29 13:06:09,153 - main - INFO - Detected language: en
+2024-11-29 13:06:09,153 - main - INFO - Matched region: Central Region
+2024-11-29 13:06:09,153 - main - INFO - Final filters: {'region': 'Central Region'}
+2024-11-29 13:06:09,153 - main - INFO - Parsed filters: {'region': 'Central Region'}
+2024-11-29 13:06:09,161 - main - INFO - Executing query: 
+        WITH ProjectsWithBudget AS (
+            SELECT
+                *,
+                CASE
+                    WHEN BUDGET = '' OR BUDGET IS NULL THEN 0
+                    ELSE CAST(BUDGET AS FLOAT)
+                END as NUMERIC_BUDGET,
+                CASE
+                    WHEN COMPLETIONPERCENTAGE = '' OR COMPLETIONPERCENTAGE IS NULL THEN 0
+                    ELSE CAST(COMPLETIONPERCENTAGE AS FLOAT)
+                END as NUMERIC_COMPLETION
+            FROM proj_dashboard
+        ),
+        RankedProjects AS (
+            SELECT DISTINCT
+                PROJECTNAME,
+                PROJECTCODE,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                REGION,
+                DISTRICT,
+                NUMERIC_BUDGET as BUDGET,
+                NUMERIC_COMPLETION as COMPLETIONPERCENTAGE,
+                PROJECTTYPE,
+                FUNDINGSOURCE,
+                TRADITIONALAUTHORITY,
+                ROW_NUMBER() OVER (
+                    PARTITION BY PROJECTCODE 
+                    ORDER BY ISLATEST DESC, NUMERIC_BUDGET DESC NULLS LAST
+                ) as rn,
+                CASE
+                    WHEN LOWER(PROJECTSTATUS) LIKE '%complete%' OR 
+                         LOWER(PROJECTSTATUS) LIKE '%finished%' OR 
+                         NUMERIC_COMPLETION >= 100 THEN 'Completed'
+                    WHEN LOWER(PROJECTSTATUS) LIKE '%progress%' OR 
+                         (NUMERIC_COMPLETION > 0 AND NUMERIC_COMPLETION < 100) THEN 'In Progress'
+                    ELSE 'Not Started'
+                END as PROJECT_STATUS_CATEGORY
+            FROM ProjectsWithBudget
+            WHERE ISLATEST = 1 AND PROJECTNAME IS NOT NULL AND REGION = ?
+        )
+        SELECT 
+            PROJECTNAME,
+            PROJECTCODE,
+            PROJECTSTATUS,
+            PROJECTSECTOR,
+            REGION,
+            DISTRICT,
+            BUDGET,
+            COMPLETIONPERCENTAGE,
+            PROJECTTYPE,
+            FUNDINGSOURCE,
+            TRADITIONALAUTHORITY,
+            PROJECT_STATUS_CATEGORY
+        FROM RankedProjects
+        WHERE rn = 1
+        
+ORDER BY BUDGET DESC NULLS LAST, COMPLETIONPERCENTAGE DESC NULLS LAST, PROJECTNAME ASC
+2024-11-29 13:06:09,161 - main - INFO - Query parameters: ['Central Region']
+2024-11-29 13:06:09,180 - main - INFO - Query returned 76 results
+2024-11-29 13:06:09,180 - main - ERROR - Error generating suggestions: name 'random' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 720, in generate_suggestions
+    random.shuffle(suggestions)
+NameError: name 'random' is not defined
+2024-11-29 13:06:35,507 - main - INFO - Received query: projects in Mchinji
+2024-11-29 13:06:35,531 - main - INFO - Detected language: hr
+2024-11-29 13:07:08,389 - main - INFO - Matched district: mchinji in Central Region
+2024-11-29 13:07:08,389 - main - INFO - Final filters: {'district': 'Mchinji', 'region': 'Central Region'}
+2024-11-29 13:07:08,389 - main - INFO - Parsed filters: {'district': 'Mchinji', 'region': 'Central Region'}
+2024-11-29 13:07:08,389 - main - INFO - Executing query: 
+        WITH ProjectsWithBudget AS (
+            SELECT
+                *,
+                CASE
+                    WHEN BUDGET = '' OR BUDGET IS NULL THEN 0
+                    ELSE CAST(BUDGET AS FLOAT)
+                END as NUMERIC_BUDGET,
+                CASE
+                    WHEN COMPLETIONPERCENTAGE = '' OR COMPLETIONPERCENTAGE IS NULL THEN 0
+                    ELSE CAST(COMPLETIONPERCENTAGE AS FLOAT)
+                END as NUMERIC_COMPLETION
+            FROM proj_dashboard
+        ),
+        RankedProjects AS (
+            SELECT DISTINCT
+                PROJECTNAME,
+                PROJECTCODE,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                REGION,
+                DISTRICT,
+                NUMERIC_BUDGET as BUDGET,
+                NUMERIC_COMPLETION as COMPLETIONPERCENTAGE,
+                PROJECTTYPE,
+                FUNDINGSOURCE,
+                TRADITIONALAUTHORITY,
+                ROW_NUMBER() OVER (
+                    PARTITION BY PROJECTCODE 
+                    ORDER BY ISLATEST DESC, NUMERIC_BUDGET DESC NULLS LAST
+                ) as rn,
+                CASE
+                    WHEN LOWER(PROJECTSTATUS) LIKE '%complete%' OR 
+                         LOWER(PROJECTSTATUS) LIKE '%finished%' OR 
+                         NUMERIC_COMPLETION >= 100 THEN 'Completed'
+                    WHEN LOWER(PROJECTSTATUS) LIKE '%progress%' OR 
+                         (NUMERIC_COMPLETION > 0 AND NUMERIC_COMPLETION < 100) THEN 'In Progress'
+                    ELSE 'Not Started'
+                END as PROJECT_STATUS_CATEGORY
+            FROM ProjectsWithBudget
+            WHERE ISLATEST = 1 AND PROJECTNAME IS NOT NULL AND REGION = ? AND LOWER(DISTRICT) LIKE ?
+        )
+        SELECT 
+            PROJECTNAME,
+            PROJECTCODE,
+            PROJECTSTATUS,
+            PROJECTSECTOR,
+            REGION,
+            DISTRICT,
+            BUDGET,
+            COMPLETIONPERCENTAGE,
+            PROJECTTYPE,
+            FUNDINGSOURCE,
+            TRADITIONALAUTHORITY,
+            PROJECT_STATUS_CATEGORY
+        FROM RankedProjects
+        WHERE rn = 1
+        
+ORDER BY BUDGET DESC NULLS LAST, COMPLETIONPERCENTAGE DESC NULLS LAST, PROJECTNAME ASC
+2024-11-29 13:07:08,394 - main - INFO - Query parameters: ['Central Region', '%mchinji%']
+2024-11-29 13:07:08,396 - main - ERROR - Query execution error: name 'get_district_statistics' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 591, in get_project_data
+    district_stats = get_district_statistics(cursor, filters['district'])
+NameError: name 'get_district_statistics' is not defined
+2024-11-29 13:07:08,405 - main - ERROR - Failed query: 
+        WITH ProjectsWithBudget AS (
+            SELECT
+                *,
+                CASE
+                    WHEN BUDGET = '' OR BUDGET IS NULL THEN 0
+                    ELSE CAST(BUDGET AS FLOAT)
+                END as NUMERIC_BUDGET,
+                CASE
+                    WHEN COMPLETIONPERCENTAGE = '' OR COMPLETIONPERCENTAGE IS NULL THEN 0
+                    ELSE CAST(COMPLETIONPERCENTAGE AS FLOAT)
+                END as NUMERIC_COMPLETION
+            FROM proj_dashboard
+        ),
+        RankedProjects AS (
+            SELECT DISTINCT
+                PROJECTNAME,
+                PROJECTCODE,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                REGION,
+                DISTRICT,
+                NUMERIC_BUDGET as BUDGET,
+                NUMERIC_COMPLETION as COMPLETIONPERCENTAGE,
+                PROJECTTYPE,
+                FUNDINGSOURCE,
+                TRADITIONALAUTHORITY,
+                ROW_NUMBER() OVER (
+                    PARTITION BY PROJECTCODE 
+                    ORDER BY ISLATEST DESC, NUMERIC_BUDGET DESC NULLS LAST
+                ) as rn,
+                CASE
+                    WHEN LOWER(PROJECTSTATUS) LIKE '%complete%' OR 
+                         LOWER(PROJECTSTATUS) LIKE '%finished%' OR 
+                         NUMERIC_COMPLETION >= 100 THEN 'Completed'
+                    WHEN LOWER(PROJECTSTATUS) LIKE '%progress%' OR 
+                         (NUMERIC_COMPLETION > 0 AND NUMERIC_COMPLETION < 100) THEN 'In Progress'
+                    ELSE 'Not Started'
+                END as PROJECT_STATUS_CATEGORY
+            FROM ProjectsWithBudget
+            WHERE ISLATEST = 1 AND PROJECTNAME IS NOT NULL AND REGION = ? AND LOWER(DISTRICT) LIKE ?
+        )
+        SELECT 
+            PROJECTNAME,
+            PROJECTCODE,
+            PROJECTSTATUS,
+            PROJECTSECTOR,
+            REGION,
+            DISTRICT,
+            BUDGET,
+            COMPLETIONPERCENTAGE,
+            PROJECTTYPE,
+            FUNDINGSOURCE,
+            TRADITIONALAUTHORITY,
+            PROJECT_STATUS_CATEGORY
+        FROM RankedProjects
+        WHERE rn = 1
+        
+ORDER BY BUDGET DESC NULLS LAST, COMPLETIONPERCENTAGE DESC NULLS LAST, PROJECTNAME ASC
+2024-11-29 13:07:08,405 - main - ERROR - Failed parameters: ['Central Region', '%mchinji%']
+2024-11-29 13:07:08,405 - main - ERROR - Error generating suggestions: name 'random' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 720, in generate_suggestions
+    random.shuffle(suggestions)
+NameError: name 'random' is not defined
+2024-11-29 13:44:08,351 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 13:46:20,580 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 13:49:20,592 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 14:16:04,707 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 14:16:57,256 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 14:19:21,576 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 14:30:20,898 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 14:31:30,548 - main - INFO - Received query: Show me projects in Central Region
+2024-11-29 14:31:30,548 - main - ERROR - Error processing chat request: name 'detect_and_translate' is not defined
+2024-11-29 14:37:49,321 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 20:42:06,870 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 21:27:15,906 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 21:27:39,015 - main - INFO - Received query: What are the current infrastructure projects?
+2024-11-29 21:27:39,015 - main - ERROR - Error processing chat request: name 'detect_and_translate' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 935, in chat
+    source_lang, english_query = detect_and_translate(query.message)
+NameError: name 'detect_and_translate' is not defined
+2024-11-29 21:27:41,252 - main - INFO - Received query: Show me projects in Central Region
+2024-11-29 21:27:41,255 - main - ERROR - Error processing chat request: name 'detect_and_translate' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 935, in chat
+    source_lang, english_query = detect_and_translate(query.message)
+NameError: name 'detect_and_translate' is not defined
+2024-11-29 21:27:44,909 - main - INFO - Received query: What education projects are there?
+2024-11-29 21:27:44,909 - main - ERROR - Error processing chat request: name 'detect_and_translate' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 935, in chat
+    source_lang, english_query = detect_and_translate(query.message)
+NameError: name 'detect_and_translate' is not defined
+2024-11-29 21:35:06,956 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 21:35:12,608 - main - INFO - Received query: What are the current infrastructure projects?
+2024-11-29 21:35:13,122 - main - INFO - Detected language: en
+2024-11-29 21:35:13,122 - main - INFO - Final filters: {}
+2024-11-29 21:35:13,122 - main - INFO - Parsed filters: {}
+2024-11-29 21:35:13,122 - main - ERROR - Unexpected error: name 'build_sort_query' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 471, in get_project_data
+    sort_query = build_sort_query(filters)
+NameError: name 'build_sort_query' is not defined
+2024-11-29 21:35:13,130 - main - ERROR - Error processing chat request: name 'generate_suggestions' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1014, in chat
+    return build_empty_response(t, source_lang)
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1052, in build_empty_response
+    suggested_questions=generate_suggestions({}, pd.DataFrame(), source_lang)
+NameError: name 'generate_suggestions' is not defined
+2024-11-29 21:41:00,147 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 21:41:06,874 - main - INFO - Received query: What are the current infrastructure projects?
+2024-11-29 21:41:07,413 - main - INFO - Detected language: en
+2024-11-29 21:41:07,413 - main - INFO - Final filters: {}
+2024-11-29 21:41:07,413 - main - INFO - Parsed filters: {}
+2024-11-29 21:41:07,413 - main - INFO - Executing query: 
+    WITH ProjectsWithBudget AS (
+        SELECT
+            *,
+            CASE
+                WHEN BUDGET = '' OR BUDGET IS NULL THEN 0
+                ELSE CAST(BUDGET AS FLOAT)
+            END as NUMERIC_BUDGET,
+            CASE
+                WHEN COMPLETIONPERCENTAGE = '' OR COMPLETIONPERCENTAGE IS NULL THEN 0
+                ELSE CAST(COMPLETIONPERCENTAGE AS FLOAT)
+            END as NUMERIC_COMPLETION
+        FROM proj_dashboard
+    ),
+    RankedProjects AS (
+        SELECT DISTINCT
+            PROJECTNAME,
+            PROJECTCODE,
+            PROJECTSTATUS,
+            PROJECTSECTOR,
+            REGION,
+            DISTRICT,
+            NUMERIC_BUDGET as BUDGET,
+            NUMERIC_COMPLETION as COMPLETIONPERCENTAGE,
+            PROJECTTYPE,
+            FUNDINGSOURCE,
+            TRADITIONALAUTHORITY,
+            ROW_NUMBER() OVER (
+                PARTITION BY PROJECTCODE 
+                ORDER BY ISLATEST DESC, NUMERIC_BUDGET DESC NULLS LAST
+            ) as rn,
+            CASE
+                WHEN LOWER(PROJECTSTATUS) LIKE '%complete%' OR 
+                     LOWER(PROJECTSTATUS) LIKE '%finished%' OR 
+                     NUMERIC_COMPLETION >= 100 THEN 'Completed'
+                WHEN LOWER(PROJECTSTATUS) LIKE '%progress%' OR 
+                     (NUMERIC_COMPLETION > 0 AND NUMERIC_COMPLETION < 100) THEN 'In Progress'
+                ELSE 'Not Started'
+            END as PROJECT_STATUS_CATEGORY
+        FROM ProjectsWithBudget
+        WHERE ISLATEST = 1 AND PROJECTNAME IS NOT NULL
+    )
+    SELECT 
+        PROJECTNAME,
+        PROJECTCODE,
+        PROJECTSTATUS,
+        PROJECTSECTOR,
+        REGION,
+        DISTRICT,
+        BUDGET,
+        COMPLETIONPERCENTAGE,
+        PROJECTTYPE,
+        FUNDINGSOURCE,
+        TRADITIONALAUTHORITY,
+        PROJECT_STATUS_CATEGORY
+    FROM RankedProjects
+    WHERE rn = 1
+    
+ORDER BY BUDGET DESC NULLS LAST, COMPLETIONPERCENTAGE DESC NULLS LAST, PROJECTNAME ASC
+
+2024-11-29 21:41:07,413 - main - INFO - Query parameters: []
+2024-11-29 21:41:07,438 - main - INFO - Query returned 198 results
+2024-11-29 21:41:07,438 - main - ERROR - Error processing chat request: name 'format_project_details' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1245, in chat
+    answer += format_project_details_batch(df, source_lang)
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1322, in format_project_details_batch
+    return "".join(
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1323, in <genexpr>
+    format_project_details(row, source_lang) + "\n\n"
+NameError: name 'format_project_details' is not defined
+2024-11-29 21:41:13,707 - main - INFO - Received query: Show projects with highest budget
+2024-11-29 21:41:13,721 - main - INFO - Detected language: en
+2024-11-29 21:41:13,721 - main - INFO - Final filters: {}
+2024-11-29 21:41:13,721 - main - INFO - Parsed filters: {}
+2024-11-29 21:41:13,721 - main - INFO - Executing query: 
+    WITH ProjectsWithBudget AS (
+        SELECT
+            *,
+            CASE
+                WHEN BUDGET = '' OR BUDGET IS NULL THEN 0
+                ELSE CAST(BUDGET AS FLOAT)
+            END as NUMERIC_BUDGET,
+            CASE
+                WHEN COMPLETIONPERCENTAGE = '' OR COMPLETIONPERCENTAGE IS NULL THEN 0
+                ELSE CAST(COMPLETIONPERCENTAGE AS FLOAT)
+            END as NUMERIC_COMPLETION
+        FROM proj_dashboard
+    ),
+    RankedProjects AS (
+        SELECT DISTINCT
+            PROJECTNAME,
+            PROJECTCODE,
+            PROJECTSTATUS,
+            PROJECTSECTOR,
+            REGION,
+            DISTRICT,
+            NUMERIC_BUDGET as BUDGET,
+            NUMERIC_COMPLETION as COMPLETIONPERCENTAGE,
+            PROJECTTYPE,
+            FUNDINGSOURCE,
+            TRADITIONALAUTHORITY,
+            ROW_NUMBER() OVER (
+                PARTITION BY PROJECTCODE 
+                ORDER BY ISLATEST DESC, NUMERIC_BUDGET DESC NULLS LAST
+            ) as rn,
+            CASE
+                WHEN LOWER(PROJECTSTATUS) LIKE '%complete%' OR 
+                     LOWER(PROJECTSTATUS) LIKE '%finished%' OR 
+                     NUMERIC_COMPLETION >= 100 THEN 'Completed'
+                WHEN LOWER(PROJECTSTATUS) LIKE '%progress%' OR 
+                     (NUMERIC_COMPLETION > 0 AND NUMERIC_COMPLETION < 100) THEN 'In Progress'
+                ELSE 'Not Started'
+            END as PROJECT_STATUS_CATEGORY
+        FROM ProjectsWithBudget
+        WHERE ISLATEST = 1 AND PROJECTNAME IS NOT NULL
+    )
+    SELECT 
+        PROJECTNAME,
+        PROJECTCODE,
+        PROJECTSTATUS,
+        PROJECTSECTOR,
+        REGION,
+        DISTRICT,
+        BUDGET,
+        COMPLETIONPERCENTAGE,
+        PROJECTTYPE,
+        FUNDINGSOURCE,
+        TRADITIONALAUTHORITY,
+        PROJECT_STATUS_CATEGORY
+    FROM RankedProjects
+    WHERE rn = 1
+    
+ORDER BY BUDGET DESC NULLS LAST, COMPLETIONPERCENTAGE DESC NULLS LAST, PROJECTNAME ASC
+
+2024-11-29 21:41:13,721 - main - INFO - Query parameters: []
+2024-11-29 21:41:13,747 - main - INFO - Query returned 198 results
+2024-11-29 21:41:13,747 - main - ERROR - Error processing chat request: name 'format_project_details' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1245, in chat
+    answer += format_project_details_batch(df, source_lang)
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1322, in format_project_details_batch
+    return "".join(
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1323, in <genexpr>
+    format_project_details(row, source_lang) + "\n\n"
+NameError: name 'format_project_details' is not defined
+2024-11-29 21:41:16,068 - main - INFO - Received query: Show projects in Southern Region
+2024-11-29 21:41:16,080 - main - INFO - Detected language: en
+2024-11-29 21:41:16,080 - main - INFO - Matched region: Southern Region
+2024-11-29 21:41:16,090 - main - INFO - Final filters: {'region': 'Southern Region'}
+2024-11-29 21:41:16,093 - main - INFO - Parsed filters: {'region': 'Southern Region'}
+2024-11-29 21:41:16,099 - main - ERROR - Unexpected error: name 'build_status_conditions' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 544, in get_project_data
+    conditions, params = build_filter_conditions(filters, conditions, params)
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 597, in build_filter_conditions
+    build_status_conditions(filters, conditions)
+NameError: name 'build_status_conditions' is not defined
+2024-11-29 21:41:31,874 - main - INFO - Received query: education projects
+2024-11-29 21:42:32,231 - main - INFO - Detected language: en
+2024-11-29 21:42:32,249 - main - INFO - Matched sector: Education
+2024-11-29 21:42:32,252 - main - INFO - Final filters: {'sector': 'Education'}
+2024-11-29 21:42:32,253 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-29 21:42:32,262 - main - ERROR - Unexpected error: name 'build_status_conditions' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 544, in get_project_data
+    conditions, params = build_filter_conditions(filters, conditions, params)
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 597, in build_filter_conditions
+    build_status_conditions(filters, conditions)
+NameError: name 'build_status_conditions' is not defined
+2024-11-29 21:42:42,819 - main - INFO - Received query: Show projects in Central Region
+2024-11-29 21:42:42,847 - main - INFO - Detected language: en
+2024-11-29 21:42:42,849 - main - INFO - Matched region: Central Region
+2024-11-29 21:42:42,849 - main - INFO - Final filters: {'region': 'Central Region'}
+2024-11-29 21:42:42,849 - main - INFO - Parsed filters: {'region': 'Central Region'}
+2024-11-29 21:42:42,857 - main - ERROR - Unexpected error: name 'build_status_conditions' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 544, in get_project_data
+    conditions, params = build_filter_conditions(filters, conditions, params)
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 597, in build_filter_conditions
+    build_status_conditions(filters, conditions)
+NameError: name 'build_status_conditions' is not defined
+2024-11-29 21:56:36,226 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 21:56:44,913 - main - INFO - Received query: Show me projects in Central Region
+2024-11-29 21:56:45,122 - main - INFO - Detected language: en
+2024-11-29 21:56:45,122 - main - ERROR - Error processing chat request: name 'parse_query_intent' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1199, in chat
+    filters = parse_query_intent(english_query, source_lang)
+NameError: name 'parse_query_intent' is not defined
+2024-11-29 22:04:34,676 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 22:04:41,237 - main - INFO - Received query: Show me projects in Central Region
+2024-11-29 22:04:41,541 - main - INFO - Detected language: en
+2024-11-29 22:04:41,541 - main - ERROR - Error processing chat request: name 'parse_query_intent' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1191, in chat
+    filters = parse_query_intent(english_query, source_lang)
+NameError: name 'parse_query_intent' is not defined
+2024-11-29 22:04:43,481 - main - INFO - Received query: Show projects in Southern Region
+2024-11-29 22:04:43,491 - main - INFO - Detected language: en
+2024-11-29 22:04:43,492 - main - ERROR - Error processing chat request: name 'parse_query_intent' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1191, in chat
+    filters = parse_query_intent(english_query, source_lang)
+NameError: name 'parse_query_intent' is not defined
+2024-11-29 22:04:44,758 - main - INFO - Received query: Show water and sanitation projects
+2024-11-29 22:04:44,760 - main - INFO - Detected language: en
+2024-11-29 22:04:44,760 - main - ERROR - Error processing chat request: name 'parse_query_intent' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 1191, in chat
+    filters = parse_query_intent(english_query, source_lang)
+NameError: name 'parse_query_intent' is not defined
+2024-11-29 22:29:36,153 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-29 23:59:21,195 - main - INFO - LLM initialized successfully
+2024-11-29 23:59:21,211 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 02:50:31,197 - main - INFO - LLM initialized successfully
+2024-11-30 02:50:31,206 - main - WARNING - Static directory not found at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:22:11,148 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:22:11,171 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:25:15,324 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:25:15,563 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:28:13,973 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:28:14,255 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:46:33,204 - main - INFO - LLM initialized successfully
+2024-11-30 03:46:33,206 - main - INFO - Templates configured successfully
+2024-11-30 03:46:33,207 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:46:33,213 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:46:39,889 - accelerate.big_modeling - WARNING - Some parameters are on the meta device because they were offloaded to the cpu and disk.
+2024-11-30 03:46:39,891 - main - INFO - LLM initialized successfully
+2024-11-30 03:46:39,897 - main - INFO - Templates configured successfully
+2024-11-30 03:46:39,898 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:46:39,912 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:46:46,293 - main - INFO - Received query: Show me projects in Central Region
+2024-11-30 03:46:47,063 - translation_service - INFO - Detected language: en
+2024-11-30 03:46:47,063 - main - ERROR - Error processing chat request: name 'query_parser' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 124, in chat
+    filters = query_parser.parse_query_intent(english_query, source_lang)
+NameError: name 'query_parser' is not defined
+2024-11-30 03:46:59,317 - main - INFO - Received query: education projects
+2024-11-30 03:46:59,335 - translation_service - INFO - Detected language: en
+2024-11-30 03:46:59,336 - main - ERROR - Error processing chat request: name 'query_parser' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 124, in chat
+    filters = query_parser.parse_query_intent(english_query, source_lang)
+NameError: name 'query_parser' is not defined
+2024-11-30 03:50:02,264 - main - INFO - LLM initialized successfully
+2024-11-30 03:50:02,267 - main - INFO - Templates configured successfully
+2024-11-30 03:50:02,268 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:50:02,273 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:50:02,294 - main - INFO - LLM initialized successfully
+2024-11-30 03:50:02,297 - main - INFO - Templates configured successfully
+2024-11-30 03:50:02,298 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:50:02,304 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:51:36,833 - main - INFO - LLM initialized successfully
+2024-11-30 03:51:36,836 - main - INFO - Templates configured successfully
+2024-11-30 03:51:36,837 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:51:36,847 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:51:37,309 - main - INFO - LLM initialized successfully
+2024-11-30 03:51:37,311 - main - INFO - Templates configured successfully
+2024-11-30 03:51:37,313 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:51:37,321 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 03:51:42,067 - main - INFO - Received query: What are the current infrastructure projects?
+2024-11-30 03:51:42,686 - translation_service - INFO - Detected language: en
+2024-11-30 03:51:42,686 - main - ERROR - Error processing chat request: name 'query_parser' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 124, in chat
+    filters = query_parser.parse_query_intent(english_query, source_lang)
+NameError: name 'query_parser' is not defined
+2024-11-30 03:51:57,068 - main - INFO - Received query: education projects
+2024-11-30 03:51:57,084 - translation_service - INFO - Detected language: en
+2024-11-30 03:51:57,085 - main - ERROR - Error processing chat request: name 'query_parser' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 124, in chat
+    filters = query_parser.parse_query_intent(english_query, source_lang)
+NameError: name 'query_parser' is not defined
+2024-11-30 03:52:02,190 - main - INFO - Received query: health
+2024-11-30 03:52:02,197 - translation_service - INFO - Detected language: en
+2024-11-30 03:52:02,198 - main - ERROR - Error processing chat request: name 'query_parser' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 124, in chat
+    filters = query_parser.parse_query_intent(english_query, source_lang)
+NameError: name 'query_parser' is not defined
+2024-11-30 08:22:09,710 - main - INFO - LLM initialized successfully
+2024-11-30 08:22:09,712 - main - INFO - Templates configured successfully
+2024-11-30 08:22:09,714 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:22:09,718 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:22:09,928 - main - INFO - LLM initialized successfully
+2024-11-30 08:22:09,932 - main - INFO - Templates configured successfully
+2024-11-30 08:22:09,934 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:22:09,944 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:22:45,646 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 08:22:45,648 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 08:22:45,685 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 08:26:55,997 - main - INFO - Received query: What education projects are there?
+2024-11-30 08:26:56,639 - translation_service - INFO - Detected language: en
+2024-11-30 08:26:56,640 - main - ERROR - Error processing chat request: name 'query_parser' is not defined
+Traceback (most recent call last):
+  File "C:\Users\MukundiMphaphuli\Desktop\chatbot\app\main.py", line 124, in chat
+    filters = query_parser.parse_query_intent(english_query, source_lang)
+NameError: name 'query_parser' is not defined
+2024-11-30 08:31:31,446 - main - INFO - LLM initialized successfully
+2024-11-30 08:31:31,478 - main - INFO - Templates configured successfully
+2024-11-30 08:31:31,480 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:31:31,485 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:31:32,070 - main - INFO - LLM initialized successfully
+2024-11-30 08:31:32,071 - main - INFO - Templates configured successfully
+2024-11-30 08:31:32,073 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:31:32,078 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:33:05,807 - main - INFO - LLM initialized successfully
+2024-11-30 08:33:05,811 - main - INFO - Templates configured successfully
+2024-11-30 08:33:05,811 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:33:05,847 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:33:08,186 - main - INFO - LLM initialized successfully
+2024-11-30 08:33:08,190 - main - INFO - Templates configured successfully
+2024-11-30 08:33:08,190 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:33:08,195 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:33:29,885 - main - ERROR - Parser test error: name 'query_parser' is not defined
+2024-11-30 08:38:04,531 - main - INFO - LLM initialized successfully
+2024-11-30 08:38:04,533 - main - INFO - Templates configured successfully
+2024-11-30 08:38:04,534 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:38:04,538 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:38:04,645 - main - INFO - LLM initialized successfully
+2024-11-30 08:38:04,646 - main - INFO - Templates configured successfully
+2024-11-30 08:38:04,647 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:38:04,652 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:45:34,157 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:45:35,010 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:46:48,430 - main - INFO - Received query: What education projects are there?
+2024-11-30 08:46:48,430 - main - INFO - Starting language detection
+2024-11-30 08:46:48,841 - translation_service - INFO - Detected language: en
+2024-11-30 08:46:48,842 - main - INFO - Detected language: en, Translated query: What education projects are there?
+2024-11-30 08:46:48,842 - main - INFO - Parsing query intent
+2024-11-30 08:46:48,842 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-30 08:46:48,842 - main - INFO - Fetching data from database
+2024-11-30 08:46:48,842 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 08:46:48,842 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 08:46:48,876 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 08:46:48,876 - main - INFO - Retrieved 118 records
+2024-11-30 08:46:48,876 - main - INFO - Generating response
+2024-11-30 08:46:48,876 - response_generator - ERROR - Error generating response: 'ResponseGenerator' object has no attribute 'build_response_header'
+2024-11-30 08:46:48,876 - main - INFO - Response generated successfully
+2024-11-30 08:46:48,876 - main - INFO - Generating suggestions
+2024-11-30 08:46:48,876 - main - INFO - Suggestions generated successfully
+2024-11-30 08:46:56,277 - main - INFO - Received query: What projects are currently in progress?
+2024-11-30 08:46:56,277 - main - INFO - Starting language detection
+2024-11-30 08:46:56,294 - translation_service - INFO - Detected language: en
+2024-11-30 08:46:56,294 - main - INFO - Detected language: en, Translated query: What projects are currently in progress?
+2024-11-30 08:46:56,294 - main - INFO - Parsing query intent
+2024-11-30 08:46:56,294 - main - INFO - Parsed filters: {'in_progress': True}
+2024-11-30 08:46:56,294 - main - INFO - Fetching data from database
+2024-11-30 08:46:56,294 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND 
+                (
+                    CAST(COALESCE(COMPLETIONPERCENTAGE, 0) AS FLOAT) BETWEEN 0.1 AND 99.9
+                    AND LOWER(COALESCE(PROJECTSTATUS, '')) NOT LIKE '%complete%'
+                )
+            
+        
+2024-11-30 08:46:56,294 - database.query_builder - INFO - Query parameters: []
+2024-11-30 08:46:56,310 - database.query_builder - INFO - Query returned 32 results
+2024-11-30 08:46:56,310 - main - INFO - Retrieved 32 records
+2024-11-30 08:46:56,310 - main - INFO - Generating response
+2024-11-30 08:46:56,310 - response_generator - ERROR - Error generating response: 'ResponseGenerator' object has no attribute 'build_response_header'
+2024-11-30 08:46:56,310 - main - INFO - Response generated successfully
+2024-11-30 08:46:56,310 - main - INFO - Generating suggestions
+2024-11-30 08:46:56,310 - main - INFO - Suggestions generated successfully
+2024-11-30 08:46:59,460 - main - INFO - Received query: Show me projects in the Community security initiatives sector
+2024-11-30 08:46:59,461 - main - INFO - Starting language detection
+2024-11-30 08:46:59,461 - translation_service - INFO - Detected language: en
+2024-11-30 08:46:59,461 - main - INFO - Detected language: en, Translated query: Show me projects in the Community security initiatives sector
+2024-11-30 08:46:59,461 - main - INFO - Parsing query intent
+2024-11-30 08:46:59,461 - main - INFO - Parsed filters: {'sector': 'Community security initiatives'}
+2024-11-30 08:46:59,477 - main - INFO - Fetching data from database
+2024-11-30 08:46:59,477 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 08:46:59,477 - database.query_builder - INFO - Query parameters: ['Community security initiatives']
+2024-11-30 08:46:59,493 - database.query_builder - INFO - Query returned 26 results
+2024-11-30 08:46:59,494 - main - INFO - Retrieved 26 records
+2024-11-30 08:46:59,494 - main - INFO - Generating response
+2024-11-30 08:46:59,494 - response_generator - ERROR - Error generating response: 'ResponseGenerator' object has no attribute 'build_response_header'
+2024-11-30 08:46:59,494 - main - INFO - Response generated successfully
+2024-11-30 08:46:59,494 - main - INFO - Generating suggestions
+2024-11-30 08:46:59,494 - main - INFO - Suggestions generated successfully
+2024-11-30 08:47:02,468 - main - INFO - Received query: What projects are in Nkhotakota?
+2024-11-30 08:47:02,469 - main - INFO - Starting language detection
+2024-11-30 08:47:02,491 - translation_service - INFO - Detected language: en
+2024-11-30 08:47:02,491 - main - INFO - Detected language: en, Translated query: What projects are in Nkhotakota?
+2024-11-30 08:47:02,495 - main - INFO - Parsing query intent
+2024-11-30 08:47:02,496 - main - INFO - Parsed filters: {}
+2024-11-30 08:47:02,496 - main - INFO - Fetching data from database
+2024-11-30 08:47:02,496 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 08:47:02,498 - database.query_builder - INFO - Query parameters: []
+2024-11-30 08:47:02,642 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 08:47:02,642 - main - INFO - Retrieved 396 records
+2024-11-30 08:47:02,643 - main - INFO - Generating response
+2024-11-30 08:47:02,643 - response_generator - ERROR - Error generating response: 'ResponseGenerator' object has no attribute 'build_response_header'
+2024-11-30 08:47:02,643 - main - INFO - Response generated successfully
+2024-11-30 08:47:02,643 - main - INFO - Generating suggestions
+2024-11-30 08:47:02,643 - main - INFO - Suggestions generated successfully
+2024-11-30 08:47:06,000 - main - INFO - Received query: Show me projects in the Education sector
+2024-11-30 08:47:06,001 - main - INFO - Starting language detection
+2024-11-30 08:47:06,008 - translation_service - INFO - Detected language: en
+2024-11-30 08:47:06,008 - main - INFO - Detected language: en, Translated query: Show me projects in the Education sector
+2024-11-30 08:47:06,015 - main - INFO - Parsing query intent
+2024-11-30 08:47:06,015 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-30 08:47:06,015 - main - INFO - Fetching data from database
+2024-11-30 08:47:06,015 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 08:47:06,015 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 08:47:06,027 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 08:47:06,028 - main - INFO - Retrieved 118 records
+2024-11-30 08:47:06,029 - main - INFO - Generating response
+2024-11-30 08:47:06,029 - response_generator - ERROR - Error generating response: 'ResponseGenerator' object has no attribute 'build_response_header'
+2024-11-30 08:47:06,030 - main - INFO - Response generated successfully
+2024-11-30 08:47:06,031 - main - INFO - Generating suggestions
+2024-11-30 08:47:06,031 - main - INFO - Suggestions generated successfully
+2024-11-30 08:50:32,764 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:50:33,048 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:52:06,618 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:52:06,708 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 08:52:36,709 - main - INFO - Received query: What education projects are there?
+2024-11-30 08:52:36,709 - main - INFO - Starting language detection
+2024-11-30 08:52:37,265 - translation_service - INFO - Detected language: en
+2024-11-30 08:52:37,265 - main - INFO - Detected language: en, Translated query: What education projects are there?
+2024-11-30 08:52:37,265 - main - INFO - Parsing query intent
+2024-11-30 08:52:37,281 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-30 08:52:37,284 - main - INFO - Fetching data from database
+2024-11-30 08:52:37,284 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 08:52:37,284 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 08:52:37,415 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 08:52:37,415 - main - INFO - Retrieved 118 records
+2024-11-30 08:52:37,415 - main - INFO - Generating response
+2024-11-30 08:52:37,415 - main - INFO - Response generated successfully
+2024-11-30 08:52:37,415 - main - INFO - Generating suggestions
+2024-11-30 08:52:37,431 - main - INFO - Suggestions generated successfully
+2024-11-30 08:53:08,548 - main - INFO - Received query: show me health projects
+2024-11-30 08:53:08,548 - main - INFO - Starting language detection
+2024-11-30 08:53:08,554 - translation_service - INFO - Detected language: en
+2024-11-30 08:53:08,554 - main - INFO - Detected language: en, Translated query: show me health projects
+2024-11-30 08:53:08,554 - main - INFO - Parsing query intent
+2024-11-30 08:53:08,566 - main - INFO - Parsed filters: {'sector': 'Health'}
+2024-11-30 08:53:08,566 - main - INFO - Fetching data from database
+2024-11-30 08:53:08,581 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 08:53:08,586 - database.query_builder - INFO - Query parameters: ['Health']
+2024-11-30 08:53:08,593 - database.query_builder - INFO - Query returned 78 results
+2024-11-30 08:53:08,594 - main - INFO - Retrieved 78 records
+2024-11-30 08:53:08,595 - main - INFO - Generating response
+2024-11-30 08:53:08,598 - main - INFO - Response generated successfully
+2024-11-30 08:53:08,603 - main - INFO - Generating suggestions
+2024-11-30 08:53:08,604 - main - INFO - Suggestions generated successfully
+2024-11-30 08:53:25,275 - main - INFO - Received query: Show me projects with the highest budget
+2024-11-30 08:53:25,275 - main - INFO - Starting language detection
+2024-11-30 08:53:25,283 - translation_service - INFO - Detected language: en
+2024-11-30 08:53:25,285 - main - INFO - Detected language: en, Translated query: Show me projects with the highest budget
+2024-11-30 08:53:25,285 - main - INFO - Parsing query intent
+2024-11-30 08:53:25,285 - main - INFO - Parsed filters: {}
+2024-11-30 08:53:25,286 - main - INFO - Fetching data from database
+2024-11-30 08:53:25,287 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 08:53:25,289 - database.query_builder - INFO - Query parameters: []
+2024-11-30 08:53:25,300 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 08:53:25,301 - main - INFO - Retrieved 396 records
+2024-11-30 08:53:25,308 - main - INFO - Generating response
+2024-11-30 08:53:25,310 - main - INFO - Response generated successfully
+2024-11-30 08:53:25,311 - main - INFO - Generating suggestions
+2024-11-30 08:53:25,312 - main - INFO - Suggestions generated successfully
+2024-11-30 08:53:35,873 - main - INFO - Received query: What projects are currently in progress?
+2024-11-30 08:53:35,873 - main - INFO - Starting language detection
+2024-11-30 08:53:35,884 - translation_service - INFO - Detected language: en
+2024-11-30 08:53:35,884 - main - INFO - Detected language: en, Translated query: What projects are currently in progress?
+2024-11-30 08:53:35,885 - main - INFO - Parsing query intent
+2024-11-30 08:53:35,885 - main - INFO - Parsed filters: {'in_progress': True}
+2024-11-30 08:53:35,886 - main - INFO - Fetching data from database
+2024-11-30 08:53:35,887 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND 
+                (
+                    CAST(COALESCE(COMPLETIONPERCENTAGE, 0) AS FLOAT) BETWEEN 0.1 AND 99.9
+                    AND LOWER(COALESCE(PROJECTSTATUS, '')) NOT LIKE '%complete%'
+                )
+            
+        
+2024-11-30 08:53:35,889 - database.query_builder - INFO - Query parameters: []
+2024-11-30 08:53:35,897 - database.query_builder - INFO - Query returned 32 results
+2024-11-30 08:53:35,898 - main - INFO - Retrieved 32 records
+2024-11-30 08:53:35,901 - main - INFO - Generating response
+2024-11-30 08:53:35,903 - main - INFO - Response generated successfully
+2024-11-30 08:53:35,904 - main - INFO - Generating suggestions
+2024-11-30 08:53:35,905 - main - INFO - Suggestions generated successfully
+2024-11-30 08:53:56,280 - main - INFO - Received query: show me complete projects
+2024-11-30 08:53:56,281 - main - INFO - Starting language detection
+2024-11-30 08:53:56,294 - translation_service - INFO - Detected language: en
+2024-11-30 08:53:56,294 - main - INFO - Detected language: en, Translated query: show me complete projects
+2024-11-30 08:53:56,295 - main - INFO - Parsing query intent
+2024-11-30 08:53:56,296 - main - INFO - Parsed filters: {}
+2024-11-30 08:53:56,298 - main - INFO - Fetching data from database
+2024-11-30 08:53:56,303 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 08:53:56,304 - database.query_builder - INFO - Query parameters: []
+2024-11-30 08:53:56,313 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 08:53:56,313 - main - INFO - Retrieved 396 records
+2024-11-30 08:53:56,313 - main - INFO - Generating response
+2024-11-30 08:53:56,313 - main - INFO - Response generated successfully
+2024-11-30 08:53:56,313 - main - INFO - Generating suggestions
+2024-11-30 08:53:56,313 - main - INFO - Suggestions generated successfully
+2024-11-30 08:56:57,495 - main - INFO - Starting language detection
+2024-11-30 08:56:57,501 - translation_service - INFO - Detected language: ru
+2024-11-30 08:57:22,859 - main - INFO - Detected language: ru, Translated query: show me educational projects
+2024-11-30 08:57:22,859 - main - INFO - Parsing query intent
+2024-11-30 08:57:22,859 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-30 08:57:22,859 - main - INFO - Fetching data from database
+2024-11-30 08:57:22,859 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 08:57:22,859 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 08:57:22,859 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 08:57:22,859 - main - INFO - Retrieved 118 records
+2024-11-30 08:57:22,859 - main - INFO - Generating response
+2024-11-30 08:57:22,875 - main - INFO - Response generated successfully
+2024-11-30 08:57:22,878 - main - INFO - Generating suggestions
+2024-11-30 08:57:22,878 - main - INFO - Suggestions generated successfully
+2024-11-30 08:59:18,841 - main - INFO - Received query: What projects are in Mwanza?
+2024-11-30 08:59:18,842 - main - INFO - Starting language detection
+2024-11-30 08:59:18,865 - translation_service - INFO - Detected language: en
+2024-11-30 08:59:18,866 - main - INFO - Detected language: en, Translated query: What projects are in Mwanza?
+2024-11-30 08:59:18,866 - main - INFO - Parsing query intent
+2024-11-30 08:59:18,866 - main - INFO - Parsed filters: {}
+2024-11-30 08:59:18,867 - main - INFO - Fetching data from database
+2024-11-30 08:59:18,867 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 08:59:18,867 - database.query_builder - INFO - Query parameters: []
+2024-11-30 08:59:18,873 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 08:59:18,874 - main - INFO - Retrieved 396 records
+2024-11-30 08:59:18,875 - main - INFO - Generating response
+2024-11-30 08:59:18,876 - main - INFO - Response generated successfully
+2024-11-30 08:59:18,876 - main - INFO - Generating suggestions
+2024-11-30 08:59:18,877 - main - INFO - Suggestions generated successfully
+2024-11-30 09:08:54,676 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:08:54,707 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:09:15,279 - main - INFO - Received query: Show me projects in Central Region
+2024-11-30 09:09:15,279 - main - INFO - Starting language detection
+2024-11-30 09:09:15,672 - translation_service - INFO - Detected language: en
+2024-11-30 09:09:15,672 - main - INFO - Detected language: en, Translated query: Show me projects in Central Region
+2024-11-30 09:09:15,672 - main - INFO - Parsing query intent
+2024-11-30 09:09:15,672 - main - INFO - Parsed filters: {'region': 'Central Region'}
+2024-11-30 09:09:15,672 - main - INFO - Fetching data from database
+2024-11-30 09:09:15,672 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND REGION = ?
+        
+2024-11-30 09:09:15,672 - database.query_builder - INFO - Query parameters: ['Central Region']
+2024-11-30 09:09:15,838 - database.query_builder - INFO - Query returned 152 results
+2024-11-30 09:09:15,838 - main - INFO - Retrieved 152 records
+2024-11-30 09:09:15,838 - main - INFO - Generating response
+2024-11-30 09:09:15,864 - main - INFO - Response generated successfully
+2024-11-30 09:09:15,864 - main - INFO - Generating suggestions
+2024-11-30 09:09:15,864 - main - INFO - Suggestions generated successfully
+2024-11-30 09:09:37,948 - main - INFO - Received query: Show me projects with the highest budget
+2024-11-30 09:09:37,948 - main - INFO - Starting language detection
+2024-11-30 09:09:37,962 - translation_service - INFO - Detected language: en
+2024-11-30 09:09:37,963 - main - INFO - Detected language: en, Translated query: Show me projects with the highest budget
+2024-11-30 09:09:37,965 - main - INFO - Parsing query intent
+2024-11-30 09:09:37,965 - main - INFO - Parsed filters: {}
+2024-11-30 09:09:37,967 - main - INFO - Fetching data from database
+2024-11-30 09:09:37,967 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 09:09:37,969 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:09:37,979 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 09:09:37,981 - main - INFO - Retrieved 396 records
+2024-11-30 09:09:37,982 - main - INFO - Generating response
+2024-11-30 09:09:37,987 - main - INFO - Response generated successfully
+2024-11-30 09:09:37,987 - main - INFO - Generating suggestions
+2024-11-30 09:09:37,987 - main - INFO - Suggestions generated successfully
+2024-11-30 09:09:58,575 - main - INFO - Received query: show me complete projects
+2024-11-30 09:09:58,576 - main - INFO - Starting language detection
+2024-11-30 09:09:58,587 - translation_service - INFO - Detected language: en
+2024-11-30 09:09:58,587 - main - INFO - Detected language: en, Translated query: show me complete projects
+2024-11-30 09:09:58,587 - main - INFO - Parsing query intent
+2024-11-30 09:09:58,587 - main - INFO - Parsed filters: {}
+2024-11-30 09:09:58,587 - main - INFO - Fetching data from database
+2024-11-30 09:09:58,587 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 09:09:58,587 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:09:58,604 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 09:09:58,604 - main - INFO - Retrieved 396 records
+2024-11-30 09:09:58,605 - main - INFO - Generating response
+2024-11-30 09:09:58,605 - main - INFO - Response generated successfully
+2024-11-30 09:09:58,605 - main - INFO - Generating suggestions
+2024-11-30 09:09:58,605 - main - INFO - Suggestions generated successfully
+2024-11-30 09:10:25,512 - main - INFO - Received query: projects that have not started
+2024-11-30 09:10:25,512 - main - INFO - Starting language detection
+2024-11-30 09:10:25,530 - translation_service - INFO - Detected language: en
+2024-11-30 09:10:25,531 - main - INFO - Detected language: en, Translated query: projects that have not started
+2024-11-30 09:10:25,532 - main - INFO - Parsing query intent
+2024-11-30 09:10:25,533 - main - INFO - Parsed filters: {'not_started': True}
+2024-11-30 09:10:25,535 - main - INFO - Fetching data from database
+2024-11-30 09:10:25,535 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND 
+                (
+                    CAST(COALESCE(COMPLETIONPERCENTAGE, 0) AS FLOAT) <= 0.1 
+                    OR COMPLETIONPERCENTAGE IS NULL 
+                    OR LOWER(PROJECTSTATUS) LIKE '%not started%'
+                    OR LOWER(PROJECTSTATUS) LIKE '%pending%'
+                    OR PROJECTSTATUS IS NULL
+                )
+            
+        
+2024-11-30 09:10:25,545 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:10:25,556 - database.query_builder - INFO - Query returned 376 results
+2024-11-30 09:10:25,556 - main - INFO - Retrieved 376 records
+2024-11-30 09:10:25,556 - main - INFO - Generating response
+2024-11-30 09:10:25,556 - main - INFO - Response generated successfully
+2024-11-30 09:10:25,556 - main - INFO - Generating suggestions
+2024-11-30 09:10:25,556 - main - INFO - Suggestions generated successfully
+2024-11-30 09:11:05,787 - main - INFO - Received query: show me health projects in the central region
+2024-11-30 09:11:05,787 - main - INFO - Starting language detection
+2024-11-30 09:11:05,787 - translation_service - INFO - Detected language: en
+2024-11-30 09:11:05,787 - main - INFO - Detected language: en, Translated query: show me health projects in the central region
+2024-11-30 09:11:05,787 - main - INFO - Parsing query intent
+2024-11-30 09:11:05,787 - main - INFO - Parsed filters: {'sector': 'Health', 'region': 'Central Region'}
+2024-11-30 09:11:05,787 - main - INFO - Fetching data from database
+2024-11-30 09:11:05,810 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ? AND REGION = ?
+        
+2024-11-30 09:11:05,810 - database.query_builder - INFO - Query parameters: ['Health', 'Central Region']
+2024-11-30 09:11:05,817 - database.query_builder - INFO - Query returned 20 results
+2024-11-30 09:11:05,819 - main - INFO - Retrieved 20 records
+2024-11-30 09:11:05,821 - main - INFO - Generating response
+2024-11-30 09:11:05,828 - main - INFO - Response generated successfully
+2024-11-30 09:11:05,829 - main - INFO - Generating suggestions
+2024-11-30 09:11:05,830 - main - INFO - Suggestions generated successfully
+2024-11-30 09:20:44,399 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:22:15,094 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:22:21,405 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:23:56,430 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:24:18,662 - accelerate.big_modeling - WARNING - Some parameters are on the meta device because they were offloaded to the disk and cpu.
+2024-11-30 09:24:19,096 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:24:35,119 - main - INFO - Received query: Show me projects in Central Region
+2024-11-30 09:24:35,131 - main - INFO - Starting language detection
+2024-11-30 09:24:35,630 - translation_service - INFO - Detected language: en
+2024-11-30 09:24:35,630 - main - INFO - Detected language: en, Translated query: Show me projects in Central Region
+2024-11-30 09:24:35,630 - main - INFO - Parsing query intent
+2024-11-30 09:24:35,630 - main - INFO - Parsed filters: {'region': 'Central Region'}
+2024-11-30 09:24:35,630 - main - INFO - Fetching data from database
+2024-11-30 09:24:35,630 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND REGION = ?
+        
+2024-11-30 09:24:35,630 - database.query_builder - INFO - Query parameters: ['Central Region']
+2024-11-30 09:24:35,797 - database.query_builder - INFO - Query returned 152 results
+2024-11-30 09:24:35,813 - main - INFO - Retrieved 152 records
+2024-11-30 09:24:35,813 - main - INFO - Generating response
+2024-11-30 09:24:35,848 - main - INFO - Response generated successfully
+2024-11-30 09:24:35,848 - main - INFO - Generating suggestions
+2024-11-30 09:24:35,848 - main - INFO - Suggestions generated successfully
+2024-11-30 09:25:04,881 - main - INFO - Received query: show me complete projects in the central region
+2024-11-30 09:25:04,881 - main - INFO - Starting language detection
+2024-11-30 09:25:04,896 - translation_service - INFO - Detected language: en
+2024-11-30 09:25:04,898 - main - INFO - Detected language: en, Translated query: show me complete projects in the central region
+2024-11-30 09:25:04,902 - main - INFO - Parsing query intent
+2024-11-30 09:25:04,903 - main - INFO - Parsed filters: {'region': 'Central Region'}
+2024-11-30 09:25:04,904 - main - INFO - Fetching data from database
+2024-11-30 09:25:04,904 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND REGION = ?
+        
+2024-11-30 09:25:04,905 - database.query_builder - INFO - Query parameters: ['Central Region']
+2024-11-30 09:25:04,914 - database.query_builder - INFO - Query returned 152 results
+2024-11-30 09:25:04,915 - main - INFO - Retrieved 152 records
+2024-11-30 09:25:04,915 - main - INFO - Generating response
+2024-11-30 09:25:04,923 - main - INFO - Response generated successfully
+2024-11-30 09:25:04,924 - main - INFO - Generating suggestions
+2024-11-30 09:25:04,924 - main - INFO - Suggestions generated successfully
+2024-11-30 09:25:40,129 - main - INFO - Received query: complete projects
+2024-11-30 09:25:40,129 - main - INFO - Starting language detection
+2024-11-30 09:25:40,177 - translation_service - INFO - Detected language: fr
+2024-11-30 09:26:01,895 - main - INFO - Detected language: fr, Translated query: complete projects
+2024-11-30 09:26:01,895 - main - INFO - Parsing query intent
+2024-11-30 09:26:01,895 - main - INFO - Parsed filters: {}
+2024-11-30 09:26:01,911 - main - INFO - Fetching data from database
+2024-11-30 09:26:01,911 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 09:26:01,911 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:26:01,928 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 09:26:01,929 - main - INFO - Retrieved 396 records
+2024-11-30 09:26:01,929 - main - INFO - Generating response
+2024-11-30 09:26:01,929 - main - INFO - Response generated successfully
+2024-11-30 09:26:01,929 - main - INFO - Generating suggestions
+2024-11-30 09:26:01,945 - main - INFO - Suggestions generated successfully
+2024-11-30 09:26:39,520 - main - INFO - Received query: projects with the lowest budgets
+2024-11-30 09:26:39,520 - main - INFO - Starting language detection
+2024-11-30 09:26:39,531 - translation_service - INFO - Detected language: en
+2024-11-30 09:26:39,532 - main - INFO - Detected language: en, Translated query: projects with the lowest budgets
+2024-11-30 09:26:39,533 - main - INFO - Parsing query intent
+2024-11-30 09:26:39,533 - main - INFO - Parsed filters: {}
+2024-11-30 09:26:39,534 - main - INFO - Fetching data from database
+2024-11-30 09:26:39,534 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 09:26:39,535 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:26:39,545 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 09:26:39,546 - main - INFO - Retrieved 396 records
+2024-11-30 09:26:39,549 - main - INFO - Generating response
+2024-11-30 09:26:39,559 - main - INFO - Response generated successfully
+2024-11-30 09:26:39,559 - main - INFO - Generating suggestions
+2024-11-30 09:26:39,559 - main - INFO - Suggestions generated successfully
+2024-11-30 09:26:59,194 - main - INFO - Received query: projects with the highest budget
+2024-11-30 09:26:59,194 - main - INFO - Starting language detection
+2024-11-30 09:26:59,211 - translation_service - INFO - Detected language: en
+2024-11-30 09:26:59,212 - main - INFO - Detected language: en, Translated query: projects with the highest budget
+2024-11-30 09:26:59,213 - main - INFO - Parsing query intent
+2024-11-30 09:26:59,214 - main - INFO - Parsed filters: {}
+2024-11-30 09:26:59,215 - main - INFO - Fetching data from database
+2024-11-30 09:26:59,216 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 09:26:59,217 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:26:59,228 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 09:26:59,229 - main - INFO - Retrieved 396 records
+2024-11-30 09:26:59,232 - main - INFO - Generating response
+2024-11-30 09:26:59,242 - main - INFO - Response generated successfully
+2024-11-30 09:26:59,242 - main - INFO - Generating suggestions
+2024-11-30 09:26:59,242 - main - INFO - Suggestions generated successfully
+2024-11-30 09:34:28,871 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:37:25,985 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:37:31,560 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:37:38,892 - main - INFO - Received query: Show me projects in Central Region
+2024-11-30 09:37:38,892 - main - INFO - Starting language detection
+2024-11-30 09:37:39,409 - translation_service - INFO - Detected language: en
+2024-11-30 09:37:39,409 - main - INFO - Detected language: en, Translated query: Show me projects in Central Region
+2024-11-30 09:37:39,409 - main - INFO - Parsing query intent
+2024-11-30 09:37:39,409 - main - INFO - Parsed filters: {'region': 'Central Region'}
+2024-11-30 09:37:39,409 - main - INFO - Fetching data from database
+2024-11-30 09:37:39,409 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND REGION = ?
+        
+2024-11-30 09:37:39,409 - database.query_builder - INFO - Query parameters: ['Central Region']
+2024-11-30 09:37:39,643 - database.query_builder - INFO - Query returned 152 results
+2024-11-30 09:37:39,643 - main - INFO - Retrieved 152 records
+2024-11-30 09:37:39,643 - main - INFO - Generating response
+2024-11-30 09:37:39,692 - main - INFO - Response generated successfully
+2024-11-30 09:37:39,692 - main - INFO - Generating suggestions
+2024-11-30 09:37:39,692 - main - INFO - Suggestions generated successfully
+2024-11-30 09:39:22,929 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:39:22,929 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:39:34,937 - main - INFO - Received query: What education projects are there?
+2024-11-30 09:39:34,938 - main - INFO - Starting language detection
+2024-11-30 09:39:35,456 - translation_service - INFO - Detected language: en
+2024-11-30 09:39:35,456 - main - INFO - Detected language: en, Translated query: What education projects are there?
+2024-11-30 09:39:35,456 - main - INFO - Parsing query intent
+2024-11-30 09:39:35,456 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-30 09:39:35,456 - main - INFO - Fetching data from database
+2024-11-30 09:39:35,456 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 09:39:35,472 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 09:39:35,655 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 09:39:35,655 - main - INFO - Retrieved 118 records
+2024-11-30 09:39:35,655 - main - INFO - Generating response
+2024-11-30 09:39:35,689 - main - INFO - Response generated successfully
+2024-11-30 09:39:35,689 - main - INFO - Generating suggestions
+2024-11-30 09:39:35,708 - main - INFO - Suggestions generated successfully
+2024-11-30 09:39:53,463 - main - INFO - Received query: What projects are currently in progress?
+2024-11-30 09:39:53,463 - main - INFO - Starting language detection
+2024-11-30 09:39:53,473 - translation_service - INFO - Detected language: en
+2024-11-30 09:39:53,475 - main - INFO - Detected language: en, Translated query: What projects are currently in progress?
+2024-11-30 09:39:53,478 - main - INFO - Parsing query intent
+2024-11-30 09:39:53,478 - main - INFO - Parsed filters: {'in_progress': True}
+2024-11-30 09:39:53,479 - main - INFO - Fetching data from database
+2024-11-30 09:39:53,479 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND 
+                (
+                    CAST(COALESCE(COMPLETIONPERCENTAGE, 0) AS FLOAT) BETWEEN 0.1 AND 99.9
+                    AND LOWER(COALESCE(PROJECTSTATUS, '')) NOT LIKE '%complete%'
+                )
+            
+        
+2024-11-30 09:39:53,482 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:39:53,489 - database.query_builder - INFO - Query returned 32 results
+2024-11-30 09:39:53,493 - main - INFO - Retrieved 32 records
+2024-11-30 09:39:53,494 - main - INFO - Generating response
+2024-11-30 09:39:53,503 - main - INFO - Response generated successfully
+2024-11-30 09:39:53,504 - main - INFO - Generating suggestions
+2024-11-30 09:39:53,504 - main - INFO - Suggestions generated successfully
+2024-11-30 09:40:24,510 - main - INFO - Received query: projects with the highest budgets
+2024-11-30 09:40:24,510 - main - INFO - Starting language detection
+2024-11-30 09:40:24,534 - translation_service - INFO - Detected language: en
+2024-11-30 09:40:24,535 - main - INFO - Detected language: en, Translated query: projects with the highest budgets
+2024-11-30 09:40:24,536 - main - INFO - Parsing query intent
+2024-11-30 09:40:24,540 - main - INFO - Parsed filters: {}
+2024-11-30 09:40:24,545 - main - INFO - Fetching data from database
+2024-11-30 09:40:24,546 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 09:40:24,550 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:40:24,553 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 09:40:24,553 - main - INFO - Retrieved 396 records
+2024-11-30 09:40:24,553 - main - INFO - Generating response
+2024-11-30 09:40:24,570 - main - INFO - Response generated successfully
+2024-11-30 09:40:24,570 - main - INFO - Generating suggestions
+2024-11-30 09:40:24,570 - main - INFO - Suggestions generated successfully
+2024-11-30 09:40:24,798 - accelerate.big_modeling - WARNING - Some parameters are on the meta device because they were offloaded to the cpu and disk.
+2024-11-30 09:40:25,270 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:40:39,431 - main - INFO - Received query: Show me projects with the highest budget
+2024-11-30 09:40:39,431 - main - INFO - Starting language detection
+2024-11-30 09:40:39,454 - translation_service - INFO - Detected language: en
+2024-11-30 09:40:39,455 - main - INFO - Detected language: en, Translated query: Show me projects with the highest budget
+2024-11-30 09:40:39,459 - main - INFO - Parsing query intent
+2024-11-30 09:40:39,461 - main - INFO - Parsed filters: {}
+2024-11-30 09:40:39,462 - main - INFO - Fetching data from database
+2024-11-30 09:40:39,463 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 09:40:39,464 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:40:39,470 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 09:40:39,470 - main - INFO - Retrieved 396 records
+2024-11-30 09:40:39,470 - main - INFO - Generating response
+2024-11-30 09:40:39,486 - main - INFO - Response generated successfully
+2024-11-30 09:40:39,486 - main - INFO - Generating suggestions
+2024-11-30 09:40:39,486 - main - INFO - Suggestions generated successfully
+2024-11-30 09:40:47,464 - main - INFO - Received query: What education projects are there?
+2024-11-30 09:40:47,464 - main - INFO - Starting language detection
+2024-11-30 09:40:47,471 - translation_service - INFO - Detected language: en
+2024-11-30 09:40:47,471 - main - INFO - Detected language: en, Translated query: What education projects are there?
+2024-11-30 09:40:47,471 - main - INFO - Parsing query intent
+2024-11-30 09:40:47,471 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-30 09:40:47,471 - main - INFO - Fetching data from database
+2024-11-30 09:40:47,471 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 09:40:47,471 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 09:40:47,471 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 09:40:47,471 - main - INFO - Retrieved 118 records
+2024-11-30 09:40:47,471 - main - INFO - Generating response
+2024-11-30 09:40:47,487 - main - INFO - Response generated successfully
+2024-11-30 09:40:47,487 - main - INFO - Generating suggestions
+2024-11-30 09:40:47,487 - main - INFO - Suggestions generated successfully
+2024-11-30 09:41:10,049 - main - INFO - Received query: education projects with the highest budget
+2024-11-30 09:41:10,052 - main - INFO - Starting language detection
+2024-11-30 09:41:10,067 - translation_service - INFO - Detected language: en
+2024-11-30 09:41:10,068 - main - INFO - Detected language: en, Translated query: education projects with the highest budget
+2024-11-30 09:41:10,069 - main - INFO - Parsing query intent
+2024-11-30 09:41:10,078 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-30 09:41:10,078 - main - INFO - Fetching data from database
+2024-11-30 09:41:10,080 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 09:41:10,082 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 09:41:10,086 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 09:41:10,086 - main - INFO - Retrieved 118 records
+2024-11-30 09:41:10,086 - main - INFO - Generating response
+2024-11-30 09:41:10,098 - main - INFO - Response generated successfully
+2024-11-30 09:41:10,098 - main - INFO - Generating suggestions
+2024-11-30 09:41:10,098 - main - INFO - Suggestions generated successfully
+2024-11-30 09:41:41,853 - main - INFO - Received query: show me education projects that are complete
+2024-11-30 09:41:41,853 - main - INFO - Starting language detection
+2024-11-30 09:41:41,865 - translation_service - INFO - Detected language: en
+2024-11-30 09:41:41,866 - main - INFO - Detected language: en, Translated query: show me education projects that are complete
+2024-11-30 09:41:41,867 - main - INFO - Parsing query intent
+2024-11-30 09:41:41,869 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-30 09:41:41,874 - main - INFO - Fetching data from database
+2024-11-30 09:41:41,875 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 09:41:41,876 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 09:41:41,885 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 09:41:41,885 - main - INFO - Retrieved 118 records
+2024-11-30 09:41:41,885 - main - INFO - Generating response
+2024-11-30 09:41:41,903 - main - INFO - Response generated successfully
+2024-11-30 09:41:41,903 - main - INFO - Generating suggestions
+2024-11-30 09:41:41,903 - main - INFO - Suggestions generated successfully
+2024-11-30 09:48:28,753 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:48:28,769 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:48:36,861 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 09:49:09,457 - main - INFO - Received query: show me complete projects
+2024-11-30 09:49:09,457 - main - INFO - Starting language detection
+2024-11-30 09:49:10,207 - translation_service - INFO - Detected language: en
+2024-11-30 09:49:10,207 - main - INFO - Detected language: en, Translated query: show me complete projects
+2024-11-30 09:49:10,207 - main - INFO - Parsing query intent
+2024-11-30 09:49:10,207 - main - INFO - Parsed filters: {}
+2024-11-30 09:49:10,207 - main - INFO - Fetching data from database
+2024-11-30 09:49:10,223 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 09:49:10,223 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:49:11,073 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 09:49:11,073 - main - INFO - Retrieved 396 records
+2024-11-30 09:49:11,073 - main - INFO - Generating response
+2024-11-30 09:49:11,105 - main - INFO - Response generated successfully
+2024-11-30 09:49:11,106 - main - INFO - Generating suggestions
+2024-11-30 09:49:11,107 - main - INFO - Suggestions generated successfully
+2024-11-30 09:49:34,146 - main - INFO - Received query: projects with the highest budget
+2024-11-30 09:49:34,147 - main - INFO - Starting language detection
+2024-11-30 09:49:34,151 - translation_service - INFO - Detected language: en
+2024-11-30 09:49:34,151 - main - INFO - Detected language: en, Translated query: projects with the highest budget
+2024-11-30 09:49:34,152 - main - INFO - Parsing query intent
+2024-11-30 09:49:34,152 - main - INFO - Parsed filters: {}
+2024-11-30 09:49:34,154 - main - INFO - Fetching data from database
+2024-11-30 09:49:34,154 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 09:49:34,156 - database.query_builder - INFO - Query parameters: []
+2024-11-30 09:49:34,164 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 09:49:34,165 - main - INFO - Retrieved 396 records
+2024-11-30 09:49:34,166 - main - INFO - Generating response
+2024-11-30 09:49:34,173 - main - INFO - Response generated successfully
+2024-11-30 09:49:34,174 - main - INFO - Generating suggestions
+2024-11-30 09:49:34,175 - main - INFO - Suggestions generated successfully
+2024-11-30 09:59:16,400 - main - INFO - Static files mounted successfully at C:\Users\MukundiMphaphuli\Desktop\chatbot\app\static
+2024-11-30 10:05:34,965 - main - INFO - Received query: What education projects are there?
+2024-11-30 10:05:34,965 - main - INFO - Starting language detection
+2024-11-30 10:05:35,540 - translation_service - INFO - Detected language: en
+2024-11-30 10:05:35,540 - main - INFO - Detected language: en, Translated query: What education projects are there?
+2024-11-30 10:05:35,540 - main - INFO - Parsing query intent
+2024-11-30 10:05:35,540 - main - INFO - Parsed filters: {'sector': 'Education'}
+2024-11-30 10:05:35,540 - main - INFO - Fetching data from database
+2024-11-30 10:05:35,540 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND PROJECTSECTOR = ?
+        
+2024-11-30 10:05:35,540 - database.query_builder - INFO - Query parameters: ['Education']
+2024-11-30 10:05:35,764 - database.query_builder - INFO - Query returned 118 results
+2024-11-30 10:05:35,764 - main - INFO - Retrieved 118 records
+2024-11-30 10:05:35,764 - main - INFO - Generating response
+2024-11-30 10:05:35,814 - main - INFO - Response generated successfully
+2024-11-30 10:05:35,814 - main - INFO - Generating suggestions
+2024-11-30 10:05:35,831 - main - INFO - Suggestions generated successfully
+2024-11-30 10:05:44,314 - main - INFO - Received query: What projects are currently in progress?
+2024-11-30 10:05:44,314 - main - INFO - Starting language detection
+2024-11-30 10:05:44,330 - translation_service - INFO - Detected language: en
+2024-11-30 10:05:44,333 - main - INFO - Detected language: en, Translated query: What projects are currently in progress?
+2024-11-30 10:05:44,343 - main - INFO - Parsing query intent
+2024-11-30 10:05:44,344 - main - INFO - Parsed filters: {'in_progress': True}
+2024-11-30 10:05:44,345 - main - INFO - Fetching data from database
+2024-11-30 10:05:44,348 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1 AND 
+                (
+                    CAST(COALESCE(COMPLETIONPERCENTAGE, 0) AS FLOAT) BETWEEN 0.1 AND 99.9
+                    AND LOWER(COALESCE(PROJECTSTATUS, '')) NOT LIKE '%complete%'
+                )
+            
+        
+2024-11-30 10:05:44,350 - database.query_builder - INFO - Query parameters: []
+2024-11-30 10:05:44,360 - database.query_builder - INFO - Query returned 32 results
+2024-11-30 10:05:44,361 - main - INFO - Retrieved 32 records
+2024-11-30 10:05:44,361 - main - INFO - Generating response
+2024-11-30 10:05:44,363 - main - INFO - Response generated successfully
+2024-11-30 10:05:44,363 - main - INFO - Generating suggestions
+2024-11-30 10:05:44,363 - main - INFO - Suggestions generated successfully
+2024-11-30 10:05:52,662 - main - INFO - Received query: Show me projects with the highest budget
+2024-11-30 10:05:52,662 - main - INFO - Starting language detection
+2024-11-30 10:05:52,699 - translation_service - INFO - Detected language: en
+2024-11-30 10:05:52,700 - main - INFO - Detected language: en, Translated query: Show me projects with the highest budget
+2024-11-30 10:05:52,706 - main - INFO - Parsing query intent
+2024-11-30 10:05:52,707 - main - INFO - Parsed filters: {}
+2024-11-30 10:05:52,708 - main - INFO - Fetching data from database
+2024-11-30 10:05:52,709 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 10:05:52,710 - database.query_builder - INFO - Query parameters: []
+2024-11-30 10:05:52,723 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 10:05:52,724 - main - INFO - Retrieved 396 records
+2024-11-30 10:05:52,725 - main - INFO - Generating response
+2024-11-30 10:05:52,730 - main - INFO - Response generated successfully
+2024-11-30 10:05:52,730 - main - INFO - Generating suggestions
+2024-11-30 10:05:52,730 - main - INFO - Suggestions generated successfully
+2024-11-30 10:06:14,266 - main - INFO - Received query: complete projects
+2024-11-30 10:06:14,266 - main - INFO - Starting language detection
+2024-11-30 10:06:14,327 - translation_service - INFO - Detected language: fr
+2024-11-30 10:06:36,095 - main - INFO - Detected language: fr, Translated query: complete projects
+2024-11-30 10:06:36,095 - main - INFO - Parsing query intent
+2024-11-30 10:06:36,095 - main - INFO - Parsed filters: {}
+2024-11-30 10:06:36,095 - main - INFO - Fetching data from database
+2024-11-30 10:06:36,095 - database.query_builder - INFO - Executing query: 
+            SELECT 
+                PROJECTNAME,
+                PROJECTSTATUS,
+                PROJECTSECTOR,
+                PROJECTTYPE,
+                REGION,
+                DISTRICT,
+                BUDGET,
+                COMPLETIONPERCENTAGE,
+                PROJECTDESC
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        
+2024-11-30 10:06:36,095 - database.query_builder - INFO - Query parameters: []
+2024-11-30 10:06:36,112 - database.query_builder - INFO - Query returned 396 results
+2024-11-30 10:06:36,112 - main - INFO - Retrieved 396 records
+2024-11-30 10:06:36,112 - main - INFO - Generating response
+2024-11-30 10:06:36,132 - main - INFO - Response generated successfully
+2024-11-30 10:06:36,132 - main - INFO - Generating suggestions
+2024-11-30 10:06:36,132 - main - INFO - Suggestions generated successfully

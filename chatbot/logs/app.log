@@ -1,0 +1,191 @@
+2024-11-10 02:54:49,835 - infrastructure_chatbot - INFO - Loading project data...
+2024-11-10 02:54:49,835 - infrastructure_chatbot - INFO - Attempting to connect to database: C:\Users\MukundiMphaphuli\Desktop\Use Case 2\final_project\malawi_projects1.db
+2024-11-10 02:54:49,835 - infrastructure_chatbot - INFO - Successfully loaded 198 projects
+2024-11-10 02:54:49,835 - infrastructure_chatbot - INFO - Sample data: {'PROJECTNAME': 'Completion of Staff House', 'PROJECTCODE': '000ccd30', 'PROJECTSTATUS': 'Unknown', 'PROJECTSECTOR': 'Education', 'REGION': 'Central Region', 'DISTRICT': 'Dowa', 'BUDGET': 0.0, 'COMPLETIONPERCENTAGE': 0, 'PROJECTTYPE': 'Teacher house construction and rehabilitation', 'FUNDINGSOURCE': 'DDF'}
+2024-11-10 02:54:49,835 - infrastructure_chatbot - INFO - Loaded 198 projects
+2024-11-10 02:54:49,835 - infrastructure_chatbot - INFO - Initializing embeddings...
+2024-11-10 03:12:38,600 - infrastructure_chatbot - INFO - Embeddings initialized
+2024-11-10 03:12:38,600 - infrastructure_chatbot - INFO - Creating vector store...
+2024-11-10 03:12:46,911 - infrastructure_chatbot - INFO - Vector store created successfully
+2024-11-10 03:24:03,710 - infrastructure_chatbot - INFO - Received query: Show me projects in Central Region
+2024-11-10 03:24:03,710 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:24:03,717 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:24:03,719 - infrastructure_chatbot - INFO - English query: Show me projects in Central Region
+2024-11-10 03:24:21,078 - infrastructure_chatbot - INFO - Received query: What other Commercial services projects are there?
+2024-11-10 03:24:21,078 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:24:21,088 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:24:21,088 - infrastructure_chatbot - INFO - English query: What other Commercial services projects are there?
+2024-11-10 03:24:23,315 - infrastructure_chatbot - INFO - Received query: What other Commercial services projects are there?
+2024-11-10 03:24:23,318 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:24:23,322 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:24:23,323 - infrastructure_chatbot - INFO - English query: What other Commercial services projects are there?
+2024-11-10 03:24:41,372 - infrastructure_chatbot - INFO - Received query: What are the major infrastructure projects?
+2024-11-10 03:24:41,372 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:24:41,372 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:24:41,372 - infrastructure_chatbot - INFO - English query: What are the major infrastructure projects?
+2024-11-10 03:25:19,042 - infrastructure_chatbot - INFO - Received query: projects with the highest budgets
+2024-11-10 03:25:19,049 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:25:19,051 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:25:19,055 - infrastructure_chatbot - INFO - English query: projects with the highest budgets
+2024-11-10 03:29:21,560 - infrastructure_chatbot - INFO - Received query: completed projects
+2024-11-10 03:29:21,560 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:29:21,560 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:29:21,560 - infrastructure_chatbot - INFO - English query: completed projects
+2024-11-10 03:35:43,790 - infrastructure_chatbot - INFO - Loading project data...
+2024-11-10 03:35:43,790 - infrastructure_chatbot - INFO - Attempting to connect to database: C:\Users\MukundiMphaphuli\Desktop\Use Case 2\final_project\malawi_projects1.db
+2024-11-10 03:35:43,790 - infrastructure_chatbot - INFO - Successfully loaded 198 projects
+2024-11-10 03:35:43,790 - infrastructure_chatbot - INFO - Sample data: {'PROJECTNAME': 'Completion of Staff House', 'PROJECTCODE': '000ccd30', 'PROJECTSTATUS': 'Unknown', 'PROJECTSECTOR': 'Education', 'REGION': 'Central Region', 'DISTRICT': 'Dowa', 'BUDGET': 0.0, 'COMPLETIONPERCENTAGE': 0, 'PROJECTTYPE': 'Teacher house construction and rehabilitation', 'FUNDINGSOURCE': 'DDF'}
+2024-11-10 03:35:43,790 - infrastructure_chatbot - INFO - Loaded 198 projects
+2024-11-10 03:35:43,790 - infrastructure_chatbot - INFO - Initializing embeddings...
+2024-11-10 03:35:48,167 - infrastructure_chatbot - INFO - Embeddings initialized
+2024-11-10 03:35:48,167 - infrastructure_chatbot - INFO - Creating vector store...
+2024-11-10 03:35:58,379 - infrastructure_chatbot - INFO - Vector store created successfully
+2024-11-10 03:36:13,885 - infrastructure_chatbot - INFO - Received query: What education projects are there?
+2024-11-10 03:36:13,888 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:36:13,892 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:36:13,892 - infrastructure_chatbot - INFO - English query: What education projects are there?
+2024-11-10 03:36:13,892 - infrastructure_chatbot - INFO - Attempting to connect to database: C:\Users\MukundiMphaphuli\Desktop\Use Case 2\final_project\malawi_projects1.db
+2024-11-10 03:36:13,902 - infrastructure_chatbot - INFO - Successfully loaded 198 projects
+2024-11-10 03:36:13,902 - infrastructure_chatbot - INFO - Sample data: {'PROJECTNAME': 'Completion of Staff House', 'PROJECTCODE': '000ccd30', 'PROJECTSTATUS': 'Unknown', 'PROJECTSECTOR': 'Education', 'REGION': 'Central Region', 'DISTRICT': 'Dowa', 'BUDGET': 0.0, 'COMPLETIONPERCENTAGE': 0, 'PROJECTTYPE': 'Teacher house construction and rehabilitation', 'FUNDINGSOURCE': 'DDF'}
+2024-11-10 03:36:24,798 - infrastructure_chatbot - INFO - Received query: What projects are funded by PBG?
+2024-11-10 03:36:24,800 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:36:24,804 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:36:24,806 - infrastructure_chatbot - INFO - English query: What projects are funded by PBG?
+2024-11-10 03:36:24,807 - infrastructure_chatbot - INFO - Attempting to connect to database: C:\Users\MukundiMphaphuli\Desktop\Use Case 2\final_project\malawi_projects1.db
+2024-11-10 03:36:24,820 - infrastructure_chatbot - INFO - Successfully loaded 198 projects
+2024-11-10 03:36:24,822 - infrastructure_chatbot - INFO - Sample data: {'PROJECTNAME': 'Completion of Staff House', 'PROJECTCODE': '000ccd30', 'PROJECTSTATUS': 'Unknown', 'PROJECTSECTOR': 'Education', 'REGION': 'Central Region', 'DISTRICT': 'Dowa', 'BUDGET': 0.0, 'COMPLETIONPERCENTAGE': 0, 'PROJECTTYPE': 'Teacher house construction and rehabilitation', 'FUNDINGSOURCE': 'DDF'}
+2024-11-10 03:36:46,584 - infrastructure_chatbot - INFO - Received query: What are the major infrastructure projects?
+2024-11-10 03:36:46,584 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:36:46,588 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:36:46,588 - infrastructure_chatbot - INFO - English query: What are the major infrastructure projects?
+2024-11-10 03:36:46,588 - infrastructure_chatbot - INFO - Attempting to connect to database: C:\Users\MukundiMphaphuli\Desktop\Use Case 2\final_project\malawi_projects1.db
+2024-11-10 03:36:46,607 - infrastructure_chatbot - INFO - Successfully loaded 198 projects
+2024-11-10 03:36:46,609 - infrastructure_chatbot - INFO - Sample data: {'PROJECTNAME': 'Completion of Staff House', 'PROJECTCODE': '000ccd30', 'PROJECTSTATUS': 'Unknown', 'PROJECTSECTOR': 'Education', 'REGION': 'Central Region', 'DISTRICT': 'Dowa', 'BUDGET': 0.0, 'COMPLETIONPERCENTAGE': 0, 'PROJECTTYPE': 'Teacher house construction and rehabilitation', 'FUNDINGSOURCE': 'DDF'}
+2024-11-10 03:37:05,405 - infrastructure_chatbot - INFO - Received query: projects with the highest budgests
+2024-11-10 03:37:05,405 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:37:05,405 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:37:05,405 - infrastructure_chatbot - INFO - English query: projects with the highest budgests
+2024-11-10 03:37:05,405 - infrastructure_chatbot - INFO - Attempting to connect to database: C:\Users\MukundiMphaphuli\Desktop\Use Case 2\final_project\malawi_projects1.db
+2024-11-10 03:37:05,421 - infrastructure_chatbot - INFO - Successfully loaded 198 projects
+2024-11-10 03:37:05,421 - infrastructure_chatbot - INFO - Sample data: {'PROJECTNAME': 'Completion of Staff House', 'PROJECTCODE': '000ccd30', 'PROJECTSTATUS': 'Unknown', 'PROJECTSECTOR': 'Education', 'REGION': 'Central Region', 'DISTRICT': 'Dowa', 'BUDGET': 0.0, 'COMPLETIONPERCENTAGE': 0, 'PROJECTTYPE': 'Teacher house construction and rehabilitation', 'FUNDINGSOURCE': 'DDF'}
+2024-11-10 03:41:36,164 - infrastructure_chatbot - INFO - Loading project data...
+2024-11-10 03:41:36,164 - infrastructure_chatbot - INFO - Attempting to connect to database: C:\Users\MukundiMphaphuli\Desktop\Use Case 2\final_project\malawi_projects1.db
+2024-11-10 03:41:36,167 - infrastructure_chatbot - INFO - Successfully loaded 198 projects
+2024-11-10 03:41:36,167 - infrastructure_chatbot - INFO - Sample data: {'PROJECTNAME': 'Completion of Staff House', 'PROJECTCODE': '000ccd30', 'PROJECTSTATUS': 'Unknown', 'PROJECTSECTOR': 'Education', 'REGION': 'Central Region', 'DISTRICT': 'Dowa', 'BUDGET': 0.0, 'COMPLETIONPERCENTAGE': 0, 'PROJECTTYPE': 'Teacher house construction and rehabilitation', 'FUNDINGSOURCE': 'DDF'}
+2024-11-10 03:41:36,167 - infrastructure_chatbot - INFO - Loaded 198 projects
+2024-11-10 03:41:36,167 - infrastructure_chatbot - INFO - Initializing embeddings...
+2024-11-10 03:41:40,866 - infrastructure_chatbot - INFO - Embeddings initialized
+2024-11-10 03:41:40,866 - infrastructure_chatbot - INFO - Creating vector store...
+2024-11-10 03:41:51,907 - infrastructure_chatbot - INFO - Vector store created successfully
+2024-11-10 03:42:05,315 - infrastructure_chatbot - INFO - Received query: What are the current infrastructure projects?
+2024-11-10 03:42:05,315 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:42:05,315 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:42:05,325 - infrastructure_chatbot - INFO - English query: What are the current infrastructure projects?
+2024-11-10 03:42:05,328 - infrastructure_chatbot - ERROR - Error processing query: 'Settings' object has no attribute 'SECTOR_KEYWORDS'
+2024-11-10 03:42:10,047 - infrastructure_chatbot - INFO - Received query: Show me infrastructure projects
+2024-11-10 03:42:10,047 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:42:10,047 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:42:10,047 - infrastructure_chatbot - INFO - English query: Show me infrastructure projects
+2024-11-10 03:42:10,047 - infrastructure_chatbot - ERROR - Error processing query: 'Settings' object has no attribute 'SECTOR_KEYWORDS'
+2024-11-10 03:42:11,558 - infrastructure_chatbot - INFO - Received query: What projects are ongoing?
+2024-11-10 03:42:11,558 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:42:11,558 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:42:11,558 - infrastructure_chatbot - INFO - English query: What projects are ongoing?
+2024-11-10 03:42:11,558 - infrastructure_chatbot - ERROR - Error processing query: 'Settings' object has no attribute 'SECTOR_KEYWORDS'
+2024-11-10 03:45:18,366 - infrastructure_chatbot - INFO - Loading project data...
+2024-11-10 03:45:18,382 - infrastructure_chatbot - INFO - Attempting to connect to database: C:\Users\MukundiMphaphuli\Desktop\Use Case 2\final_project\malawi_projects1.db
+2024-11-10 03:45:18,382 - infrastructure_chatbot - INFO - Successfully loaded 198 projects
+2024-11-10 03:45:18,382 - infrastructure_chatbot - INFO - Sample data: {'PROJECTNAME': 'Completion of Staff House', 'PROJECTCODE': '000ccd30', 'PROJECTSTATUS': 'Unknown', 'PROJECTSECTOR': 'Education', 'REGION': 'Central Region', 'DISTRICT': 'Dowa', 'BUDGET': 0.0, 'COMPLETIONPERCENTAGE': 0, 'PROJECTTYPE': 'Teacher house construction and rehabilitation', 'FUNDINGSOURCE': 'DDF'}
+2024-11-10 03:45:18,382 - infrastructure_chatbot - INFO - Loaded 198 projects
+2024-11-10 03:45:18,382 - infrastructure_chatbot - INFO - Initializing embeddings...
+2024-11-10 03:45:22,710 - infrastructure_chatbot - INFO - Embeddings initialized
+2024-11-10 03:45:22,710 - infrastructure_chatbot - INFO - Creating vector store...
+2024-11-10 03:45:32,916 - infrastructure_chatbot - INFO - Vector store created successfully
+2024-11-10 03:45:44,939 - infrastructure_chatbot - INFO - Received query: Show me projects in Central Region
+2024-11-10 03:45:44,939 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:45:44,943 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:45:44,943 - infrastructure_chatbot - INFO - English query: Show me projects in Central Region
+2024-11-10 03:45:44,943 - infrastructure_chatbot - ERROR - Error processing query: 'Settings' object has no attribute 'SECTOR_KEYWORDS'
+2024-11-10 03:45:47,023 - infrastructure_chatbot - INFO - Received query: What projects are ongoing?
+2024-11-10 03:45:47,023 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:45:47,023 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:45:47,023 - infrastructure_chatbot - INFO - English query: What projects are ongoing?
+2024-11-10 03:45:47,037 - infrastructure_chatbot - ERROR - Error processing query: 'Settings' object has no attribute 'SECTOR_KEYWORDS'
+2024-11-10 03:45:49,059 - infrastructure_chatbot - INFO - Received query: What are the current projects?
+2024-11-10 03:45:49,059 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:45:49,059 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:45:49,059 - infrastructure_chatbot - INFO - English query: What are the current projects?
+2024-11-10 03:45:49,059 - infrastructure_chatbot - ERROR - Error processing query: 'Settings' object has no attribute 'SECTOR_KEYWORDS'
+2024-11-10 03:53:53,095 - infrastructure_chatbot - INFO - Loading project data...
+2024-11-10 03:53:53,095 - infrastructure_chatbot - INFO - Attempting to connect to database: C:\Users\MukundiMphaphuli\Desktop\Use Case 2\final_project\malawi_projects1.db
+2024-11-10 03:53:53,095 - infrastructure_chatbot - INFO - Dataframe shape after query: (198, 10)
+2024-11-10 03:53:53,095 - infrastructure_chatbot - INFO - Sample data: {'PROJECTNAME': 'Completion of Staff House', 'PROJECTCODE': '000ccd30', 'PROJECTSTATUS': 'Unknown', 'PROJECTSECTOR': 'Education', 'REGION': 'Central Region', 'DISTRICT': 'Dowa', 'BUDGET': 0.0, 'COMPLETIONPERCENTAGE': 0, 'PROJECTTYPE': 'Teacher house construction and rehabilitation', 'FUNDINGSOURCE': 'DDF'}
+2024-11-10 03:53:53,111 - infrastructure_chatbot - INFO - Loaded 198 projects
+2024-11-10 03:53:53,111 - infrastructure_chatbot - INFO - Initializing embeddings...
+2024-11-10 03:53:57,120 - infrastructure_chatbot - INFO - Embeddings initialized
+2024-11-10 03:53:57,120 - infrastructure_chatbot - INFO - Creating vector store...
+2024-11-10 03:54:07,284 - infrastructure_chatbot - INFO - Vector store created successfully
+2024-11-10 03:54:21,034 - infrastructure_chatbot - INFO - Received query: Show me projects in Central Region
+2024-11-10 03:54:21,034 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:54:21,034 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:54:21,034 - infrastructure_chatbot - INFO - English query: Show me projects in Central Region
+2024-11-10 03:54:21,041 - infrastructure_chatbot - ERROR - Error processing query: 'Settings' object has no attribute 'SECTOR_KEYWORDS'
+2024-11-10 03:54:30,679 - infrastructure_chatbot - INFO - Received query: Show me infrastructure projects
+2024-11-10 03:54:30,679 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 03:54:30,679 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 03:54:30,679 - infrastructure_chatbot - INFO - English query: Show me infrastructure projects
+2024-11-10 03:54:30,679 - infrastructure_chatbot - ERROR - Error processing query: 'Settings' object has no attribute 'SECTOR_KEYWORDS'
+2024-11-10 06:09:05,157 - infrastructure_chatbot - INFO - Verifying database connection...
+2024-11-10 06:09:05,157 - infrastructure_chatbot - INFO - Available tables: [('proj_dashboard',), ('proj_dashboard_v2',)]
+2024-11-10 06:09:05,157 - infrastructure_chatbot - INFO - Found 396 projects in database
+2024-11-10 06:09:05,157 - infrastructure_chatbot - INFO - Loading project data...
+2024-11-10 06:09:05,157 - infrastructure_chatbot - INFO - Database connection established
+2024-11-10 06:09:05,173 - infrastructure_chatbot - INFO - Retrieved 396 projects from database
+2024-11-10 06:09:05,173 - infrastructure_chatbot - INFO - Loaded 396 projects
+2024-11-10 06:09:05,173 - infrastructure_chatbot - INFO - Initializing embeddings...
+2024-11-10 06:09:40,036 - infrastructure_chatbot - INFO - Vector store created successfully
+2024-11-10 06:13:13,739 - infrastructure_chatbot - INFO - Received query: What are the current infrastructure projects?
+2024-11-10 06:13:13,740 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 06:13:13,741 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 06:13:13,744 - infrastructure_chatbot - INFO - English query: What are the current infrastructure projects?
+2024-11-10 06:13:36,574 - infrastructure_chatbot - INFO - Received query: projects with the highest budgets
+2024-11-10 06:13:36,574 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 06:13:36,574 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 06:13:36,584 - infrastructure_chatbot - INFO - English query: projects with the highest budgets
+2024-11-10 07:38:28,763 - infrastructure_chatbot - INFO - Received query: show me the projects with the lowest budgets
+2024-11-10 07:38:28,767 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 07:38:28,767 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 07:38:28,767 - infrastructure_chatbot - INFO - English query: show me the projects with the lowest budgets
+2024-11-10 07:40:54,756 - infrastructure_chatbot - INFO - Received query: ndiwonetseni mapulojekiti omwe ali ndi bajeti yapamwamba kwambiri
+2024-11-10 07:40:54,756 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 07:40:54,756 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 07:40:54,756 - infrastructure_chatbot - INFO - English query: ndiwonetseni mapulojekiti omwe ali ndi bajeti yapamwamba kwambiri
+2024-11-10 07:51:18,126 - infrastructure_chatbot - INFO - Verifying database connection...
+2024-11-10 07:51:18,126 - infrastructure_chatbot - INFO - Available tables: [('proj_dashboard',), ('proj_dashboard_v2',)]
+2024-11-10 07:51:18,126 - infrastructure_chatbot - INFO - Found 396 projects in database
+2024-11-10 07:51:18,141 - infrastructure_chatbot - INFO - Loading project data...
+2024-11-10 07:51:18,141 - infrastructure_chatbot - INFO - Database connection established
+2024-11-10 07:51:18,145 - infrastructure_chatbot - INFO - Retrieved 62 projects from database
+2024-11-10 07:51:18,145 - infrastructure_chatbot - INFO - Loaded 62 projects
+2024-11-10 07:51:18,145 - infrastructure_chatbot - INFO - Initializing embeddings...
+2024-11-10 07:51:27,091 - infrastructure_chatbot - INFO - Vector store created successfully
+2024-11-10 07:51:47,354 - infrastructure_chatbot - INFO - Received query: ndiwonetseni mapulojekiti omwe ali ndi bajeti yapamwamba kwambiri
+2024-11-10 07:51:47,354 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 07:51:47,354 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 07:51:47,354 - infrastructure_chatbot - INFO - English query: ndiwonetseni mapulojekiti omwe ali ndi bajeti yapamwamba kwambiri
+2024-11-10 07:53:03,495 - infrastructure_chatbot - INFO - Received query: Nilongorani mapulojekiti agho ghali na bajeti yikuru
+2024-11-10 07:53:03,495 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 07:53:03,495 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 07:53:03,495 - infrastructure_chatbot - INFO - English query: Nilongorani mapulojekiti agho ghali na bajeti yikuru
+2024-11-10 07:55:03,703 - infrastructure_chatbot - INFO - Received query: show me the projects with the highest budget that 100% complete
+2024-11-10 07:55:03,706 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 07:55:03,708 - infrastructure_chatbot - INFO - Detected language: en
+2024-11-10 07:55:03,709 - infrastructure_chatbot - INFO - English query: show me the projects with the highest budget that 100% complete
+2024-11-10 07:55:03,711 - infrastructure_chatbot - INFO - Database connection established
+2024-11-10 07:55:03,713 - infrastructure_chatbot - INFO - Retrieved 5 projects from database
+2024-11-10 08:05:16,545 - infrastructure_chatbot - INFO - Received query: show me the projects with the highest budget that 100% complete
+2024-11-10 08:05:16,545 - infrastructure_chatbot - ERROR - Translation error: 'GoogleTranslator' object has no attribute 'detect'
+2024-11-10 08:05:16,553 - infrastructure_chatbot - INFO - Processing query: show me the projects with the highest budget that 100% complete
+2024-11-10 08:05:16,553 - infrastructure_chatbot - INFO - Database connection established
+2024-11-10 08:05:16,569 - infrastructure_chatbot - INFO - Retrieved 2 projects from database
+2024-11-10 08:05:16,569 - infrastructure_chatbot - ERROR - Error processing query: name 'format_currency' is not defined
