@@ -49,6 +49,15 @@ app = FastAPI(
     redoc_url="/api/redoc"
 )
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Initialize services
 query_parser = get_query_parser()
 response_generator = ResponseGenerator()
@@ -72,15 +81,6 @@ try:
         logger.warning(f"Static directory not found at {config.STATIC_DIR}")
 except Exception as e:
     logger.error(f"Error mounting static files: {e}")
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=config.ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
-)
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
