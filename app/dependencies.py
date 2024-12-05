@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 import logging
 from functools import lru_cache
-from models import QueryParser
+from app.models import QueryParser
 
 logger = logging.getLogger(__name__)
 
