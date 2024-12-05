@@ -64,3 +64,29 @@ credentials/
 
 # Documentation
 docs/_build/
+
+# Service files and sensitive data
+*.service
+.env
+*.env
+/services/*.service
+
+# Logs
+*.log
+/var/log/
+
+# Backup files
+*.bak
+
+# Service files and sensitive data
+*.service
+.env
+*.env
+/services/*.service
+
+# Logs
+*.log
+/var/log/
+
+# Backup files
+*.bak
