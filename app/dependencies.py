@@ -22,8 +22,18 @@ def get_query_parser():
 @lru_cache()
 def get_model():
     try:
+        import warnings
         from transformers import AutoModelForCausalLM
-        return AutoModelForCausalLM.from_pretrained("microsoft/phi-2", device_map="auto")
+        
+        # Suppress deprecation warnings
+        warnings.filterwarnings('ignore', category=FutureWarning)
+        
+        model = AutoModelForCausalLM.from_pretrained(
+            "microsoft/phi-2",
+            device_map="auto",
+            trust_remote_code=True
+        )
+        return model
     except Exception as e:
         logger.error(f"Error loading model: {e}")
         return None
@@ -31,8 +41,18 @@ def get_model():
 @lru_cache()
 def get_tokenizer():
     try:
+        import warnings
         from transformers import AutoTokenizer
-        return AutoTokenizer.from_pretrained("microsoft/phi-2")
+        
+        # Suppress deprecation warnings
+        warnings.filterwarnings('ignore', category=FutureWarning)
+        
+        tokenizer = AutoTokenizer.from_pretrained(
+            "microsoft/phi-2",
+            trust_remote_code=True,
+            padding_side="left"
+        )
+        return tokenizer
     except Exception as e:
         logger.error(f"Error loading tokenizer: {e}")
         return None
