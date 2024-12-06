@@ -34,6 +34,9 @@ class Config:
     ALLOWED_ORIGINS = [
         "http://localhost:8000",
         "http://localhost:3000",
+        "http://154.0.164.254:8000",
+        "http://154.0.164.254:3000",
+        "http://154.0.164.254:8001"
     ]
     MODEL_MAX_LENGTH = 512
     TEMPERATURE = 0.7
