@@ -8,12 +8,12 @@ import logging
 from typing import Optional, List, Dict, Any
 
 # Import our custom modules
-from app.models import ChatQuery, ChatResponse, QueryParser
-from app.dependencies import get_templates, get_query_parser, get_model, get_tokenizer
-from app.response_generator import ResponseGenerator
-from app.translation_service import TranslationService
-from app.suggestion_generator import SuggestionGenerator
-from app.database.query_builder import DatabaseManager
+from .models import ChatQuery, ChatResponse, QueryParser
+from .dependencies import get_templates, get_query_parser, get_model, get_tokenizer
+from .response_generator import ResponseGenerator
+from .translation_service import TranslationService
+from .suggestion_generator import SuggestionGenerator
+from .database.query_builder import DatabaseManager
 
 # Set up logging
 logging.basicConfig(
@@ -85,14 +85,14 @@ try:
 except Exception as e:
     logger.error(f"Error mounting static files: {e}")
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/api/rag-sql-chatbot/", response_class=HTMLResponse)
 async def home(request: Request):
     """Home page endpoint"""
     if not templates:
         raise HTTPException(status_code=500, detail="Templates not configured")
     return templates.TemplateResponse("chat.html", {"request": request})
 
-@app.get("/test")
+@app.get("/api/rag-sql-chatbot/test")
 async def test_endpoint():
     """Basic test endpoint"""
     try:
@@ -107,7 +107,7 @@ async def test_endpoint():
         logger.error(f"Test endpoint error: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.get("/test/db")
+@app.get("/api/rag-sql-chatbot/test/db")
 async def test_db():
     """Test database connection and query"""
     try:
@@ -120,7 +120,7 @@ async def test_db():
         logger.error(f"Database test error: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.get("/test/parser/{query}")
+@app.get("/api/rag-sql-chatbot/test/parser/{query}")
 async def test_parser(query: str):
     """Test query parser functionality"""
     try:
@@ -135,16 +135,17 @@ async def test_parser(query: str):
         logger.error(f"Parser test error: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat(query: ChatQuery):
-    """Main chat endpoint"""
+@app.post("/api/rag-sql-chatbot/query", response_model=ChatResponse)
+async def query(query: ChatQuery):
+    """Main query endpoint"""
     try:
         logger.info(f"Received query: {query.message}")
         
         # Detect language and translate
         logger.info("Starting language detection")
-        source_lang, english_query = await translation_service.detect_and_translate(query.message)
-        logger.info(f"Detected language: {source_lang}, Translated query: {english_query}")
+        source_lang = query.language if query.language else 'en'
+        english_query = await translation_service.detect_and_translate(query.message)[1]
+        logger.info(f"Language: {source_lang}, Translated query: {english_query}")
         
         # Parse filters
         logger.info("Parsing query intent")
@@ -189,13 +190,13 @@ async def chat(query: ChatQuery):
         )
 
     except Exception as e:
-        logger.error(f"Error processing chat request: {e}", exc_info=True)
+        logger.error(f"Error processing query request: {e}", exc_info=True)
         return ChatResponse(
             answer=f"Sorry, an error occurred: {str(e)}",
             suggested_questions=[]
         )
 
-@app.post("/chat/more", response_model=ChatResponse)
+@app.post("/api/rag-sql-chatbot/more", response_model=ChatResponse)
 async def get_more_results(query: ChatQuery):
     """Pagination endpoint"""
     try:
@@ -243,12 +244,71 @@ async def get_more_results(query: ChatQuery):
             suggested_questions=[]
         )
 
+@app.get("/api/rag-sql-chatbot/status")
+async def get_status():
+    """Get service health status"""
+    try:
+        # Check database connection
+        db_status = "ok" if db_manager else "error"
+        
+        # Check model and tokenizer
+        model_status = "ok" if model else "error"
+        
+        # Check query parser
+        parser_status = "ok" if query_parser else "error"
+        
+        return {
+            "status": "ok" if all([db_status == "ok", model_status == "ok", parser_status == "ok"]) else "error",
+            "database": db_status,
+            "model": model_status,
+            "query_parser": parser_status
+        }
+    except Exception as e:
+        logger.error(f"Error checking service status: {e}")
+        return {
+            "status": "error",
+            "detail": str(e)
+        }
+
+@app.get("/test/parser/{query}")
+async def test_parser(query: str):
+    """Test query parser functionality"""
+    try:
+        filters = query_parser.parse_query_intent(query, 'en')
+        return {
+            "status": "success",
+            "original_query": query,
+            "parsed_filters": filters
+        }
+    except Exception as e:
+        logger.error(f"Parser test error: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+@app.get("/test/db")
+async def test_db():
+    """Test database connection and query"""
+    try:
+        project_count = len(db_manager.get_project_data({}))
+        return {
+            "status": "success",
+            "project_count": project_count
+        }
+    except Exception as e:
+        logger.error(f"Database test error: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
         host="127.0.0.1",
-        port=8080,
+        port=8001,
         reload=True,
         log_level="info"
     )

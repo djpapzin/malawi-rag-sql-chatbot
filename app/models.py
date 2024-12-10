@@ -6,7 +6,8 @@ logger = logging.getLogger(__name__)
 
 class ChatQuery(BaseModel):
     message: str = Field(..., min_length=1, max_length=1000)
-    chat_history: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+    language: Optional[str] = Field(default="en", description="Language code for the response")
+    chat_history: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Chat history for context")
 
     class Config:
         from_attributes = True
