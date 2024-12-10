@@ -1,5 +1,7 @@
 # RAG SQL Chatbot Demo
 
+Repository: https://github.com/djpapzin/RAG-SQL-Chatbot
+
 A chatbot that uses Retrieval Augmented Generation (RAG) to provide natural language interface for querying SQL databases. Currently configured for Malawi infrastructure projects database.
 
 ## Features
