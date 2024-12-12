@@ -126,7 +126,7 @@ class ResponseGenerator:
             budget = float(row['BUDGET'] or 0)
             
             project_info = [
-                f"\n📍 {row['PROJECTNAME']}",
+                f"\n {row['PROJECTNAME']}",
                 f"• Sector: {row.get('PROJECTSECTOR', 'Sector not specified')}",
                 f"• Status: {self._format_status(completion)}",
                 f"• Location: {row.get('DISTRICT', 'Location not specified')}, {row.get('REGION', '')}",
@@ -142,7 +142,7 @@ class ResponseGenerator:
             logger.error(f"Error formatting project info: {e}")
             return ["\nError formatting project information"]
 
-    async def generate_response(
+    def generate_response(
         self,
         df: pd.DataFrame,
         filters: Dict[str, Any],
@@ -192,7 +192,7 @@ class ResponseGenerator:
             logger.error(f"Error generating response: {e}", exc_info=True)
             raise
 
-    async def generate_paginated_response(
+    def generate_paginated_response(
         self,
         df: pd.DataFrame,
         pagination_info: Dict[str, Any],

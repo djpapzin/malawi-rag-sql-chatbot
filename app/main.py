@@ -144,7 +144,7 @@ async def query(query: ChatQuery):
         # Detect language and translate
         logger.info("Starting language detection")
         source_lang = query.language if query.language else 'en'
-        english_query = await translation_service.detect_and_translate(query.message)[1]
+        detected_lang, english_query = translation_service.detect_and_translate(query.message)
         logger.info(f"Language: {source_lang}, Translated query: {english_query}")
         
         # Parse filters
@@ -166,7 +166,7 @@ async def query(query: ChatQuery):
 
         # Generate response
         logger.info("Generating response")
-        answer = await response_generator.generate_response(
+        answer = response_generator.generate_response(
             df=df,
             filters=filters,
             language=source_lang,
@@ -177,7 +177,7 @@ async def query(query: ChatQuery):
 
         # Generate suggestions
         logger.info("Generating suggestions")
-        suggestions = await suggestion_generator.generate_suggestions(
+        suggestions = suggestion_generator.generate_suggestions(
             filters=filters,
             df=df,
             language=source_lang
@@ -197,7 +197,7 @@ async def query(query: ChatQuery):
         )
 
 @app.post("/api/rag-sql-chatbot/more", response_model=ChatResponse)
-async def get_more_results(query: ChatQuery):
+def get_more_results(query: ChatQuery):
     """Pagination endpoint"""
     try:
         source_lang = translation_service.detect_language(query.message)
@@ -209,7 +209,7 @@ async def get_more_results(query: ChatQuery):
             )
 
         # Get pagination info and data
-        pagination_info = await response_generator.get_pagination_info(query.chat_history)
+        pagination_info = response_generator.get_pagination_info(query.chat_history)
         df = db_manager.get_project_data(pagination_info['filters'])
 
         if df.empty or pagination_info['offset'] >= len(df):
@@ -219,14 +219,14 @@ async def get_more_results(query: ChatQuery):
             )
 
         # Generate paginated response
-        answer = await response_generator.generate_paginated_response(
+        answer = response_generator.generate_paginated_response(
             df=df,
             pagination_info=pagination_info,
             language=source_lang
         )
 
         # Generate suggestions
-        suggestions = await suggestion_generator.generate_suggestions(
+        suggestions = suggestion_generator.generate_suggestions(
             filters=pagination_info['filters'],
             df=df,
             language=source_lang
@@ -245,6 +245,7 @@ async def get_more_results(query: ChatQuery):
         )
 
 @app.get("/api/rag-sql-chatbot/status")
+@app.head("/api/rag-sql-chatbot/status")
 async def get_status():
     """Get service health status"""
     try:
@@ -307,7 +308,7 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
-        host="127.0.0.1",
+        host="0.0.0.0",
         port=8001,
         reload=True,
         log_level="info"

@@ -9,7 +9,7 @@ class SuggestionGenerator:
     def __init__(self):
         self.suggestions_cache = {}
 
-    async def generate_suggestions(
+    def generate_suggestions(
         self,
         filters: Dict[str, Any],
         df: pd.DataFrame,

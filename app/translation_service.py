@@ -25,7 +25,7 @@ class TranslationService:
             }
         }
 
-    async def detect_and_translate(self, text: str) -> Tuple[str, str]:
+    def detect_and_translate(self, text: str) -> Tuple[str, str]:
         """Detect language and translate to English if needed"""
         try:
             source_lang = detect(text)
