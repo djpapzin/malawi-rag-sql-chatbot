@@ -36,7 +36,8 @@ class Config:
         "http://localhost:3000",
         "http://154.0.164.254:8000",
         "http://154.0.164.254:3000",
-        "http://154.0.164.254:8001"
+        "http://154.0.164.254:8001",
+        "https://ai.kwantu.support"
     ]
     MODEL_MAX_LENGTH = 512
     TEMPERATURE = 0.7
@@ -48,6 +49,7 @@ app = FastAPI(
     title="Malawi Projects Chatbot",
     description="A chatbot for querying Malawi infrastructure projects",
     version="1.0.0",
+    root_path="/api/rag-sql-chatbot",
     docs_url="/api/docs",
     redoc_url="/api/redoc"
 )
@@ -85,14 +87,14 @@ try:
 except Exception as e:
     logger.error(f"Error mounting static files: {e}")
 
-@app.get("/api/rag-sql-chatbot/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Home page endpoint"""
     if not templates:
         raise HTTPException(status_code=500, detail="Templates not configured")
     return templates.TemplateResponse("chat.html", {"request": request})
 
-@app.get("/api/rag-sql-chatbot/test")
+@app.get("/test")
 async def test_endpoint():
     """Basic test endpoint"""
     try:
@@ -107,7 +109,7 @@ async def test_endpoint():
         logger.error(f"Test endpoint error: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.get("/api/rag-sql-chatbot/test/db")
+@app.get("/test/db")
 async def test_db():
     """Test database connection and query"""
     try:
@@ -120,7 +122,7 @@ async def test_db():
         logger.error(f"Database test error: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.get("/api/rag-sql-chatbot/test/parser/{query}")
+@app.get("/test/parser/{query}")
 async def test_parser(query: str):
     """Test query parser functionality"""
     try:
@@ -135,7 +137,7 @@ async def test_parser(query: str):
         logger.error(f"Parser test error: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.post("/api/rag-sql-chatbot/query", response_model=ChatResponse)
+@app.post("/query", response_model=ChatResponse)
 async def query(query: ChatQuery):
     """Main query endpoint"""
     try:
@@ -196,7 +198,7 @@ async def query(query: ChatQuery):
             suggested_questions=[]
         )
 
-@app.post("/api/rag-sql-chatbot/more", response_model=ChatResponse)
+@app.post("/more", response_model=ChatResponse)
 def get_more_results(query: ChatQuery):
     """Pagination endpoint"""
     try:
@@ -244,8 +246,7 @@ def get_more_results(query: ChatQuery):
             suggested_questions=[]
         )
 
-@app.get("/api/rag-sql-chatbot/status")
-@app.head("/api/rag-sql-chatbot/status")
+@app.get("/status")
 async def get_status():
     """Get service health status"""
     try:
@@ -269,39 +270,6 @@ async def get_status():
         return {
             "status": "error",
             "detail": str(e)
-        }
-
-@app.get("/test/parser/{query}")
-async def test_parser(query: str):
-    """Test query parser functionality"""
-    try:
-        filters = query_parser.parse_query_intent(query, 'en')
-        return {
-            "status": "success",
-            "original_query": query,
-            "parsed_filters": filters
-        }
-    except Exception as e:
-        logger.error(f"Parser test error: {e}")
-        return {
-            "status": "error",
-            "message": str(e)
-        }
-
-@app.get("/test/db")
-async def test_db():
-    """Test database connection and query"""
-    try:
-        project_count = len(db_manager.get_project_data({}))
-        return {
-            "status": "success",
-            "project_count": project_count
-        }
-    except Exception as e:
-        logger.error(f"Database test error: {e}")
-        return {
-            "status": "error",
-            "message": str(e)
         }
 
 if __name__ == "__main__":
