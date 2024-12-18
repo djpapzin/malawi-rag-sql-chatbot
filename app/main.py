@@ -1,283 +1,95 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
+import pandas as pd
+from datetime import datetime
+import uuid
+from typing import Dict, Any, List
 import logging
-from typing import Optional, List, Dict, Any
 
 # Import our custom modules
-from .models import ChatQuery, ChatResponse, QueryParser
-from .dependencies import get_templates, get_query_parser, get_model, get_tokenizer
+from .models import ChatQuery, ChatResponse, QueryMetadata, QuerySource, QueryParser
 from .response_generator import ResponseGenerator
-from .translation_service import TranslationService
-from .suggestion_generator import SuggestionGenerator
-from .database.query_builder import DatabaseManager
+from .sql_tracker import SQLTracker
 
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('app.log'),
-        logging.StreamHandler()
-    ]
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# Application Configuration
-class Config:
-    BASE_DIR = Path(__file__).parent
-    TEMPLATES_DIR = BASE_DIR / "templates"
-    STATIC_DIR = BASE_DIR / "static"
-    ALLOWED_ORIGINS = [
-        "http://localhost:8000",
-        "http://localhost:3000",
-        "http://154.0.164.254:8000",
-        "http://154.0.164.254:3000",
-        "http://154.0.164.254:8001",
-        "https://ai.kwantu.support"
-    ]
-    MODEL_MAX_LENGTH = 512
-    TEMPERATURE = 0.7
-
-config = Config()
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Malawi Projects Chatbot",
     description="A chatbot for querying Malawi infrastructure projects",
-    version="1.0.0",
-    root_path="/api/rag-sql-chatbot",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    version="1.0.0"
 )
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize services
-query_parser = get_query_parser()
+# Initialize components
 response_generator = ResponseGenerator()
-translation_service = TranslationService()
-suggestion_generator = SuggestionGenerator()
-db_manager = DatabaseManager('malawi_projects1.db')
-templates = get_templates()
-model = get_model()
-tokenizer = get_tokenizer()
+sql_tracker = SQLTracker()
+query_parser = QueryParser()
 
-# Configure templates
-if not templates:
-    logger.error(f"Templates directory not found at {config.TEMPLATES_DIR}")
-
-# Configure static files
-try:
-    if config.STATIC_DIR.exists():
-        app.mount("/static", StaticFiles(directory=str(config.STATIC_DIR)), name="static")
-        logger.info(f"Static files mounted successfully at {config.STATIC_DIR}")
-    else:
-        logger.warning(f"Static directory not found at {config.STATIC_DIR}")
-except Exception as e:
-    logger.error(f"Error mounting static files: {e}")
-
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    """Home page endpoint"""
-    if not templates:
-        raise HTTPException(status_code=500, detail="Templates not configured")
-    return templates.TemplateResponse("chat.html", {"request": request})
-
-@app.get("/test")
-async def test_endpoint():
-    """Basic test endpoint"""
+@app.post("/query")
+async def process_query(chat_query: ChatQuery) -> ChatResponse:
+    """
+    Process a chat query and return response with source information
+    """
     try:
-        return {
-            "status": "ok",
-            "database": "connected" if db_manager else "not connected",
-            "model": "loaded" if model else "not loaded",
-            "tokenizer": "loaded" if tokenizer else "not loaded",
-            "query_parser": "initialized" if query_parser else "not initialized"
-        }
-    except Exception as e:
-        logger.error(f"Test endpoint error: {e}")
-        return {"status": "error", "message": str(e)}
-
-@app.get("/test/db")
-async def test_db():
-    """Test database connection and query"""
-    try:
-        with db_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM proj_dashboard")
-            count = cursor.fetchone()[0]
-            return {"status": "success", "project_count": count}
-    except Exception as e:
-        logger.error(f"Database test error: {e}")
-        return {"status": "error", "message": str(e)}
-
-@app.get("/test/parser/{query}")
-async def test_parser(query: str):
-    """Test query parser functionality"""
-    try:
-        source_lang = 'en'  # Default to English for testing
-        filters = query_parser.parse_query_intent(query, source_lang)
-        return {
-            "status": "success",
-            "original_query": query,
-            "parsed_filters": filters
-        }
-    except Exception as e:
-        logger.error(f"Parser test error: {e}")
-        return {"status": "error", "message": str(e)}
-
-@app.post("/query", response_model=ChatResponse)
-async def query(query: ChatQuery):
-    """Main query endpoint"""
-    try:
-        logger.info(f"Received query: {query.message}")
+        # Parse the query and generate SQL
+        query_start = datetime.now()
+        sql_query, filters = query_parser.parse_query_intent(chat_query.message)
         
-        # Detect language and translate
-        logger.info("Starting language detection")
-        source_lang = query.language if query.language else 'en'
-        detected_lang, english_query = translation_service.detect_and_translate(query.message)
-        logger.info(f"Language: {source_lang}, Translated query: {english_query}")
+        # Execute query and track sources
+        df, sources = sql_tracker.execute_query(sql_query)
+        query_end = datetime.now()
         
-        # Parse filters
-        logger.info("Parsing query intent")
-        filters = query_parser.parse_query_intent(english_query, source_lang)
-        logger.info(f"Parsed filters: {filters}")
-        
-        # Database query
-        logger.info("Fetching data from database")
-        df = db_manager.get_project_data(filters)
-        logger.info(f"Retrieved {len(df)} records")
-
-        if df.empty:
-            logger.info("No results found")
-            return ChatResponse(
-                answer=translation_service.get_translation('no_results', source_lang),
-                suggested_questions=[]
-            )
-
-        # Generate response
-        logger.info("Generating response")
-        answer = response_generator.generate_response(
-            df=df,
-            filters=filters,
-            language=source_lang,
-            model=model,
-            tokenizer=tokenizer
+        # Create query metadata
+        execution_time = (query_end - query_start).total_seconds()
+        metadata = QueryMetadata(
+            query_id=str(uuid.uuid4()),
+            execution_time=execution_time,
+            row_count=len(df),
+            sources=sources,
+            timestamp=query_end
         )
-        logger.info("Response generated successfully")
-
-        # Generate suggestions
-        logger.info("Generating suggestions")
-        suggestions = suggestion_generator.generate_suggestions(
-            filters=filters,
+        
+        # Generate response with sources
+        response_data = response_generator.generate_response(
             df=df,
-            language=source_lang
+            query_metadata=metadata,
+            filters=filters
         )
-        logger.info("Suggestions generated successfully")
+        
+        # Generate suggested questions based on results
+        suggested_questions = query_parser.generate_suggestions(df, filters)
 
         return ChatResponse(
-            answer=answer,
-            suggested_questions=suggestions
+            answer=response_data["answer"],
+            suggested_questions=suggested_questions,
+            metadata=metadata,
+            sources=response_data["sources"],
+            error=None
         )
 
     except Exception as e:
-        logger.error(f"Error processing query request: {e}", exc_info=True)
+        logger.error(f"Error processing query: {e}")
         return ChatResponse(
-            answer=f"Sorry, an error occurred: {str(e)}",
-            suggested_questions=[]
+            answer="I encountered an error processing your query.",
+            suggested_questions=[],
+            error=str(e)
         )
 
-@app.post("/more", response_model=ChatResponse)
-def get_more_results(query: ChatQuery):
-    """Pagination endpoint"""
-    try:
-        source_lang = translation_service.detect_language(query.message)
-        
-        if not query.chat_history:
-            return ChatResponse(
-                answer=translation_service.get_translation('start_new', source_lang),
-                suggested_questions=[]
-            )
-
-        # Get pagination info and data
-        pagination_info = response_generator.get_pagination_info(query.chat_history)
-        df = db_manager.get_project_data(pagination_info['filters'])
-
-        if df.empty or pagination_info['offset'] >= len(df):
-            return ChatResponse(
-                answer=translation_service.get_translation('no_more', source_lang),
-                suggested_questions=[]
-            )
-
-        # Generate paginated response
-        answer = response_generator.generate_paginated_response(
-            df=df,
-            pagination_info=pagination_info,
-            language=source_lang
-        )
-
-        # Generate suggestions
-        suggestions = suggestion_generator.generate_suggestions(
-            filters=pagination_info['filters'],
-            df=df,
-            language=source_lang
-        )
-
-        return ChatResponse(
-            answer=answer,
-            suggested_questions=suggestions
-        )
-
-    except Exception as e:
-        logger.error(f"Error in show more: {e}", exc_info=True)
-        return ChatResponse(
-            answer=translation_service.get_translation('error', source_lang),
-            suggested_questions=[]
-        )
-
-@app.get("/status")
-async def get_status():
-    """Get service health status"""
-    try:
-        # Check database connection
-        db_status = "ok" if db_manager else "error"
-        
-        # Check model and tokenizer
-        model_status = "ok" if model else "error"
-        
-        # Check query parser
-        parser_status = "ok" if query_parser else "error"
-        
-        return {
-            "status": "ok" if all([db_status == "ok", model_status == "ok", parser_status == "ok"]) else "error",
-            "database": db_status,
-            "model": model_status,
-            "query_parser": parser_status
-        }
-    except Exception as e:
-        logger.error(f"Error checking service status: {e}")
-        return {
-            "status": "error",
-            "detail": str(e)
-        }
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8001,
-        reload=True,
-        log_level="info"
-    )
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy"}
