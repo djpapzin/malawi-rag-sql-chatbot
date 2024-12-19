@@ -2,10 +2,10 @@ import requests
 import json
 
 # Configuration
-BASE_URL = "http://154.0.164.254:8001"  # Server IP
+BASE_URL = "http://localhost:8001"  # Local testing
 LOCAL_URL = "http://localhost:8001"      # Local testing
-FRONTEND_URL = "http://154.0.164.254:3000"  # Frontend URL
-API_PREFIX = "/api/rag-sql-chatbot"      # API prefix for all endpoints
+FRONTEND_URL = "http://localhost:3000"  # Frontend URL
+API_PREFIX = ""      # No API prefix for local testing
 
 def test_endpoint(url, endpoint, payload=None, method="GET", expected_language=None):
     """Generic test function for endpoints"""
@@ -41,7 +41,7 @@ def run_tests(base_url):
     print(f"\nTesting against: {base_url}")
     
     # Test health endpoint
-    test_endpoint(base_url, "/status")
+    test_endpoint(base_url, "/health")
     
     # Test query with frontend-like request
     test_case = {
@@ -53,4 +53,4 @@ def run_tests(base_url):
 
 if __name__ == "__main__":
     print("=== Testing Frontend Communication ===")
-    run_tests(BASE_URL)
+    run_tests(LOCAL_URL)
