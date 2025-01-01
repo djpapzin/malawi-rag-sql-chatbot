@@ -5,9 +5,11 @@ from datetime import datetime
 import uuid
 from typing import Dict, Any, List
 import logging
+import importlib
 
 # Import our custom modules
-from .models import ChatQuery, ChatResponse, QueryMetadata, QuerySource, QueryParser
+from .models import ChatQuery, ChatResponse, QueryMetadata, QuerySource
+from .query_parser import QueryParser
 from .response_generator import ResponseGenerator
 from .sql_tracker import SQLTracker
 
@@ -17,6 +19,10 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Force reload modules
+importlib.reload(importlib.import_module('app.query_parser'))
+importlib.reload(importlib.import_module('app.models'))
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -35,61 +41,82 @@ app.add_middleware(
 )
 
 # Initialize components
-response_generator = ResponseGenerator()
 sql_tracker = SQLTracker()
+response_generator = ResponseGenerator(sql_tracker=sql_tracker)
 query_parser = QueryParser()
+logger.info("Initialized components")
+logger.info(f"Using QueryParser from module: {QueryParser.__module__}")
 
 @app.post("/query")
 async def process_query(chat_query: ChatQuery) -> ChatResponse:
-    """
-    Process a chat query and return response with source information
-    """
+    """Process a chat query and return response with source information"""
     try:
-        # Parse the query and generate SQL
         query_start = datetime.now()
-        sql_query, filters = query_parser.parse_query_intent(chat_query.message)
         
-        # Execute query and track sources
-        df, sources = sql_tracker.execute_query(sql_query)
-        query_end = datetime.now()
+        # Check if this is a "show more" request
+        show_more_intents = ["show more", "more", "continue", "next", "show next", "display more"]
+        is_show_more = any(intent in chat_query.message.lower() for intent in show_more_intents)
         
-        # Create query metadata
-        execution_time = (query_end - query_start).total_seconds()
-        metadata = QueryMetadata(
-            query_id=str(uuid.uuid4()),
-            execution_time=execution_time,
-            row_count=len(df),
-            sources=sources,
-            timestamp=query_end
+        # Parse the query
+        logger.info(f"Parsing query: {chat_query.message}")
+        sql_query = query_parser.parse_query(chat_query.message)
+        logger.info(f"Generated SQL query: {sql_query}")
+        
+        # Generate response
+        response_text, metadata = response_generator.generate_response(
+            query=sql_query,
+            page=chat_query.page,
+            page_size=chat_query.page_size,
+            is_show_more=is_show_more
         )
         
-        # Generate response with sources
-        response_data = response_generator.generate_response(
-            df=df,
-            query_metadata=metadata,
-            filters=filters
+        # Get the executed SQL query from metadata
+        executed_sql = metadata.get("sql", sql_query)
+        logger.info(f"Executed SQL query: {executed_sql}")
+        
+        # Create response with both response and message fields
+        response = ChatResponse(
+            response=response_text,  # Main response text
+            message=response_text,   # Same as response for compatibility
+            metadata=QueryMetadata(
+                query_time=str(datetime.now() - query_start),
+                total_results=metadata["total_results"],
+                current_page=metadata["current_page"],
+                total_pages=metadata["total_pages"],
+                has_more=metadata["has_more"]
+            ),
+            source=QuerySource(
+                sql=executed_sql,  # Use the executed SQL query
+                table="projects",
+                filters=metadata.get("filters", {})  # Get filters from metadata
+            )
         )
         
-        # Generate suggested questions based on results
-        suggested_questions = query_parser.generate_suggestions(df, filters)
-
-        return ChatResponse(
-            answer=response_data["answer"],
-            suggested_questions=suggested_questions,
-            metadata=metadata,
-            sources=response_data["sources"],
-            error=None
-        )
-
+        logger.info(f"Returning response with SQL: {executed_sql}")
+        return response
+            
     except Exception as e:
-        logger.error(f"Error processing query: {e}")
-        return ChatResponse(
-            answer="I encountered an error processing your query.",
-            suggested_questions=[],
-            error=str(e)
+        logger.error(f"Error processing query: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing query: {str(e)}"
         )
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy"}
+    try:
+        # Test database connection
+        test_query = "SELECT 1"
+        sql_tracker.execute_query(test_query)
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Service unhealthy: {str(e)}"
+        )

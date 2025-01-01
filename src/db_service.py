@@ -20,60 +20,18 @@ class DatabaseService:
     
     def __init__(self):
         """Initialize Database Service"""
-        self.db_url = os.getenv("DATABASE_URL", "sqlite:///malawi_projects.db")
-        logger.info(f"Initializing DatabaseService with {self.db_url}")
-        
-        # Extract SQLite path from URL
-        self.db_path = self.db_url.replace("sqlite:///", "")
-        
-        # Initialize database if it doesn't exist
-        self._init_db()
-    
-    def _init_db(self):
-        """Initialize the database with sample data if it doesn't exist"""
-        if not os.path.exists(self.db_path):
-            logger.info("Creating new database with sample data")
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            # Create projects table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS projects (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    sector TEXT NOT NULL,
-                    region TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    budget REAL NOT NULL,
-                    start_date TEXT,
-                    end_date TEXT,
-                    description TEXT
-                )
-            """)
-            
-            # Insert sample data
-            sample_data = [
-                ("Lilongwe Education Center", "Education", "Central", "Active", 2500000.00, "2023-01-01", "2024-12-31", "New education center with modern facilities"),
-                ("Mzuzu Technical College", "Education", "Northern", "Planning", 3500000.00, "2024-03-01", "2025-06-30", "Technical training institute"),
-                ("Zomba Primary School Renovation", "Education", "Southern", "Completed", 800000.00, "2022-06-01", "2023-05-31", "Complete renovation of existing school"),
-                ("Karonga Teacher Training", "Education", "Northern", "Active", 1500000.00, "2023-07-01", "2024-08-31", "Teacher training facility"),
-                ("Blantyre Science Labs", "Education", "Southern", "Active", 1200000.00, "2023-04-01", "2024-03-31", "Modern science laboratories")
-            ]
-            
-            cursor.executemany("""
-                INSERT INTO projects (name, sector, region, status, budget, start_date, end_date, description)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, sample_data)
-            
-            conn.commit()
-            conn.close()
-            logger.info("Database initialized with sample data")
+        self.db_path = "malawi_projects.db"
+        logger.info(f"Initializing DatabaseService with {self.db_path}")
     
     async def check_connection(self) -> bool:
         """Check database connection"""
         try:
             conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM projects")
+            count = cursor.fetchone()[0]
             conn.close()
+            logger.info(f"Database connection successful. Found {count} projects.")
             return True
         except Exception as e:
             logger.error(f"Database connection check failed: {str(e)}")
@@ -82,16 +40,14 @@ class DatabaseService:
     async def execute_query(self, query: str) -> Dict:
         """Execute a natural language query"""
         try:
-            # For demo purposes, return education projects
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            # Get education projects
+            # Get all projects
             cursor.execute("""
-                SELECT name, region, status, budget, start_date, end_date, description
+                SELECT name, sector, district, status, budget, start_date, end_date, description
                 FROM projects
-                WHERE sector = 'Education'
-                ORDER BY region, status
+                ORDER BY district, sector
             """)
             
             # Fetch results
@@ -106,21 +62,21 @@ class DatabaseService:
             
             conn.close()
             
-            # Return formatted response
+            # Format response with only Project and Location information
+            response = "Here are the relevant projects:\n\n"
+            for p in projects:
+                response += f"1. Project: {p['name']}\n"
+                response += f"   Description: {p['description']}\n"
+                response += f"2. Location: {p['district']} District\n\n"
+            
             return {
-                "response": f"Found {len(projects)} education projects:\n\n" + "\n\n".join([
-                    f"Project: {p['name']}\n"
-                    f"Region: {p['region']}\n"
-                    f"Status: {p['status']}\n"
-                    f"Budget: MK {p['budget']:,.2f}\n"
-                    f"Timeline: {p['start_date']} to {p['end_date']}\n"
-                    f"Description: {p['description']}"
-                    for p in projects
-                ])
+                "response": response,
+                "projects": projects
             }
             
         except Exception as e:
             logger.error(f"Error executing query: {str(e)}")
             return {
-                "error": f"Error executing query: {str(e)}"
+                "error": f"Error executing query: {str(e)}",
+                "response": "I apologize, but I encountered an error processing your query. Please try again."
             } 

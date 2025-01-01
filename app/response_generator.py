@@ -1,127 +1,113 @@
 import pandas as pd
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 from .models import QueryMetadata, QuerySource
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ResponseGenerator:
     """Generates formatted responses from SQL query results"""
     
-    def __init__(self):
-        self.default_limit = 3  # Number of projects to show in initial response
-    
-    def format_project_details(self, project: Dict[str, Any]) -> str:
-        """Format individual project details"""
-        return f"""
-Project: {project.get('project_name', 'N/A')}
-Location: {project.get('region', 'N/A')}, {project.get('district', 'N/A')}
-Sector: {project.get('sector', 'N/A')}
-Status: {project.get('status', 'N/A')}
-Budget: ${project.get('budget', 0):,.2f}
-Completion: {project.get('completion_percentage', 0)}%
-"""
-    
-    def generate_response(self, df: pd.DataFrame, query_metadata: QueryMetadata,
-                         filters: Dict[str, Any] = None) -> Dict[str, Any]:
-        """
-        Generate a formatted response with source information
+    def __init__(self, sql_tracker):
+        self.sql_tracker = sql_tracker
+        self.last_query = None
+        logger.info("Initialized ResponseGenerator")
         
-        Args:
-            df: DataFrame with query results
-            query_metadata: Metadata about the query execution
-            filters: Applied filters (optional)
-            
-        Returns:
-            Dict with formatted response and metadata
-        """
+    def format_project(self, row: pd.Series) -> str:
+        """Format a single project row into a readable string"""
         try:
+            # Format budget with commas and 2 decimal places
+            budget = f"MWK {row['budget']:,.2f}" if pd.notnull(row['budget']) else "N/A"
+            
+            # Format completion percentage
+            completion = f"{row['completion_percentage']:.1f}%" if pd.notnull(row['completion_percentage']) else "N/A"
+            
+            # Format date
+            start_date = pd.to_datetime(row['start_date']).strftime('%Y-%m-%d') if pd.notnull(row['start_date']) else "N/A"
+            
+            return f"""Project: {row['project_name']}
+Location: {row['region']}, {row['district']}
+Status: {row['status']} ({completion} complete)
+Sector: {row['sector']}
+Budget: {budget}
+Start Date: {start_date}
+Description: {row['description']}
+"""
+        except Exception as e:
+            logger.error(f"Error formatting project: {str(e)}")
+            return str(row)
+        
+    def generate_response(self, query: str, page: int = 1, page_size: int = 30, is_show_more: bool = False) -> Tuple[str, Dict]:
+        """Generate a response based on the SQL query results"""
+        try:
+            logger.info(f"Executing query: {query}")
+            # Execute the query
+            df, sources = self.sql_tracker.execute_query(query)
+            
+            # Get the executed SQL and filters from sources
+            executed_sql = sources[0].sql if sources else query
+            filters = sources[0].filters if sources else {}
+            
             if df.empty:
-                return {
-                    "answer": "No projects found matching your criteria.",
-                    "metadata": query_metadata,
-                    "sources": []
+                logger.info("Query returned no results")
+                return "No results found.", {
+                    "message": "No results found.",
+                    "total_results": 0,
+                    "current_page": page,
+                    "total_pages": 0,
+                    "has_more": False,
+                    "query_time": "0.0s",
+                    "sql": executed_sql,  # Use executed SQL
+                    "filters": filters  # Include filters
                 }
             
-            # Calculate summary statistics
-            total_projects = len(df)
-            total_budget = df['budget'].sum() if 'budget' in df.columns else 0
-            avg_completion = df['completion_percentage'].mean() if 'completion_percentage' in df.columns else 0
+            # Calculate pagination
+            total_results = len(df)
+            total_pages = (total_results + page_size - 1) // page_size
+            start_idx = (page - 1) * page_size
+            end_idx = min(start_idx + page_size, total_results)
             
-            # Format header based on filters
-            header = self._generate_header(filters, total_projects, total_budget, avg_completion)
+            logger.info(f"Query returned {total_results} results")
             
-            # Format project details
-            projects_shown = min(self.default_limit, total_projects)
-            details = []
-            for _, project in df.head(projects_shown).iterrows():
-                details.append(self.format_project_details(project))
+            # Format results
+            results = []
+            for _, row in df.iloc[start_idx:end_idx].iterrows():
+                results.append(self.format_project(row))
+                
+            # Generate response text
+            response = "\n---\n".join(results)
             
-            # Add pagination info if needed
-            remaining = total_projects - projects_shown
-            pagination_info = f"\n\nShowing {projects_shown} of {total_projects} projects. "
-            if remaining > 0:
-                pagination_info += f"There are {remaining} more projects. Type 'show more' to see additional results."
-            
-            # Combine all parts
-            answer = f"{header}\n\n{''.join(details)}{pagination_info}"
-            
-            # Format source information
-            sources = self._format_sources(query_metadata.sources, df)
-            
-            return {
-                "answer": answer,
-                "metadata": {
-                    "query_id": query_metadata.query_id,
-                    "execution_time": query_metadata.execution_time,
-                    "row_count": query_metadata.row_count,
-                    "timestamp": query_metadata.timestamp.isoformat()
-                },
-                "sources": sources
-            }
-
-        except Exception as e:
-            return {
-                "answer": f"Error generating response: {str(e)}",
-                "metadata": query_metadata,
-                "sources": []
-            }
-    
-    def _generate_header(self, filters: Dict[str, Any], total: int, 
-                        budget: float, completion: float) -> str:
-        """Generate response header based on filters"""
-        parts = [f"Found {total} project(s)"]
-        
-        if filters:
-            conditions = []
-            if filters.get('sector'):
-                conditions.append(f"sector: {filters['sector']}")
-            if filters.get('region'):
-                conditions.append(f"region: {filters['region']}")
-            if filters.get('status'):
-                conditions.append(f"status: {filters['status']}")
-            if conditions:
-                parts.append(f"matching {', '.join(conditions)}")
-        
-        parts.append(f"\nTotal Budget: ${budget:,.2f}")
-        parts.append(f"Average Completion: {completion:.1f}%")
-        
-        return " ".join(parts)
-    
-    def _format_sources(self, sources: List[QuerySource], df: pd.DataFrame) -> List[Dict[str, Any]]:
-        """Format source information with sample data"""
-        formatted_sources = []
-        
-        for source in sources:
-            # Get sample data for the table
-            if source.table_name in df:
-                sample = df[source.table_name].head(1).to_dict('records')[0] if not df.empty else {}
+            if is_show_more:
+                message = f"Here are more results (page {page} of {total_pages}):"
             else:
-                sample = {}
+                message = f"Found {total_results} projects. Showing page {page} of {total_pages}:"
             
-            formatted_sources.append({
-                "table": source.table_name,
-                "columns": source.columns,
-                "operation": source.operation,
-                "sample_data": sample
-            })
-        
-        return formatted_sources
+            if page < total_pages:
+                message += "\n\nType 'show more' to see additional results."
+            
+            metadata = {
+                "message": message,
+                "total_results": total_results,
+                "current_page": page,
+                "total_pages": total_pages,
+                "has_more": page < total_pages,
+                "query_time": "0.1s",  # Placeholder value
+                "sql": executed_sql,  # Use executed SQL
+                "filters": filters  # Include filters
+            }
+            
+            return response, metadata
+            
+        except Exception as e:
+            logger.error(f"Error generating response: {str(e)}")
+            return str(e), {
+                "message": str(e),
+                "total_results": 0,
+                "current_page": page,
+                "total_pages": 0,
+                "has_more": False,
+                "query_time": "0.0s",
+                "sql": query,  # Use original query
+                "filters": {}  # Empty filters
+            }

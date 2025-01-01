@@ -1,49 +1,41 @@
 # check_db.py
 import sqlite3
-import pandas as pd
-import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def check_database():
-    db_path = "C:/Users/MukundiMphaphuli/Desktop/Use Case 2/final_project/malawi_projects1.db"
-    
-    print(f"\nChecking database at: {db_path}")
-    print(f"File exists: {os.path.exists(db_path)}")
-    
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect('malawi_projects1.db')
         cursor = conn.cursor()
         
-        # Check tables
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = cursor.fetchall()
-        print("\nAvailable tables:")
-        for table in tables:
-            print(f"- {table[0]}")
-            
-            # Check table structure
-            cursor.execute(f"PRAGMA table_info({table[0]})")
-            columns = cursor.fetchall()
-            print("\nColumns:")
-            for col in columns:
-                print(f"  - {col[1]} ({col[2]})")
-                
-            # Check row count
-            cursor.execute(f"SELECT COUNT(*) FROM {table[0]}")
-            count = cursor.fetchone()[0]
-            print(f"\nTotal rows: {count}")
-            
-            # Show sample data
-            if count > 0:
-                cursor.execute(f"SELECT * FROM {table[0]} LIMIT 1")
-                sample = cursor.fetchone()
-                print("\nSample row:")
-                for col, val in zip(columns, sample):
-                    print(f"  {col[1]}: {val}")
-                    
+        # Check projects table
+        cursor.execute("SELECT COUNT(*) FROM projects")
+        count = cursor.fetchone()[0]
+        logger.info(f"Total projects: {count}")
+        
+        if count > 0:
+            # Get sample data
+            cursor.execute("""
+                SELECT id, project_name, sector, region, district, status, start_date 
+                FROM projects LIMIT 3
+            """)
+            rows = cursor.fetchall()
+            logger.info("\nSample projects:")
+            for row in rows:
+                logger.info(f"ID: {row[0]}")
+                logger.info(f"Name: {row[1]}")
+                logger.info(f"Sector: {row[2]}")
+                logger.info(f"Location: {row[3]}, {row[4]}")
+                logger.info(f"Status: {row[5]}")
+                logger.info(f"Start Date: {row[6]}")
+                logger.info("-" * 50)
+        
     except Exception as e:
-        print(f"Error: {str(e)}")
+        logger.error(f"Error: {str(e)}")
     finally:
-        if 'conn' in locals():
+        if conn:
             conn.close()
 
 if __name__ == "__main__":

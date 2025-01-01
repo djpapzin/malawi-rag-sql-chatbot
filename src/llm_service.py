@@ -170,12 +170,14 @@ Previous conversation:
 Current query: {enhanced_query}
 
 Please provide a response in the following format:
-1. Summary of relevant projects
-2. Project details (status, location, budget)
-3. Key statistics
-4. Suggested next queries
+1. Project: Name and brief description of the project(s)
+2. Location: Specific location details (region, district, city)
 
-Important: Your response MUST be in {language} language.
+Important: 
+- Your response MUST be in {language} language
+- Only include Project and Location information
+- Keep responses concise and focused
+- Do not include other categories like budget, status, or statistics
 
 Response:"""
             

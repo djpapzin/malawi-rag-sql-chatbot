@@ -109,3 +109,22 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error retrieving project data: {e}", exc_info=True)
             return pd.DataFrame()
+
+    def format_results(self, results: List[Dict[str, Any]], total_count: int = 0) -> str:
+        """Format query results into a readable response"""
+        if not results:
+            return "No projects found matching your criteria."
+        
+        response = []
+        
+        # Format each project
+        for i, project in enumerate(results[:3]):  # Show first 3 projects
+            response.append(f"\nProject: {project.get('project_name', 'Unnamed Project')}")
+            response.append(f"Location: {project.get('region', 'Unknown Region')}, {project.get('district', 'Unknown District')}")
+            
+        # Add summary of remaining results
+        if total_count > 3:
+            remaining = total_count - 3
+            response.append(f"\n\nShowing 3 of {total_count} projects. There are {remaining} more projects. Type 'show more' to see additional results.")
+        
+        return "\n".join(response)
