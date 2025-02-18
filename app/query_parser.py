@@ -25,13 +25,27 @@ class QueryParser:
             logger.info(f"Parsing query intent: {query}")
             
             # Check if this is a specific project query
-            is_specific = any(phrase in query.lower() for phrase in [
+            specific_phrases = [
                 'tell me more about', 'show details for', 'details of',
                 'more information about', 'specific details'
-            ])
+            ]
+            
+            is_specific = any(phrase in query.lower() for phrase in specific_phrases)
             
             # Select fields based on query type
             if is_specific:
+                # Extract project name from query
+                project_name = None
+                for phrase in specific_phrases:
+                    if phrase in query.lower():
+                        # Get text after the phrase
+                        project_name = query.lower().split(phrase)[-1].strip()
+                        break
+                
+                if not project_name:
+                    # Fallback to basic query if no project name found
+                    is_specific = False
+                
                 # Specific project query - include all detailed fields
                 fields = """
                     PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
@@ -50,20 +64,17 @@ class QueryParser:
             base_query = f"""
                 SELECT {fields}
                 FROM proj_dashboard
-                WHERE ISLATEST = 1
+                WHERE 1=1
             """
             
             filters = {}
             query_lower = query.lower()
             
-            # Extract project name for specific queries
-            if is_specific:
-                project_names = re.findall(r'(?:about|for|of)\s+([^?.,]+?)(?:\s+project)?\s*(?:\?|$|\.)', query_lower)
-                if project_names:
-                    project_name = project_names[0].strip()
-                    filters['project_name'] = project_name
-                    base_query += f" AND LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')"
-                    logger.info(f"Added project name filter: {project_name}")
+            # Add project name filter for specific queries
+            if is_specific and project_name:
+                base_query += f"\n    AND LOWER(PROJECTNAME) LIKE '%{project_name}%'"
+                filters['project_name'] = project_name
+                logger.info(f"Added project name filter: {project_name}")
             
             # Extract location filters
             locations = re.findall(r'in\s+(\w+(?:\s+\w+)*)', query_lower, re.IGNORECASE)
@@ -72,7 +83,7 @@ class QueryParser:
                 if location.lower() != 'progress':  # Skip if location is "progress"
                     filters['location'] = location
                     # Try to match either region or district
-                    base_query += f" AND (LOWER(REGION) LIKE LOWER('%{location}%') OR LOWER(DISTRICT) LIKE LOWER('%{location}%'))"
+                    base_query += f"\n    AND (LOWER(REGION) LIKE '%{location}%' OR LOWER(DISTRICT) LIKE '%{location}%')"
                     logger.info(f"Added location filter: {location}")
             
             # Extract status filters
@@ -80,7 +91,7 @@ class QueryParser:
             for status in statuses:
                 if status in query_lower:
                     filters['status'] = status
-                    base_query += f" AND LOWER(PROJECTSTATUS) LIKE LOWER('%{status}%')"
+                    base_query += f"\n    AND LOWER(PROJECTSTATUS) LIKE '%{status}%'"
                     logger.info(f"Added status filter: {status}")
             
             # Extract sector filters
@@ -88,11 +99,11 @@ class QueryParser:
             for sector in sectors:
                 if sector in query_lower:
                     filters['sector'] = sector
-                    base_query += f" AND LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')"
+                    base_query += f"\n    AND LOWER(PROJECTSECTOR) LIKE '%{sector}%'"
                     logger.info(f"Added sector filter: {sector}")
             
             # Add order by
-            base_query += " ORDER BY PROJECTNAME ASC"
+            base_query += "\n    ORDER BY PROJECTNAME ASC"
             
             logger.info(f"Final SQL query: {base_query}")
             return base_query, filters
@@ -104,6 +115,6 @@ class QueryParser:
                 SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
                        TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
                 FROM proj_dashboard
-                WHERE ISLATEST = 1
+                WHERE 1=1
                 ORDER BY PROJECTNAME ASC
             """, {}
