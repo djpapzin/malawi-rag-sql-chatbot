@@ -59,10 +59,13 @@ async def process_query(chat_query: ChatQuery) -> ChatResponse:
         is_specific, project_identifier = query_parser.is_specific_project_query(chat_query.message)
         
         if is_specific:
+            logger.info(f"Detected specific project query for: {project_identifier}")
             # Build SQL for specific project
             if re.match(r'MW-[A-Z]{2}-[A-Z0-9]{2}', project_identifier.upper()):
                 sql_query = query_parser._build_specific_project_sql(project_code=project_identifier)
             else:
+                # Remove quotes if present
+                project_identifier = project_identifier.strip("'\"")
                 sql_query = query_parser._build_specific_project_sql(project_name=project_identifier)
         else:
             sql_query = query_parser.parse_query(chat_query.message)
