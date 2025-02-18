@@ -11,18 +11,47 @@ class QueryParser:
     def __init__(self):
         logger.info("Initializing QueryParser")
         self.specific_query_patterns = [
-            r'details?\s+(?:about|for|on)\s+["\'](.+?)["\']',  # "details about 'Project Name'"
-            r'tell\s+me\s+about\s+["\'](.+?)["\']',          # "tell me about 'Project Name'"
-            r'show\s+information\s+for\s+["\'](.+?)["\']',    # "show information for 'Project Name'"
-            r'(?:project|code)\s+(?:code\s+)?(MW-[A-Z]{2}-[A-Z0-9]{2})',  # "project code MW-CR-DO" or "project MW-CR-DO"
-            r'tell\s+me\s+about\s+project\s+([A-Za-z0-9-]+)',  # "tell me about project MW-CR-DO"
-            r'show\s+details?\s+for\s+["\'](.+?)["\']'       # "show details for 'Project Name'"
+            r'(?:details?|tell me|what|show)\s+(?:about|for|on|is|the status of)\s+(?:the\s+)?["\'](.+?)["\'](?:\s+(?:project|construction|building))?(?:\s*\?)?$',
+            r'show\s+(?:me\s+)?(?:the\s+)?details?\s+(?:about|for|of)\s+(?:the\s+)?["\'](.+?)["\'](?:\s+(?:project|construction))?(?:\s*\?)?$',
+            r'(?:what is|how is)\s+(?:the\s+)?["\'](.+?)["\'](?:\s+(?:project|construction|building))?\s+(?:doing|going|progressing)(?:\s*\?)?$',
+            r'(?:project|code)\s+(?:code\s+)?(MW-[A-Z]{2}-[A-Z0-9]{2})',
+            r'tell\s+me\s+about\s+project\s+([A-Za-z0-9-]+)',
+            r'what\s+is\s+the\s+status\s+of\s+["\'](.+?)["\'](?:\s+(?:project|construction))?(?:\s*\?)?$',
+            r'give\s+me\s+details\s+(?:about|for|on)\s+["\'](.+?)["\'](?:\s+(?:project|construction))?(?:\s*\?)?$',
+            r'project\s+overview\s+for\s+["\'](.+?)["\'](?:\s*\?)?$',
+            r'expenditure\s+(?:for|of)\s+["\'](.+?)["\'](?:\s*\?)?$',
+            r'contractor\s+(?:for|of)\s+["\'](.+?)["\'](?:\s*\?)?$'
         ]
         
     def parse_query(self, query: str) -> str:
         """Parse a natural language query into SQL"""
         logger.info(f"Parsing query: {query}")
-        sql_query, _ = self.parse_query_intent(query)
+        
+        # First check if it's a specific project query
+        is_specific, project_identifier = self.is_specific_project_query(query)
+        
+        if is_specific:
+            # Remove quotes if present
+            project_identifier = project_identifier.strip("'\"")
+            
+            # Clean the project identifier
+            project_identifier = project_identifier.replace("'", "''")  # Escape single quotes
+            
+            # Check if it's a project code
+            if re.match(r'MW-[A-Z]{2}-[A-Z0-9]{2}', project_identifier.upper()):
+                return self._build_specific_project_sql(project_code=project_identifier)
+            else:
+                return self._build_specific_project_sql(project_name=project_identifier)
+        else:
+            # For general queries, return summary information
+            sql_query = """
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+                ORDER BY PROJECTNAME ASC
+            """
+        
         logger.info(f"Generated SQL: {sql_query}")
         return sql_query
     
@@ -137,8 +166,23 @@ class QueryParser:
         if project_code:
             sql += f" AND UPPER(PROJECTCODE) = '{project_code.upper()}'"
         elif project_name:
-            sql += f" AND LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')"
+            # Clean the project name
+            project_name = project_name.replace("'", "''")  # Escape single quotes
+            
+            # Split into words and build LIKE conditions for each significant word
+            words = [w for w in project_name.split() if len(w) > 3]  # Only use words longer than 3 chars
+            
+            # Build LIKE conditions for each word
+            if words:
+                like_conditions = []
+                for word in words:
+                    like_conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('%{word}%')")
+                sql += f" AND ({' AND '.join(like_conditions)})"
+            else:
+                # If no significant words found, use the full project name
+                sql += f" AND LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')"
             
         sql += " LIMIT 1"
         
+        logger.info(f"Generated specific project query: {sql}")
         return sql
