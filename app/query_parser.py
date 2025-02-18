@@ -23,12 +23,12 @@ class QueryParser:
         """Parse user query to determine intent and extract filters"""
         try:
             logger.info(f"Parsing query intent: {query}")
-            # Default query to select all projects with correct column names
+            # Default query with correct table and column names
             base_query = """
-                SELECT p.id, p.project_name, p.description, p.region, p.district, 
-                       p.status, p.start_date, p.budget, p.completion_percentage, p.sector
-                FROM projects p
-                WHERE 1=1
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
             """
             
             filters = {}
@@ -41,7 +41,7 @@ class QueryParser:
                 if location.lower() != 'progress':  # Skip if location is "progress"
                     filters['location'] = location
                     # Try to match either region or district
-                    base_query += f" AND (p.region LIKE '%{location}%' OR p.district LIKE '%{location}%')"
+                    base_query += f" AND (LOWER(REGION) LIKE LOWER('%{location}%') OR LOWER(DISTRICT) LIKE LOWER('%{location}%'))"
                     logger.info(f"Added location filter: {location}")
             
             # Extract status filters
@@ -49,7 +49,7 @@ class QueryParser:
             for status in statuses:
                 if status in query_lower:
                     filters['status'] = status
-                    base_query += f" AND LOWER(p.status) = '{status.lower()}'"
+                    base_query += f" AND LOWER(PROJECTSTATUS) = '{status.lower()}'"
                     logger.info(f"Added status filter: {status}")
             
             # Extract sector filters
@@ -59,32 +59,30 @@ class QueryParser:
                     sector = sectors[0]
                     if sector.lower() != 'projects':  # Skip if sector is just "projects"
                         filters['sector'] = sector
-                        base_query += f" AND LOWER(p.sector) LIKE LOWER('%{sector}%')"
+                        base_query += f" AND LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')"
                         logger.info(f"Added sector filter: {sector}")
             elif any(sector in query_lower for sector in ['health', 'education', 'security', 'water']):
                 # Extract sector from keywords
                 for sector in ['health', 'education', 'security', 'water']:
                     if sector in query_lower:
                         filters['sector'] = sector
-                        base_query += f" AND LOWER(p.sector) LIKE LOWER('%{sector}%')"
+                        base_query += f" AND LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')"
                         logger.info(f"Added sector filter from keyword: {sector}")
                         break
             
-            # Extract date filters
-            if 'recent' in query_lower:
-                filters['recent'] = True
-                base_query += " ORDER BY p.start_date DESC"
-                logger.info("Added recent filter")
-            elif 'oldest' in query_lower:
-                filters['oldest'] = True
-                base_query += " ORDER BY p.start_date ASC"
-                logger.info("Added oldest filter")
-            else:
-                base_query += " ORDER BY p.start_date DESC"  # Default to most recent
+            # Add order by
+            base_query += " ORDER BY PROJECTNAME ASC"
             
             logger.info(f"Final SQL query: {base_query}")
             return base_query, filters
             
         except Exception as e:
             logger.error(f"Error parsing query: {str(e)}")
-            return "SELECT * FROM projects ORDER BY start_date DESC", {} 
+            # Return a safe default query that matches the schema
+            return """
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+                ORDER BY PROJECTNAME ASC
+            """, {}
