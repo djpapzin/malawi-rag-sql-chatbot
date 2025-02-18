@@ -1,11 +1,12 @@
-# Query Response Revision Plan
+# Infrastructure Projects Query Response Plan
 
 ## Overview
-This plan outlines the steps to revise both general and specific query responses based on the field mapping from `malawi_projects1.db`.
+This document outlines the implementation of query responses for the Infrastructure Transparency Chatbot. The chatbot provides access to infrastructure project information from the `malawi_projects1.db` database.
 
 ## 1. General Query Responses
 
-### Core Fields to Include
+### Core Fields
+For general queries about multiple projects, the following fields are displayed:
 - Project Name (`PROJECTNAME`)
 - Fiscal Year (`FISCALYEAR`)
 - Region (`REGION`)
@@ -14,8 +15,8 @@ This plan outlines the steps to revise both general and specific query responses
 - Project Status (`PROJECTSTATUS`)
 - Project Sector (`PROJECTSECTOR`)
 
-### Response Format Updates
-1. **List View Response**
+### Response Format
+1. **Project List View**
    ```sql
    SELECT 
        PROJECTNAME,
@@ -27,115 +28,73 @@ This plan outlines the steps to revise both general and specific query responses
        PROJECTSECTOR
    FROM proj_dashboard 
    WHERE ISLATEST = 1
+   ORDER BY PROJECTNAME ASC
    ```
 
-2. **Summary Statistics Response**
+2. **Summary Statistics**
+   The response includes aggregated information:
    - Total projects per region
    - Projects by sector
    - Budget allocation by sector
    - Status distribution
 
-## 2. Specific Query Responses
+## 2. Specific Project Queries
 
-### Detailed Fields to Include
-Primary Information:
+### Detailed Fields
+When querying a specific project, additional details are included:
 - All core fields (from general queries)
 - Contractor Name (`CONTRACTORNAME`)
-- Signing Date (`SIGNINGDATE`)
+- Contract Start Date (`CONTRACTSTARTDATE`)
 - Total Expenditure (`TOTALEXPENDITURETODATE`)
 - Funding Source (`FUNDINGSOURCE`)
 - Project Code (`PROJECTCODE`)
-- Last Visit (`LASTVISIT`)
+- Last Monitoring Visit (`LASTVISIT`)
 
-Additional Details:
-- Completion Percentage (`COMPLETIONPERCENTAGE`)
-- Project Description (`PROJECTDESC`)
-- Traditional Authority (`TRADITIONALAUTHORITY`)
-- Stage (`STAGE`)
-- Start Date (`STARTDATE`)
-- Completion Estimate (`COMPLETIONESTIDATE`)
-- Location (`MAP_LATITUDE`, `MAP_LONGITUDE`)
+### Implementation Details
 
-### Response Format Updates
-1. **Single Project Detail Response**
-   ```sql
-   SELECT 
-       -- Core Fields
-       PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
-       -- Extended Fields
-       CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
-       FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
-       -- Additional Details
-       COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
-       STAGE, STARTDATE, COMPLETIONESTIDATE,
-       MAP_LATITUDE, MAP_LONGITUDE
-   FROM proj_dashboard 
-   WHERE PROJECTCODE = ? AND ISLATEST = 1
-   ```
+1. **Query Processing**
+   - Natural language queries are parsed to identify project-specific indicators
+   - Results are paginated (30 items per page)
+   - Language support for English, Russian, and Uzbek
 
-2. **Project Progress Response**
-   - Implementation timeline
-   - Budget utilization
-   - Completion status
-   - Recent updates
+2. **Response Formatting**
+   - Project information is displayed in a structured format
+   - Budget values include currency formatting
+   - Dates are formatted according to locale
+   - Statistics are presented in a clear, summarized format
 
-## 3. Implementation Steps
+3. **Additional Features**
+   - Suggested follow-up questions based on query context
+   - Error handling for no results or invalid queries
+   - Support for "show more" pagination requests
 
-1. **Update Query Templates**
-   - Revise SQL query templates in `query_builder.py`
-   - Update response formatters
-   - Add new field mappings
+## API Endpoint
 
-2. **Update Response Formatting**
-   - Format monetary values (MWK)
-   - Format dates (YYYY-MM-DD)
-   - Add geographic hierarchy
+The chatbot uses a single endpoint for all queries:
+```
+POST /query
+Content-Type: application/json
 
-3. **Add Data Validation**
-   - Check for ISLATEST flag
-   - Validate required fields
-   - Handle null values
+{
+    "message": "Show me all projects in Lilongwe",
+    "language": "english",
+    "page": 1,
+    "page_size": 30
+}
+```
 
-4. **Testing**
-   - Test general queries
-   - Test specific queries
-   - Verify field mappings
-   - Check response formats
-
-## 4. Files to Update
-
-1. `app/database/query_builder.py`
-   - Update query templates
-   - Add new field mappings
-
-2. `app/models.py`
-   - Update response models
-   - Add new field types
-
-3. `app/sql_tracker.py`
-   - Update query tracking
-   - Add new field logging
-
-## 5. Quality Checks
-
-- Verify all fields are properly mapped
-- Ensure consistent date formats
-- Validate monetary value formatting
-- Check geographic data accuracy
-- Test multi-language support
-
-## Timeline
-
-1. Query Template Updates (Day 1)
-2. Response Format Updates (Day 1)
-3. Testing and Validation (Day 2)
-4. Documentation Updates (Day 2)
-
-## Success Criteria
-
-1. All queries return correct field mappings
-2. Responses are properly formatted
-3. All data types are handled correctly
-4. Geographic hierarchy is maintained
-5. Tests pass successfully
+## Response Structure
+```json
+{
+    "response": "Project information...",
+    "metadata": {
+        "total_results": 10,
+        "current_page": 1,
+        "total_pages": 1,
+        "has_more": false
+    },
+    "suggested_questions": [
+        "What is the status of Project X?",
+        "Show me projects in Region Y"
+    ]
+}

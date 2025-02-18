@@ -1,106 +1,82 @@
-# Malawi Infrastructure Projects Field Mapping
+# Infrastructure Projects Database Field Mapping
 
 ## Database Overview
 
-The project uses a single SQLite database:
+The Infrastructure Transparency Chatbot uses a single SQLite database:
 
-1. `malawi_projects1.db` (Main Database)
-   - Location: Root directory (`c:\Users\lfana\Documents\Kwantu\rag-sql-chatbot\`)
-   - Table: 
-     * `proj_dashboard` (198 records)
-   - Status: Production database
-   - Note: Contains the complete schema with all required fields for infrastructure projects
+- Database: `malawi_projects1.db`
+- Location: Project root directory
+- Primary Table: `proj_dashboard` (198 unique records)
+- Status: Production database
+- Note: Single source of truth for all infrastructure project data
 
-## Active Database Schema (`malawi_projects1.db`)
+## Database Schema
 
-### proj_dashboard Table (198 records)
-Currently used for all queries. Contains comprehensive project information.
+### Core Fields (General Queries)
+These fields are displayed for all project queries:
 
-#### Core Fields (General Queries)
+| Field Name | Data Type | Example Value | Description |
+|------------|-----------|---------------|-------------|
+| PROJECTNAME | varchar(255) | "School Construction" | Project title |
+| FISCALYEAR | varchar(10) | "2024-25" | Financial year |
+| REGION | varchar(100) | "Central" | Geographic region |
+| DISTRICT | varchar(100) | "Lilongwe" | District location |
+| TOTALBUDGET | decimal(15,2) | 1500000.00 | Total project budget |
+| PROJECTSTATUS | varchar(50) | "In Progress" | Current status |
+| PROJECTSECTOR | varchar(100) | "Education" | Project category |
 
-| Field ID | Data Type | Example Value | Description |
-|----------|-----------|---------------|-------------|
-| PROJECTNAME | varchar(100) | "Completion of Staff House" | Project name |
-| FISCALYEAR | varchar(100) | "April 2024 / March 2025" | Financial year |
-| REGION | varchar(100) | "Central Region" | Geographic region |
-| DISTRICT | varchar(100) | "Dowa" | District location |
-| TOTALBUDGET | decimal(15,2) | 700000.00 | Total project budget |
-| PROJECTSTATUS | varchar(100) | "approved" | Current status |
-| PROJECTSECTOR | varchar(100) | "Education" | Sector classification |
+### Extended Fields (Specific Project Queries)
+Additional fields displayed for single project queries:
 
-#### Extended Fields (Specific Project Queries)
-
-| Field ID | Data Type | Example Value | Description |
-|----------|-----------|---------------|-------------|
-| CONTRACTORNAME | varchar(100) | "ABC Construction Ltd" | Implementing contractor |
-| SIGNINGDATE | date | "2023-07-15" | Contract signing date |
+| Field Name | Data Type | Example Value | Description |
+|------------|-----------|---------------|-------------|
+| CONTRACTORNAME | varchar(255) | "ABC Construction" | Primary contractor |
+| CONTRACTSTARTDATE | date | "2024-01-01" | Project start date |
 | TOTALEXPENDITURETODATE | decimal(15,2) | 450000.00 | Amount spent |
 | FUNDINGSOURCE | varchar(100) | "DDF" | Funding source |
 | PROJECTCODE | varchar(100) | "MW-CR-DO" | Project identifier |
 | LASTVISIT | date | "2024-01-20" | Last monitoring visit |
 
-#### Additional Useful Fields
+### Implementation Notes
 
-| Field ID | Data Type | Example Value | Description |
-|----------|-----------|---------------|-------------|
-| COMPLETIONPERCENTAGE | decimal(11,2) | 45.50 | Progress percentage |
-| PROJECTDESC | varchar(100) | "Teacher house construction..." | Project description |
-| TRADITIONALAUTHORITY | varchar(100) | "TA Name" | Traditional authority |
-| STAGE | varchar(100) | "Construction" | Project stage |
-| STARTDATE | date | "2023-08-01" | Start date |
-| COMPLETIONESTIDATE | date | "2024-12-31" | Estimated completion |
-| MAP_LATITUDE | float | -13.5201 | Project latitude |
-| MAP_LONGITUDE | float | 33.8543 | Project longitude |
+1. **Query Filters**
+   - All queries include `ISLATEST = 1` to ensure current data
+   - Results are ordered by `PROJECTNAME ASC` for consistency
 
-#### System Fields
+2. **Data Formatting**
+   - Budget values: Displayed with MWK currency prefix and thousands separators
+   - Dates: Formatted according to locale settings
+   - Status: Original case preserved for consistency
 
-| Field ID | Data Type | Example Value | Description |
-|----------|-----------|---------------|-------------|
-| G_UUID | varchar(100) | "000ccd30-aefa-4277-cfab-9027353d3a1f" | Unique identifier |
-| ISLATEST | tinyint(1) | 1 | Current version flag |
-| ISLATEST_PENDING | tinyint(1) | 0 | Pending changes flag |
-| ISLATEST_APPROVED | tinyint(1) | 1 | Approval status flag |
+3. **Data Validation**
+   - Null values are displayed as "N/A"
+   - Empty strings are treated as null
+   - Zero budgets are displayed as "MWK 0.00"
 
-## Query Guidelines
+4. **Query Performance**
+   - Primary key: PROJECTCODE
+   - Index on ISLATEST for efficient filtering
+   - Index on PROJECTNAME for sorting
 
-### For General Queries
-```sql
-SELECT 
-    PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-    TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR 
-FROM proj_dashboard 
-WHERE ISLATEST = 1;
-```
+## Usage Examples
 
-### For Specific Project Details
-```sql
-SELECT * FROM proj_dashboard 
-WHERE PROJECTCODE = 'MW-CR-DO' 
-AND ISLATEST = 1;
-```
+1. **General Query**
+   ```sql
+   SELECT 
+       PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+   FROM proj_dashboard 
+   WHERE ISLATEST = 1
+   ORDER BY PROJECTNAME ASC;
+   ```
 
-## Important Notes
-
-1. Database Usage:
-   - Single source of truth: `malawi_projects1.db`
-   - Single table: `proj_dashboard`
-   - Always include `WHERE ISLATEST = 1` in queries
-
-2. Data Formats:
-   - Monetary values in Malawi Kwacha (MWK)
-   - Dates in YYYY-MM-DD format
-   - Geographic hierarchy: Region > District > Traditional Authority
-
-3. Status Tracking:
-   - Use ISLATEST flags for version control
-   - PROJECTSTATUS for current state
-   - COMPLETIONPERCENTAGE for progress
-
-4. Spatial Data:
-   - MAP_LATITUDE and MAP_LONGITUDE available for geographic plotting
-   - REGION and DISTRICT for administrative boundaries
-
-## Recent Database Changes (2025-02-18)
-1. Removed duplicate records (reduced from 396 to 198 unique projects)
-2. Removed unused tables (proj_dashboard_v2 and projects)
-3. Simplified database structure to single table architecture
+2. **Specific Project Query**
+   ```sql
+   SELECT 
+       PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+       CONTRACTORNAME, CONTRACTSTARTDATE, TOTALEXPENDITURETODATE,
+       FUNDINGSOURCE, PROJECTCODE, LASTVISIT
+   FROM proj_dashboard 
+   WHERE PROJECTCODE = ? AND ISLATEST = 1;
+   ```
