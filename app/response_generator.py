@@ -15,29 +15,61 @@ class ResponseGenerator:
         logger.info("Initialized ResponseGenerator")
         
     def format_project(self, row: pd.Series) -> str:
-        """Format a single project row into a readable string"""
+        """Format a single project row into a readable string according to general query format"""
         try:
             # Format budget with commas and 2 decimal places
-            budget = f"MWK {row['budget']:,.2f}" if pd.notnull(row['budget']) else "N/A"
+            budget = f"MWK {row['TOTALBUDGET']:,.2f}" if pd.notnull(row['TOTALBUDGET']) else "N/A"
             
-            # Format completion percentage
-            completion = f"{row['completion_percentage']:.1f}%" if pd.notnull(row['completion_percentage']) else "N/A"
-            
-            # Format date
-            start_date = pd.to_datetime(row['start_date']).strftime('%Y-%m-%d') if pd.notnull(row['start_date']) else "N/A"
-            
-            return f"""Project: {row['project_name']}
-Location: {row['region']}, {row['district']}
-Status: {row['status']} ({completion} complete)
-Sector: {row['sector']}
+            # Format the project information according to the specification
+            return f"""Project Name: {row['PROJECTNAME']}
+Fiscal Year: {row['FISCALYEAR']}
+Location: {row['REGION']}, {row['DISTRICT']}
 Budget: {budget}
-Start Date: {start_date}
-Description: {row['description']}
-"""
+Status: {row['PROJECTSTATUS']}
+Sector: {row['PROJECTSECTOR']}"""
+
         except Exception as e:
             logger.error(f"Error formatting project: {str(e)}")
             return str(row)
-        
+
+    def format_summary_statistics(self, df: pd.DataFrame) -> str:
+        """Generate summary statistics for the query results"""
+        try:
+            # Total projects per region
+            region_stats = df.groupby('REGION').size()
+            
+            # Projects by sector
+            sector_stats = df.groupby('PROJECTSECTOR').size()
+            
+            # Budget allocation by sector
+            budget_by_sector = df.groupby('PROJECTSECTOR')['TOTALBUDGET'].sum()
+            
+            # Status distribution
+            status_stats = df.groupby('PROJECTSTATUS').size()
+            
+            summary = "\n\nSummary Statistics:\n"
+            summary += "\nProjects by Region:\n"
+            for region, count in region_stats.items():
+                summary += f"- {region}: {count} projects\n"
+            
+            summary += "\nProjects by Sector:\n"
+            for sector, count in sector_stats.items():
+                summary += f"- {sector}: {count} projects\n"
+            
+            summary += "\nBudget Allocation by Sector:\n"
+            for sector, budget in budget_by_sector.items():
+                summary += f"- {sector}: MWK {budget:,.2f}\n"
+            
+            summary += "\nProject Status Distribution:\n"
+            for status, count in status_stats.items():
+                summary += f"- {status}: {count} projects\n"
+            
+            return summary
+
+        except Exception as e:
+            logger.error(f"Error generating summary statistics: {str(e)}")
+            return ""
+
     def generate_response(self, query: str, page: int = 1, page_size: int = 30, is_show_more: bool = False) -> Tuple[str, Dict]:
         """Generate a response based on the SQL query results"""
         try:

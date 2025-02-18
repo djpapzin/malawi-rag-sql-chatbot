@@ -25,19 +25,20 @@ class DatabaseManager:
                 conn.close()
 
     def build_base_query(self, conditions: List[str]) -> str:
+        """Build the base SQL query with the correct fields for general queries"""
         return f"""
             SELECT 
                 PROJECTNAME,
-                PROJECTSTATUS,
-                PROJECTSECTOR,
-                PROJECTTYPE,
+                FISCALYEAR,
                 REGION,
                 DISTRICT,
-                BUDGET,
-                COMPLETIONPERCENTAGE,
-                PROJECTDESC
+                TOTALBUDGET,
+                PROJECTSTATUS,
+                PROJECTSECTOR
             FROM proj_dashboard
-            WHERE {' AND '.join(conditions)}
+            WHERE ISLATEST = 1
+            {' AND ' + ' AND '.join(conditions) if conditions else ''}
+            ORDER BY PROJECTNAME ASC
         """
 
     def build_status_conditions(self, filters: Dict[str, Any], conditions: List[str]) -> None:
@@ -81,7 +82,7 @@ class DatabaseManager:
 
     def get_project_data(self, filters: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
         try:
-            conditions = ["ISLATEST = 1"]
+            conditions = []
             params = []
 
             if filters:
