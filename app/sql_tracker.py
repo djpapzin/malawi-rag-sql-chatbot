@@ -86,6 +86,7 @@ class SQLTracker:
     
     def execute_query(self, query: str) -> Tuple[pd.DataFrame, List[QuerySource]]:
         """Execute SQL query and return results with source information"""
+        cursor = None
         try:
             # Connect to database
             if not self.connection:
@@ -103,17 +104,22 @@ class SQLTracker:
             cursor = self.connection.cursor()
             cursor.execute(final_query)
             
-            # Convert to DataFrame
+            # Get column names and data
             columns = [description[0] for description in cursor.description]
             data = cursor.fetchall()
-            df = pd.DataFrame(data, columns=columns)
+            
+            # Convert to DataFrame, ensuring data is properly structured
+            rows = []
+            for row in data:
+                rows.append(dict(zip(columns, row)))
+            df = pd.DataFrame(rows)
             
             logger.info(f"Query returned {len(df)} rows with columns: {columns}")
             
             # Create source with original query
             sources = [QuerySource(
                 sql=query,  # Use original query without LIMIT
-                table="projects",
+                table="proj_dashboard",
                 filters={}
             )]
             
@@ -125,7 +131,8 @@ class SQLTracker:
             return pd.DataFrame(), []
             
         finally:
-            cursor.close()
+            if cursor:
+                cursor.close()
             self._disconnect()
             
     def execute_count_query(self, query: str) -> int:
@@ -144,28 +151,3 @@ class SQLTracker:
     def set_last_page(self, page: int):
         """Set the last page number that was queried"""
         self.last_page = page
-        
-    def execute_query_new(self, query: str) -> list:
-        """Execute SQL query and return results"""
-        try:
-            if not self.connection:
-                self._connect()
-            cursor = self.connection.cursor()
-            cursor.execute(query)
-            columns = [description[0] for description in cursor.description]
-            results = []
-            for row in cursor.fetchall():
-                results.append(dict(zip(columns, row)))
-            return results
-        except Exception as e:
-            logger.error(f"Error executing query: {str(e)}")
-            raise
-            
-    def execute_count_query_new(self, query: str) -> int:
-        """Execute a COUNT query and return the total"""
-        try:
-            results = self.execute_query_new(query)
-            return results[0].get('total', 0) if results else 0
-        except Exception as e:
-            logger.error(f"Error executing count query: {str(e)}")
-            raise
