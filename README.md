@@ -1,47 +1,77 @@
-# RAG SQL Chatbot Demo
+# Infrastructure Transparency Chatbot
 
-Repository: https://github.com/djpapzin/RAG-SQL-Chatbot
-
-A chatbot that uses Retrieval Augmented Generation (RAG) to provide natural language interface for querying SQL databases. Currently configured for Malawi infrastructure projects database.
+A specialized chatbot for querying and exploring Malawi's infrastructure projects database. This tool provides a natural language interface to access detailed information about infrastructure projects, their status, and related statistics.
 
 ## Features
 
-- Natural language to SQL query conversion
-- Context-aware responses about infrastructure projects
-- Multi-language support (English, Chichewa)
+- Natural language querying of infrastructure projects
+- Detailed project information including:
+  - Project Name
+  - Fiscal Year
+  - Region
+  - District
+  - Total Budget
+  - Project Status
+  - Project Sector
+- Multi-language support (English, Russian, Uzbek)
 - Suggested follow-up questions
+- Project statistics and summaries
+- Pagination for large result sets
 
 ## Quick Start
 
 ### Prerequisites
 
 - Python 3.8+
-- pip
-- PostgreSQL
+- Node.js and npm (for frontend)
+- SQLite3
 - Virtual environment
 
 ### Installation
 
 ```bash
+# Backend Setup
 # Create virtual environment
-python -m venv venv
+python -m venv .venv
 
 # Activate virtual environment
 # Windows
-venv\Scripts\activate
+.venv\Scripts\activate
 # Linux/Mac
-source venv/bin/activate
+source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Setup environment variables
-cp .env.example .env
-# Edit .env with your configuration
-
-# Setup database
-python app/database/setup_db.py
+# Frontend Setup
+cd frontend
+npm install
 ```
+
+## Running the Application
+
+1. Start the Backend:
+```bash
+# From the project root
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+2. Start the Frontend:
+```bash
+# From the frontend directory
+npm start
+```
+
+The application will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+
+## API Endpoints
+
+- `POST /query`: Main endpoint for querying infrastructure projects
+  - Accepts natural language queries
+  - Returns project information and metadata
+  - Supports pagination and language selection
 
 ## Configuration
 
@@ -49,115 +79,28 @@ Required environment variables in `.env`:
 
 ```env
 # Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=malawi_projects
-DB_USER=your_username
-DB_PASSWORD=your_password
+DATABASE_URL=sqlite:///malawi_projects1.db
 
-# Model Configuration
-MODEL_PATH=models/your_model
+# API Configuration
+PORT=8000
+HOST=0.0.0.0
 ```
-
-## Database Setup
-
-```bash
-# Create database
-psql -U postgres
-CREATE DATABASE malawi_projects;
-
-# Import schema and data
-psql -U postgres malawi_projects < malawi_reporting.sql
-```
-
-## Running the Server
-
-```bash
-# Start the server with auto-reload
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
-```
-
-## Testing
-
-1. **Unit Tests**
-```bash
-# Run all tests
-python -m pytest
-
-# Run specific test file
-python -m pytest test_chatbot.py
-```
-
-2. **API Testing**
-```bash
-# Test database connection
-curl http://localhost:8001/test/db
-
-# Test query parser
-curl http://localhost:8001/test/parser/show%20all%20projects
-
-# Test chat endpoint
-curl -X POST http://localhost:8001/api/rag-sql-chatbot/query \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Show me all projects in Lilongwe"}'
-```
-
-3. **Swagger Documentation**
-- Visit `http://localhost:8001/docs` for interactive API documentation
 
 ## Project Structure
 
 ```
-.
-├── app/
-│   ├── main.py           # FastAPI application
-│   ├── models/           # Data models
-│   ├── database/         # Database utilities
-│   └── services/         # Business logic
-├── tests/                # Test files
-└── docs/                 # Documentation
+├── app/                    # Backend application
+│   ├── database/          # Database models and queries
+│   ├── core/              # Core business logic
+│   └── main.py           # FastAPI application
+├── frontend/              # React frontend application
+├── docs/                  # Documentation
+└── tests/                 # Test suite
 ```
 
-## Common Issues
+## Documentation
 
-### 1. Database Connection Issues
-```bash
-# Check PostgreSQL is running
-# Windows
-net start postgresql
-# Linux
-sudo systemctl status postgresql
-
-# Test connection
-python check_db.py
-```
-
-### 2. Query Parser Issues
-```bash
-# Test parser directly
-python -m pytest test_components.py -k "test_parser"
-```
-
-### 3. Model Loading Issues
-```bash
-# Verify model files exist
-python -c "from app.models import get_model; model = get_model()"
-```
-
-## API Documentation
-
-See [RAG SQL Chatbot API Documentation](../rag-pdf-chatbot/docs/rag_sql_chatbot_api.md) for detailed endpoint information.
-
-## Need Help?
-
-1. Check the logs:
-```bash
-tail -f app.log
-```
-
-2. Test components:
-```bash
-python test_components.py
-```
-
-3. Contact support: support@kwantu.net
+For more detailed information, see:
+- [Infrastructure Transparency Chatbot Specification](docs/Infrastructure%20Transparency%20Chatbot%20Specification.md)
+- [Field Mapping Documentation](docs/FIELD_MAPPING.md)
+- [Query Response Plan](docs/query_response_plan.md)
