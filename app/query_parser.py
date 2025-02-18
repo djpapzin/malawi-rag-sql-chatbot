@@ -10,7 +10,14 @@ class QueryParser:
     
     def __init__(self):
         logger.info("Initializing QueryParser")
-        pass
+        self.specific_query_patterns = [
+            r'details?\s+(?:about|for|on)\s+["\'](.+?)["\']',  # "details about 'Project Name'"
+            r'tell\s+me\s+about\s+["\'](.+?)["\']',          # "tell me about 'Project Name'"
+            r'show\s+information\s+for\s+["\'](.+?)["\']',    # "show information for 'Project Name'"
+            r'(?:project|code)\s+(?:code\s+)?(MW-[A-Z]{2}-[A-Z0-9]{2})',  # "project code MW-CR-DO" or "project MW-CR-DO"
+            r'tell\s+me\s+about\s+project\s+([A-Za-z0-9-]+)',  # "tell me about project MW-CR-DO"
+            r'show\s+details?\s+for\s+["\'](.+?)["\']'       # "show details for 'Project Name'"
+        ]
         
     def parse_query(self, query: str) -> str:
         """Parse a natural language query into SQL"""
@@ -19,62 +26,64 @@ class QueryParser:
         logger.info(f"Generated SQL: {sql_query}")
         return sql_query
     
+    def is_specific_project_query(self, query: str) -> Tuple[bool, str]:
+        """
+        Check if the query is asking for specific project details.
+        Returns (is_specific, project_identifier)
+        """
+        if not query:
+            return False, ""
+            
+        query_lower = query.lower()
+        
+        # Check for project code pattern (e.g., MW-CR-DO)
+        project_code_match = re.search(r'(?:^|\s)(MW-[A-Z]{2}-[A-Z0-9]{2})(?:\s|$)', query.upper())
+        if project_code_match:
+            logger.info(f"Found project code: {project_code_match.group(1)}")
+            return True, project_code_match.group(1)
+            
+        # Check for project name patterns
+        for pattern in self.specific_query_patterns:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
+                project_identifier = match.group(1)
+                logger.info(f"Found project name/identifier: {project_identifier}")
+                return True, project_identifier
+                
+        return False, ""
+
     def parse_query_intent(self, query: str) -> Tuple[str, Dict[str, Any]]:
         """Parse user query to determine intent and extract filters"""
         try:
             logger.info(f"Parsing query intent: {query}")
             
             # Check if this is a specific project query
-            specific_phrases = [
-                'tell me more about', 'show details for', 'details of',
-                'more information about', 'specific details'
-            ]
+            is_specific, project_identifier = self.is_specific_project_query(query)
             
-            is_specific = any(phrase in query.lower() for phrase in specific_phrases)
-            
-            # Select fields based on query type
             if is_specific:
-                # Extract project name from query
-                project_name = None
-                for phrase in specific_phrases:
-                    if phrase in query.lower():
-                        # Get text after the phrase
-                        project_name = query.lower().split(phrase)[-1].strip()
-                        break
-                
-                if not project_name:
-                    # Fallback to basic query if no project name found
-                    is_specific = False
-                
-                # Specific project query - include all detailed fields
-                fields = """
-                    PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-                    TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
-                    CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
-                    FUNDINGSOURCE, PROJECTCODE, LASTVISIT
-                """
-            else:
-                # General project query - basic fields only
-                fields = """
-                    PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-                    TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
-                """
+                logger.info(f"Detected specific project query for: {project_identifier}")
+                # If it looks like a project code
+                if re.match(r'MW-[A-Z]{2}-[A-Z0-9]{2}', project_identifier.upper()):
+                    return self._build_specific_project_sql(project_code=project_identifier), {
+                        "query_type": "specific",
+                        "filters": {"project_code": project_identifier}
+                    }
+                else:
+                    return self._build_specific_project_sql(project_name=project_identifier), {
+                        "query_type": "specific",
+                        "filters": {"project_name": project_identifier}
+                    }
             
-            # Base query with selected fields
-            base_query = f"""
-                SELECT {fields}
+            # Default query with correct table and column names
+            base_query = """
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
                 FROM proj_dashboard
-                WHERE 1=1
+                WHERE ISLATEST = 1
             """
             
             filters = {}
             query_lower = query.lower()
-            
-            # Add project name filter for specific queries
-            if is_specific and project_name:
-                base_query += f"\n    AND LOWER(PROJECTNAME) LIKE '%{project_name}%'"
-                filters['project_name'] = project_name
-                logger.info(f"Added project name filter: {project_name}")
             
             # Extract location filters
             locations = re.findall(r'in\s+(\w+(?:\s+\w+)*)', query_lower, re.IGNORECASE)
@@ -83,7 +92,7 @@ class QueryParser:
                 if location.lower() != 'progress':  # Skip if location is "progress"
                     filters['location'] = location
                     # Try to match either region or district
-                    base_query += f"\n    AND (LOWER(REGION) LIKE '%{location}%' OR LOWER(DISTRICT) LIKE '%{location}%')"
+                    base_query += f" AND (LOWER(REGION) LIKE LOWER('%{location}%') OR LOWER(DISTRICT) LIKE LOWER('%{location}%'))"
                     logger.info(f"Added location filter: {location}")
             
             # Extract status filters
@@ -91,30 +100,45 @@ class QueryParser:
             for status in statuses:
                 if status in query_lower:
                     filters['status'] = status
-                    base_query += f"\n    AND LOWER(PROJECTSTATUS) LIKE '%{status}%'"
+                    base_query += f" AND LOWER(PROJECTSTATUS) LIKE LOWER('%{status}%')"
                     logger.info(f"Added status filter: {status}")
             
             # Extract sector filters
-            sectors = ['education', 'health', 'water', 'sanitation', 'roads', 'transport']
+            sectors = ['education', 'health', 'water', 'transport', 'agriculture']
             for sector in sectors:
                 if sector in query_lower:
                     filters['sector'] = sector
-                    base_query += f"\n    AND LOWER(PROJECTSECTOR) LIKE '%{sector}%'"
+                    base_query += f" AND LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')"
                     logger.info(f"Added sector filter: {sector}")
             
             # Add order by
-            base_query += "\n    ORDER BY PROJECTNAME ASC"
+            base_query += " ORDER BY PROJECTNAME ASC"
             
-            logger.info(f"Final SQL query: {base_query}")
-            return base_query, filters
+            return base_query, {"query_type": "general", "filters": filters}
             
         except Exception as e:
             logger.error(f"Error parsing query intent: {str(e)}")
-            # Return a safe default query that matches the schema
-            return """
-                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
-                FROM proj_dashboard
-                WHERE 1=1
-                ORDER BY PROJECTNAME ASC
-            """, {}
+            raise
+
+    def _build_specific_project_sql(self, project_code: str = None, project_name: str = None) -> str:
+        """Build SQL query for specific project details"""
+        sql = """
+            SELECT 
+                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
+                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
+                STAGE, STARTDATE, COMPLETIONESTIDATE
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+        """
+        
+        if project_code:
+            sql += f" AND UPPER(PROJECTCODE) = '{project_code.upper()}'"
+        elif project_name:
+            sql += f" AND LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')"
+            
+        sql += " LIMIT 1"
+        
+        return sql
