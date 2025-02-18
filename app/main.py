@@ -87,7 +87,7 @@ async def process_query(chat_query: ChatQuery) -> ChatResponse:
             ),
             source=QuerySource(
                 sql=executed_sql,  # Use the executed SQL query
-                table="projects",
+                table="proj_dashboard",
                 filters=metadata.get("filters", {})  # Get filters from metadata
             )
         )
