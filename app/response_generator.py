@@ -79,69 +79,57 @@ class ResponseGenerator:
             
         return "\n\n".join(formatted_projects)
         
-    def _format_single_project(self, df: pd.DataFrame) -> str:
-        """Format detailed information for a single project"""
-        if df.empty:
-            return "Project not found."
+    def _format_specific_project(self, project: pd.Series) -> str:
+        """Format a specific project's details"""
+        try:
+            # Format all the values first
+            formatted_values = {}
+            for col in project.index:
+                value = project[col]
+                if col in self.currency_columns:
+                    formatted_values[col] = self._format_currency(value)
+                elif col in self.date_columns:
+                    formatted_values[col] = self._format_date(value)
+                else:
+                    formatted_values[col] = str(value) if not pd.isna(value) else "Not available"
+
+            # Build the response sections
+            sections = []
             
-        row = df.iloc[0]
-        sections = []
-        
-        # Basic Information
-        basic_info = [
-            f"# {row['PROJECTNAME']}",
-            f"Project Code: {row['PROJECTCODE']}",
-            f"Sector: {row['PROJECTSECTOR']}",
-            f"Status: {row['PROJECTSTATUS']}",
-            f"Stage: {row['STAGE']}"
-        ]
-        sections.append("\n".join(basic_info))
-        
-        # Location Information
-        location_info = [
-            "## Location",
-            f"Region: {row['REGION']}",
-            f"District: {row['DISTRICT']}",
-            f"Traditional Authority: {row['TRADITIONALAUTHORITY']}"
-        ]
-        sections.append("\n".join(location_info))
-        
-        # Financial Information
-        financial_info = [
-            "## Financial Details",
-            f"Total Budget: {self._format_currency(row['TOTALBUDGET'])}",
-            f"Total Expenditure to Date: {self._format_currency(row['TOTALEXPENDITURETODATE'])}",
-            f"Funding Source: {row['FUNDINGSOURCE']}"
-        ]
-        sections.append("\n".join(financial_info))
-        
-        # Timeline Information
-        timeline_info = [
-            "## Timeline",
-            f"Start Date: {self._format_date(row['STARTDATE'])}",
-            f"Estimated Completion Date: {self._format_date(row['COMPLETIONESTIDATE'])}",
-            f"Last Site Visit: {self._format_date(row['LASTVISIT'])}",
-            f"Completion Percentage: {self._format_percentage(row['COMPLETIONPERCENTAGE'])}"
-        ]
-        sections.append("\n".join(timeline_info))
-        
-        # Contractor Information
-        contractor_info = [
-            "## Contractor Details",
-            f"Contractor: {row['CONTRACTORNAME']}",
-            f"Contract Signing Date: {self._format_date(row['SIGNINGDATE'])}"
-        ]
-        sections.append("\n".join(contractor_info))
-        
-        # Project Description
-        if pd.notna(row['PROJECTDESC']):
-            description = [
-                "## Project Description",
-                str(row['PROJECTDESC'])
-            ]
-            sections.append("\n".join(description))
+            # Project Name and Basic Info
+            sections.append(f"Project: {formatted_values.get('PROJECTNAME', 'Unknown Project')}")
+            sections.append(f"Sector: {formatted_values.get('PROJECTSECTOR', 'Not specified')}")
+            sections.append(f"Location: {formatted_values.get('REGION', 'Not specified')}, {formatted_values.get('DISTRICT', 'Not specified')}")
+            sections.append(f"Status: {formatted_values.get('PROJECTSTATUS', 'Not specified')}")
+            sections.append(f"Budget: {formatted_values.get('TOTALBUDGET', 'Not available')}")
             
-        return "\n\n".join(sections)
+            # Only add additional sections if this is a detailed query
+            if 'CONTRACTORNAME' in formatted_values:
+                # Implementation Details
+                if formatted_values.get('CONTRACTORNAME', 'Not available') != 'Not available':
+                    sections.append("\nImplementation Details:")
+                    sections.append(f"Contractor: {formatted_values.get('CONTRACTORNAME', 'Not specified')}")
+                    sections.append(f"Start Date: {formatted_values.get('STARTDATE', 'Not specified')}")
+                    sections.append(f"Expected Completion: {formatted_values.get('COMPLETIONESTIDATE', 'Not specified')}")
+                    sections.append(f"Completion Percentage: {formatted_values.get('COMPLETIONPERCENTAGE', 'Not available')}")
+                
+                # Financial Information
+                if formatted_values.get('TOTALEXPENDITURETODATE', 'Not available') != 'Not available':
+                    sections.append("\nFinancial Information:")
+                    sections.append(f"Total Budget: {formatted_values.get('TOTALBUDGET', 'Not available')}")
+                    sections.append(f"Expenditure to Date: {formatted_values.get('TOTALEXPENDITURETODATE', 'Not available')}")
+                    sections.append(f"Funding Source: {formatted_values.get('FUNDINGSOURCE', 'Not specified')}")
+                
+                # Project Description
+                if formatted_values.get('PROJECTDESC', 'Not available') != 'Not available':
+                    sections.append("\nProject Description:")
+                    sections.append(formatted_values.get('PROJECTDESC', 'Not available'))
+
+            return "\n".join(sections)
+            
+        except Exception as e:
+            logger.error(f"Error formatting specific project: {str(e)}")
+            return "Error: Unable to format project details"
         
     def generate_response(
         self,
@@ -151,9 +139,12 @@ class ResponseGenerator:
     ) -> Tuple[str, Dict[str, Any], QuerySource]:
         """Generate a formatted response with metadata"""
         try:
+            # Check if this is a specific project query based on the columns
+            is_specific = is_specific_project or (len(df) == 1 and 'CONTRACTORNAME' in df.columns)
+            
             # Generate formatted response based on query type
-            if is_specific_project:
-                response = self._format_single_project(df)
+            if is_specific and not df.empty:
+                response = self._format_specific_project(df.iloc[0])
             else:
                 response = self._format_project_list(df)
                 
