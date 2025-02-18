@@ -18,15 +18,36 @@ class ResponseGenerator:
         """Format a single project row into a readable string according to general query format"""
         try:
             # Format budget with commas and 2 decimal places
-            budget = f"MWK {row['TOTALBUDGET']:,.2f}" if pd.notnull(row['TOTALBUDGET']) else "N/A"
+            budget = f"MWK {row['TOTALBUDGET']:,.2f}" if pd.notnull(row['TOTALBUDGET']) else "Not specified"
+            expenditure = f"MWK {row['TOTALEXPENDITURETODATE']:,.2f}" if pd.notnull(row.get('TOTALEXPENDITURETODATE')) else "Not specified"
             
-            # Format the project information according to the specification
-            return f"""Project Name: {row['PROJECTNAME']}
-Fiscal Year: {row['FISCALYEAR']}
-Location: {row['REGION']}, {row['DISTRICT']}
-Budget: {budget}
-Status: {row['PROJECTSTATUS']}
-Sector: {row['PROJECTSECTOR']}"""
+            # Check if this is a specific project query by looking for detailed fields
+            is_specific = 'CONTRACTORNAME' in row.index
+            
+            if is_specific:
+                # Format the project information with all detailed fields
+                return f"""Project Name: {row.get('PROJECTNAME', 'Not specified')}
+Fiscal Year: {row.get('FISCALYEAR', 'Not specified')}
+Location: {row.get('REGION', 'Not specified')}, {row.get('DISTRICT', 'Not specified')}
+Total Budget: {budget}
+Project Status: {row.get('PROJECTSTATUS', 'Not specified')}
+Project Sector: {row.get('PROJECTSECTOR', 'Not specified')}
+
+Additional Details:
+Contractor: {row.get('CONTRACTORNAME', 'Not specified')}
+Contract Start Date: {row.get('SIGNINGDATE', 'Not specified')}
+Expenditure to Date: {expenditure}
+Funding Source: {row.get('FUNDINGSOURCE', 'Not specified')}
+Project Code: {row.get('PROJECTCODE', 'Not specified')}
+Last Monitoring Visit: {row.get('LASTVISIT', 'Not specified')}"""
+            else:
+                # Format the project information with basic fields
+                return f"""Project Name: {row.get('PROJECTNAME', 'Not specified')}
+Fiscal Year: {row.get('FISCALYEAR', 'Not specified')}
+Location: {row.get('REGION', 'Not specified')}, {row.get('DISTRICT', 'Not specified')}
+Total Budget: {budget}
+Project Status: {row.get('PROJECTSTATUS', 'Not specified')}
+Project Sector: {row.get('PROJECTSECTOR', 'Not specified')}"""
 
         except Exception as e:
             logger.error(f"Error formatting project: {str(e)}")
