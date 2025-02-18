@@ -6,6 +6,7 @@ import uuid
 from typing import Dict, Any, List
 import logging
 import importlib
+import re
 
 # Import our custom modules
 from .models import ChatQuery, ChatResponse, QueryMetadata, QuerySource
@@ -55,14 +56,21 @@ async def process_query(chat_query: ChatQuery) -> ChatResponse:
         
         # Parse the query
         logger.info(f"Parsing query: {chat_query.message}")
-        sql_query = query_parser.parse_query(chat_query.message)
+        is_specific, project_identifier = query_parser.is_specific_project_query(chat_query.message)
+        
+        if is_specific:
+            # Build SQL for specific project
+            if re.match(r'MW-[A-Z]{2}-[A-Z0-9]{2}', project_identifier.upper()):
+                sql_query = query_parser._build_specific_project_sql(project_code=project_identifier)
+            else:
+                sql_query = query_parser._build_specific_project_sql(project_name=project_identifier)
+        else:
+            sql_query = query_parser.parse_query(chat_query.message)
+            
         logger.info(f"Generated SQL query: {sql_query}")
         
         # Execute query
         df, sources = sql_tracker.execute_query(sql_query)
-        
-        # Check if this is a specific project query
-        is_specific = len(df) == 1 and 'CONTRACTORNAME' in df.columns
         
         # Generate response
         response_text, metadata, source = response_generator.generate_response(
