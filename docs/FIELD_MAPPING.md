@@ -2,35 +2,19 @@
 
 ## Database Overview
 
-There are three database files in the project:
+The project uses a single SQLite database:
 
-1. `malawi_projects1.db` (Main Database - Root Directory)
+1. `malawi_projects1.db` (Main Database)
    - Location: Root directory (`c:\Users\lfana\Documents\Kwantu\rag-sql-chatbot\`)
-   - Tables: 
-     * `proj_dashboard` (396 records)
-     * `proj_dashboard_v2` (0 records, newer schema)
-   - Status: Currently configured as main database
-   - Note: Contains the most complete schema with all required fields
-
-2. `malawi_projects1.db` (App Directory Copy)
-   - Location: App directory (`c:\Users\lfana\Documents\Kwantu\rag-sql-chatbot\app\`)
-   - Tables: 
-     * `proj_dashboard` (396 records)
-     * `proj_dashboard_v2` (0 records)
-   - Status: Duplicate of root directory database
-   - Note: Same schema and content as root directory version
-
-3. `malawi_projects.db` (Alternative Database)
-   - Location: Root directory
-   - Tables:
-     * `projects` (Contains basic project data)
-   - Status: Simpler schema, alternative data source
-   - Note: Contains simplified project information
+   - Table: 
+     * `proj_dashboard` (198 records)
+   - Status: Production database
+   - Note: Contains the complete schema with all required fields for infrastructure projects
 
 ## Active Database Schema (`malawi_projects1.db`)
 
-### proj_dashboard Table (396 records)
-Currently used for active queries. Contains comprehensive project information.
+### proj_dashboard Table (198 records)
+Currently used for all queries. Contains comprehensive project information.
 
 #### Core Fields (General Queries)
 
@@ -77,26 +61,6 @@ Currently used for active queries. Contains comprehensive project information.
 | ISLATEST_PENDING | tinyint(1) | 0 | Pending changes flag |
 | ISLATEST_APPROVED | tinyint(1) | 1 | Approval status flag |
 
-### proj_dashboard_v2 Table (0 records)
-Newer schema version, currently empty but structured for future use. Contains same fields as proj_dashboard with optimized data types.
-
-## Alternative Database Schema (`malawi_projects.db`)
-
-### projects Table
-Simpler schema with basic project information.
-
-| Field ID | Data Type | Example Value | Description |
-|----------|-----------|---------------|-------------|
-| id | INTEGER | 1 | Primary key |
-| name | TEXT | "Lilongwe District Road Rehabilitation" | Project name |
-| sector | TEXT | "Infrastructure" | Project sector |
-| district | TEXT | "Lilongwe" | District location |
-| status | TEXT | "Active" | Project status |
-| budget | REAL | 5000000.0 | Project budget |
-| start_date | TEXT | "2023-01-01" | Start date |
-| end_date | TEXT | "2024-12-31" | End date |
-| description | TEXT | "Major road rehabilitation project..." | Project details |
-
 ## Query Guidelines
 
 ### For General Queries
@@ -118,9 +82,9 @@ AND ISLATEST = 1;
 ## Important Notes
 
 1. Database Usage:
-   - Use `malawi_projects1.db` for all queries
-   - Always include `WHERE ISLATEST = 1` to get current records
-   - `proj_dashboard` table contains the active data
+   - Single source of truth: `malawi_projects1.db`
+   - Single table: `proj_dashboard`
+   - Always include `WHERE ISLATEST = 1` in queries
 
 2. Data Formats:
    - Monetary values in Malawi Kwacha (MWK)
@@ -135,3 +99,8 @@ AND ISLATEST = 1;
 4. Spatial Data:
    - MAP_LATITUDE and MAP_LONGITUDE available for geographic plotting
    - REGION and DISTRICT for administrative boundaries
+
+## Recent Database Changes (2025-02-18)
+1. Removed duplicate records (reduced from 396 to 198 unique projects)
+2. Removed unused tables (proj_dashboard_v2 and projects)
+3. Simplified database structure to single table architecture
