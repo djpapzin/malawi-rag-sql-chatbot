@@ -43,6 +43,26 @@ def test_response_format():
             "expected_categories": ["Project", "Location"]
         },
         {
+            "message": "Details about 'Nachuma Market Shed phase 3'",
+            "language": "english",
+            "expected_categories": ["Project", "Location", "Financial Details", "Timeline", "Contractor Details"]
+        },
+        {
+            "message": "Show me project code MW-CR-DO",
+            "language": "english",
+            "expected_categories": ["Project", "Location", "Financial Details", "Timeline", "Contractor Details"]
+        },
+        {
+            "message": "What is the status of 'Rehabilitation of Mzimba Hospital'",
+            "language": "english",
+            "expected_categories": ["Project", "Location", "Financial Details", "Timeline", "Contractor Details"]
+        },
+        {
+            "message": "Expenditure for 'Construction of Mchinji District Hospital'",
+            "language": "english",
+            "expected_categories": ["Project", "Location", "Financial Details", "Timeline", "Contractor Details"]
+        },
+        {
             "message": "Покажите проекты в районе Лилонгве",  # Show projects in Lilongwe district
             "language": "russian",
             "expected_categories": ["Project", "Location"]
