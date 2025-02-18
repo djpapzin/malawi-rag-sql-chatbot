@@ -1,166 +1,180 @@
+"""Response Generator Module
+
+This module handles the generation of formatted responses from query results.
+"""
+
 import pandas as pd
-from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
-from .models import QueryMetadata, QuerySource
+from typing import Dict, Any, List, Tuple, Optional
 import logging
+from .models import QuerySource
 
 logger = logging.getLogger(__name__)
 
 class ResponseGenerator:
-    """Generates formatted responses from SQL query results"""
+    """Generates formatted responses from query results"""
     
-    def __init__(self, sql_tracker):
-        self.sql_tracker = sql_tracker
-        self.last_query = None
-        logger.info("Initialized ResponseGenerator")
+    def __init__(self):
+        """Initialize response generator"""
+        self.currency_columns = ['TOTALBUDGET', 'TOTALEXPENDITURETODATE']
+        self.date_columns = ['SIGNINGDATE', 'LASTVISIT', 'STARTDATE', 'COMPLETIONESTIDATE']
         
-    def format_project(self, row: pd.Series) -> str:
-        """Format a single project row into a readable string according to general query format"""
+    def _format_currency(self, value: float) -> str:
+        """Format currency values with commas and 2 decimal places"""
         try:
-            # Format budget with commas and 2 decimal places
-            budget = f"MWK {row['TOTALBUDGET']:,.2f}" if pd.notnull(row['TOTALBUDGET']) else "Not specified"
-            expenditure = f"MWK {row['TOTALEXPENDITURETODATE']:,.2f}" if pd.notnull(row.get('TOTALEXPENDITURETODATE')) else "Not specified"
+            if pd.isna(value):
+                return "Not available"
+            return f"MWK {value:,.2f}"
+        except:
+            return str(value)
             
-            # Check if this is a specific project query by looking for detailed fields
-            is_specific = 'CONTRACTORNAME' in row.index
-            
-            if is_specific:
-                # Format the project information with all detailed fields
-                return f"""Project Name: {row.get('PROJECTNAME', 'Not specified')}
-Fiscal Year: {row.get('FISCALYEAR', 'Not specified')}
-Location: {row.get('REGION', 'Not specified')}, {row.get('DISTRICT', 'Not specified')}
-Total Budget: {budget}
-Project Status: {row.get('PROJECTSTATUS', 'Not specified')}
-Project Sector: {row.get('PROJECTSECTOR', 'Not specified')}
-
-Additional Details:
-Contractor: {row.get('CONTRACTORNAME', 'Not specified')}
-Contract Start Date: {row.get('SIGNINGDATE', 'Not specified')}
-Expenditure to Date: {expenditure}
-Funding Source: {row.get('FUNDINGSOURCE', 'Not specified')}
-Project Code: {row.get('PROJECTCODE', 'Not specified')}
-Last Monitoring Visit: {row.get('LASTVISIT', 'Not specified')}"""
-            else:
-                # Format the project information with basic fields
-                return f"""Project Name: {row.get('PROJECTNAME', 'Not specified')}
-Fiscal Year: {row.get('FISCALYEAR', 'Not specified')}
-Location: {row.get('REGION', 'Not specified')}, {row.get('DISTRICT', 'Not specified')}
-Total Budget: {budget}
-Project Status: {row.get('PROJECTSTATUS', 'Not specified')}
-Project Sector: {row.get('PROJECTSECTOR', 'Not specified')}"""
-
-        except Exception as e:
-            logger.error(f"Error formatting project: {str(e)}")
-            return str(row)
-
-    def format_summary_statistics(self, df: pd.DataFrame) -> str:
-        """Generate summary statistics for the query results"""
+    def _format_date(self, date_str: str) -> str:
+        """Format date strings to a readable format"""
         try:
-            # Total projects per region
-            region_stats = df.groupby('REGION').size()
+            if pd.isna(date_str):
+                return "Not available"
+            date_obj = datetime.strptime(str(date_str), '%Y-%m-%d')
+            return date_obj.strftime('%B %d, %Y')
+        except:
+            return str(date_str)
             
-            # Projects by sector
-            sector_stats = df.groupby('PROJECTSECTOR').size()
-            
-            # Budget allocation by sector
-            budget_by_sector = df.groupby('PROJECTSECTOR')['TOTALBUDGET'].sum()
-            
-            # Status distribution
-            status_stats = df.groupby('PROJECTSTATUS').size()
-            
-            summary = "\n\nSummary Statistics:\n"
-            summary += "\nProjects by Region:\n"
-            for region, count in region_stats.items():
-                summary += f"- {region}: {count} projects\n"
-            
-            summary += "\nProjects by Sector:\n"
-            for sector, count in sector_stats.items():
-                summary += f"- {sector}: {count} projects\n"
-            
-            summary += "\nBudget Allocation by Sector:\n"
-            for sector, budget in budget_by_sector.items():
-                summary += f"- {sector}: MWK {budget:,.2f}\n"
-            
-            summary += "\nProject Status Distribution:\n"
-            for status, count in status_stats.items():
-                summary += f"- {status}: {count} projects\n"
-            
-            return summary
-
-        except Exception as e:
-            logger.error(f"Error generating summary statistics: {str(e)}")
-            return ""
-
-    def generate_response(self, query: str, page: int = 1, page_size: int = 30, is_show_more: bool = False) -> Tuple[str, Dict]:
-        """Generate a response based on the SQL query results"""
+    def _format_percentage(self, value: float) -> str:
+        """Format percentage values"""
         try:
-            logger.info(f"Executing query: {query}")
-            # Execute the query
-            df, sources = self.sql_tracker.execute_query(query)
+            if pd.isna(value):
+                return "Not available"
+            return f"{value:.1f}%"
+        except:
+            return str(value)
             
-            # Get the executed SQL and filters from sources
-            executed_sql = sources[0].sql if sources else query
-            filters = sources[0].filters if sources else {}
+    def _format_project_list(self, df: pd.DataFrame) -> str:
+        """Format a list of projects for display"""
+        if df.empty:
+            return "No projects found matching your criteria."
             
-            if df.empty:
-                logger.info("Query returned no results")
-                return "No results found.", {
-                    "message": "No results found.",
-                    "total_results": 0,
-                    "current_page": page,
-                    "total_pages": 0,
-                    "has_more": False,
-                    "query_time": "0.0s",
-                    "sql": executed_sql,  # Use executed SQL
-                    "filters": filters  # Include filters
-                }
+        formatted_projects = []
+        for _, row in df.iterrows():
+            project_str = []
+            project_str.append(f"Project: {row['PROJECTNAME']}")
             
-            # Calculate pagination
-            total_results = len(df)
-            total_pages = (total_results + page_size - 1) // page_size
-            start_idx = (page - 1) * page_size
-            end_idx = min(start_idx + page_size, total_results)
-            
-            logger.info(f"Query returned {total_results} results")
-            
-            # Format results
-            results = []
-            for _, row in df.iloc[start_idx:end_idx].iterrows():
-                results.append(self.format_project(row))
+            if 'PROJECTSECTOR' in row:
+                project_str.append(f"Sector: {row['PROJECTSECTOR']}")
                 
-            # Generate response text
-            response = "\n---\n".join(results)
+            if 'REGION' in row and 'DISTRICT' in row:
+                location = f"Location: {row['REGION']}, {row['DISTRICT']}"
+                project_str.append(location)
+                
+            if 'PROJECTSTATUS' in row:
+                project_str.append(f"Status: {row['PROJECTSTATUS']}")
+                
+            if 'TOTALBUDGET' in row:
+                budget = self._format_currency(row['TOTALBUDGET'])
+                project_str.append(f"Budget: {budget}")
+                
+            if 'COMPLETIONPERCENTAGE' in row:
+                completion = self._format_percentage(row['COMPLETIONPERCENTAGE'])
+                project_str.append(f"Completion: {completion}")
+                
+            formatted_projects.append("\n".join(project_str))
             
-            if is_show_more:
-                message = f"Here are more results (page {page} of {total_pages}):"
+        return "\n\n".join(formatted_projects)
+        
+    def _format_single_project(self, df: pd.DataFrame) -> str:
+        """Format detailed information for a single project"""
+        if df.empty:
+            return "Project not found."
+            
+        row = df.iloc[0]
+        sections = []
+        
+        # Basic Information
+        basic_info = [
+            f"# {row['PROJECTNAME']}",
+            f"Project Code: {row['PROJECTCODE']}",
+            f"Sector: {row['PROJECTSECTOR']}",
+            f"Status: {row['PROJECTSTATUS']}",
+            f"Stage: {row['STAGE']}"
+        ]
+        sections.append("\n".join(basic_info))
+        
+        # Location Information
+        location_info = [
+            "## Location",
+            f"Region: {row['REGION']}",
+            f"District: {row['DISTRICT']}",
+            f"Traditional Authority: {row['TRADITIONALAUTHORITY']}"
+        ]
+        sections.append("\n".join(location_info))
+        
+        # Financial Information
+        financial_info = [
+            "## Financial Details",
+            f"Total Budget: {self._format_currency(row['TOTALBUDGET'])}",
+            f"Total Expenditure to Date: {self._format_currency(row['TOTALEXPENDITURETODATE'])}",
+            f"Funding Source: {row['FUNDINGSOURCE']}"
+        ]
+        sections.append("\n".join(financial_info))
+        
+        # Timeline Information
+        timeline_info = [
+            "## Timeline",
+            f"Start Date: {self._format_date(row['STARTDATE'])}",
+            f"Estimated Completion Date: {self._format_date(row['COMPLETIONESTIDATE'])}",
+            f"Last Site Visit: {self._format_date(row['LASTVISIT'])}",
+            f"Completion Percentage: {self._format_percentage(row['COMPLETIONPERCENTAGE'])}"
+        ]
+        sections.append("\n".join(timeline_info))
+        
+        # Contractor Information
+        contractor_info = [
+            "## Contractor Details",
+            f"Contractor: {row['CONTRACTORNAME']}",
+            f"Contract Signing Date: {self._format_date(row['SIGNINGDATE'])}"
+        ]
+        sections.append("\n".join(contractor_info))
+        
+        # Project Description
+        if pd.notna(row['PROJECTDESC']):
+            description = [
+                "## Project Description",
+                str(row['PROJECTDESC'])
+            ]
+            sections.append("\n".join(description))
+            
+        return "\n\n".join(sections)
+        
+    def generate_response(
+        self,
+        df: pd.DataFrame,
+        sources: List[QuerySource],
+        is_specific_project: bool = False
+    ) -> Tuple[str, Dict[str, Any], QuerySource]:
+        """Generate a formatted response with metadata"""
+        try:
+            # Generate formatted response based on query type
+            if is_specific_project:
+                response = self._format_single_project(df)
             else:
-                message = f"Found {total_results} projects. Showing page {page} of {total_pages}:"
-            
-            if page < total_pages:
-                message += "\n\nType 'show more' to see additional results."
-            
+                response = self._format_project_list(df)
+                
+            # Prepare metadata
             metadata = {
-                "message": message,
-                "total_results": total_results,
-                "current_page": page,
-                "total_pages": total_pages,
-                "has_more": page < total_pages,
-                "query_time": "0.1s",  # Placeholder value
-                "sql": executed_sql,  # Use executed SQL
-                "filters": filters  # Include filters
+                "query_time": "0:00:00.000000",  # Placeholder
+                "total_results": len(df),
+                "current_page": 1,  # Default
+                "total_pages": 1,  # Default
+                "has_more": False  # Default
             }
             
-            return response, metadata
+            # Prepare source information
+            source = sources[0] if sources else QuerySource(
+                sql="",
+                table="",
+                filters={}
+            )
+            
+            return response, metadata, source
             
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}")
-            return str(e), {
-                "message": str(e),
-                "total_results": 0,
-                "current_page": page,
-                "total_pages": 0,
-                "has_more": False,
-                "query_time": "0.0s",
-                "sql": query,  # Use original query
-                "filters": {}  # Empty filters
-            }
+            return str(e), {}, QuerySource(sql="", table="", filters={})
