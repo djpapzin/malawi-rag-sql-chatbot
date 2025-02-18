@@ -23,16 +23,47 @@ class QueryParser:
         """Parse user query to determine intent and extract filters"""
         try:
             logger.info(f"Parsing query intent: {query}")
-            # Default query with correct table and column names
-            base_query = """
-                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+            
+            # Check if this is a specific project query
+            is_specific = any(phrase in query.lower() for phrase in [
+                'tell me more about', 'show details for', 'details of',
+                'more information about', 'specific details'
+            ])
+            
+            # Select fields based on query type
+            if is_specific:
+                # Specific project query - include all detailed fields
+                fields = """
+                    PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                    TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                    CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                    FUNDINGSOURCE, PROJECTCODE, LASTVISIT
+                """
+            else:
+                # General project query - basic fields only
+                fields = """
+                    PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                    TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                """
+            
+            # Base query with selected fields
+            base_query = f"""
+                SELECT {fields}
                 FROM proj_dashboard
                 WHERE ISLATEST = 1
             """
             
             filters = {}
             query_lower = query.lower()
+            
+            # Extract project name for specific queries
+            if is_specific:
+                project_names = re.findall(r'(?:about|for|of)\s+([^?.,]+?)(?:\s+project)?\s*(?:\?|$|\.)', query_lower)
+                if project_names:
+                    project_name = project_names[0].strip()
+                    filters['project_name'] = project_name
+                    base_query += f" AND LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')"
+                    logger.info(f"Added project name filter: {project_name}")
             
             # Extract location filters
             locations = re.findall(r'in\s+(\w+(?:\s+\w+)*)', query_lower, re.IGNORECASE)
@@ -49,26 +80,16 @@ class QueryParser:
             for status in statuses:
                 if status in query_lower:
                     filters['status'] = status
-                    base_query += f" AND LOWER(PROJECTSTATUS) = '{status.lower()}'"
+                    base_query += f" AND LOWER(PROJECTSTATUS) LIKE LOWER('%{status}%')"
                     logger.info(f"Added status filter: {status}")
             
             # Extract sector filters
-            if 'sector' in query_lower:
-                sectors = re.findall(r'sector\s+(\w+(?:\s+\w+)*)', query_lower, re.IGNORECASE)
-                if sectors:
-                    sector = sectors[0]
-                    if sector.lower() != 'projects':  # Skip if sector is just "projects"
-                        filters['sector'] = sector
-                        base_query += f" AND LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')"
-                        logger.info(f"Added sector filter: {sector}")
-            elif any(sector in query_lower for sector in ['health', 'education', 'security', 'water']):
-                # Extract sector from keywords
-                for sector in ['health', 'education', 'security', 'water']:
-                    if sector in query_lower:
-                        filters['sector'] = sector
-                        base_query += f" AND LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')"
-                        logger.info(f"Added sector filter from keyword: {sector}")
-                        break
+            sectors = ['education', 'health', 'water', 'sanitation', 'roads', 'transport']
+            for sector in sectors:
+                if sector in query_lower:
+                    filters['sector'] = sector
+                    base_query += f" AND LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')"
+                    logger.info(f"Added sector filter: {sector}")
             
             # Add order by
             base_query += " ORDER BY PROJECTNAME ASC"
@@ -77,7 +98,7 @@ class QueryParser:
             return base_query, filters
             
         except Exception as e:
-            logger.error(f"Error parsing query: {str(e)}")
+            logger.error(f"Error parsing query intent: {str(e)}")
             # Return a safe default query that matches the schema
             return """
                 SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
