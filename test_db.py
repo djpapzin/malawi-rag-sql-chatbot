@@ -44,29 +44,26 @@ def test_query():
         conn = sqlite3.connect('malawi_projects1.db')
         cursor = conn.cursor()
         
-        # Test the problematic query
-        test_query = """
-        SELECT p.id, p.title, p.description, p.location, p.status, p.start_date, p.end_date, p.budget
-        FROM projects p
-        WHERE 1=1
-        ORDER BY p.start_date DESC
-        LIMIT 5
-        """
+        # Test each query type
+        test_queries = [
+            "SELECT COUNT(*) FROM proj_dashboard WHERE district = 'lilongwe';",
+            "SELECT SUM(budget) FROM proj_dashboard;",
+            "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure';",
+            "SELECT * FROM proj_dashboard WHERE completionpercentage > 50;",
+            "SELECT district, AVG(budget) FROM proj_dashboard GROUP BY district;"
+        ]
         
-        try:
-            cursor.execute(test_query)
-            results = cursor.fetchall()
-            logger.info(f"Query results: {results}")
-        except Exception as e:
-            logger.error(f"Query error: {str(e)}")
-            
-            # Let's try a simpler query to see the actual structure
-            cursor.execute("SELECT * FROM projects LIMIT 1")
-            columns = [description[0] for description in cursor.description]
-            logger.info(f"Actual columns: {columns}")
-            
+        for query in test_queries:
+            logger.info(f"\nTesting query: {query}")
+            try:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                logger.info(f"Result: {result}")
+            except Exception as e:
+                logger.error(f"Query failed: {str(e)}")
+                
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        logger.error(f"Database error: {str(e)}")
     finally:
         if conn:
             conn.close()
