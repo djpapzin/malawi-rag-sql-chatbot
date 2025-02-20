@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import pandas as pd
 from datetime import datetime
 import uuid
@@ -16,7 +18,7 @@ import time
 load_dotenv()
 
 # Get configuration from environment
-PORT = int(os.getenv('PORT', '8001'))
+PORT = int(os.getenv('PORT', '8000'))
 HOST = os.getenv('HOST', '0.0.0.0')
 API_PREFIX = os.getenv('API_PREFIX', '')
 CORS_ORIGINS = eval(os.getenv('CORS_ORIGINS', '["*"]'))
@@ -49,6 +51,10 @@ app = FastAPI(
     openapi_url=None  # Disable default openapi
 )
 
+# Set up static files and templates
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+templates = Jinja2Templates(directory="frontend/templates")
+
 # Create a sub-application with the API prefix
 api_app = FastAPI(
     title="Malawi Projects Chatbot API",
@@ -76,6 +82,10 @@ query_parser = QueryParser()
 langchain_sql = LangChainSQLIntegration()
 logger.info("Initialized components")
 logger.info(f"Using QueryParser from module: {QueryParser.__module__}")
+
+@app.get("/")
+async def root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @api_app.post("/query")
 async def process_query(query: ChatQuery) -> ChatResponse:
