@@ -9,6 +9,7 @@ from typing import List, Tuple, Dict, Any
 import logging
 from .models import QuerySource
 import re
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -84,61 +85,46 @@ class SQLTracker:
         
         return sources
     
-    def execute_query(self, query: str) -> Tuple[pd.DataFrame, List[QuerySource]]:
-        """Execute SQL query and return results with source information"""
-        cursor = None
+    def execute_query(self, query: str) -> pd.DataFrame:
+        """Execute SQL query and return results as DataFrame"""
         try:
             # Connect to database
-            if not self.connection:
-                self._connect()
+            self._connect()
             
             # Add LIMIT clause if not present
             final_query = query
             if 'LIMIT' not in query.upper():
-                final_query = f"{query} LIMIT 100"  # Default limit
+                # Check if there's an ORDER BY clause
+                if 'ORDER BY' in query.upper():
+                    # Insert LIMIT before ORDER BY
+                    order_idx = query.upper().find('ORDER BY')
+                    final_query = f"{query[:order_idx]} LIMIT 100 {query[order_idx:]}"
+                else:
+                    final_query = f"{query} LIMIT 100"  # Default limit
             
             logger.info(f"Original query: {query}")
             logger.info(f"Executing query: {final_query}")
             
-            # Execute query with a timeout
-            cursor = self.connection.cursor()
-            cursor.execute(final_query)
+            # Execute query and get results
+            start_time = datetime.now()
+            df = pd.read_sql_query(final_query, self.connection)
+            query_time = datetime.now() - start_time
             
-            # Get column names and data
-            columns = [description[0] for description in cursor.description]
-            data = cursor.fetchall()
+            logger.info(f"Query executed in {query_time}")
+            logger.info(f"Found {len(df)} results")
             
-            # Convert to DataFrame, ensuring data is properly structured
-            rows = []
-            for row in data:
-                rows.append(dict(zip(columns, row)))
-            df = pd.DataFrame(rows)
-            
-            logger.info(f"Query returned {len(df)} rows with columns: {columns}")
-            
-            # Create source with original query
-            sources = [QuerySource(
-                sql=query,  # Use original query without LIMIT
-                table="proj_dashboard",
-                filters={}
-            )]
-            
-            return df, sources
+            return df
             
         except Exception as e:
-            logger.error(f"Error executing query: {e}")
-            logger.error(f"Failed query: {query}")
-            return pd.DataFrame(), []
-            
+            logger.error(f"Error executing query: {str(e)}")
+            raise
         finally:
-            if cursor:
-                cursor.close()
             self._disconnect()
             
     def execute_count_query(self, query: str) -> int:
         """Execute a COUNT query and return the total"""
         try:
-            df, _ = self.execute_query(query)
+            df = self.execute_query(query)
             return df.iloc[0]['total'] if not df.empty else 0
         except Exception as e:
             logger.error(f"Error executing count query: {e}")
