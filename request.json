@@ -1,7 +1,0 @@
-﻿{
-    "llm_config":  {
-                       "enabled":  true
-                   },
-    "message":  "Show me education projects in Northern Region",
-    "language":  "english"
-}
