@@ -1,24 +1,33 @@
 import requests
 import json
 import logging
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+# Get API prefix from environment
+API_PREFIX = os.getenv('API_PREFIX', '')
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def test_query_endpoint():
     """Test the /query endpoint with various queries"""
-    base_url = "http://localhost:8001"
+    base_url = "http://127.0.0.1:8000"
+    api_path = f"{API_PREFIX}/query"  # Include API prefix in path
     
     test_queries = [
-        "Show me all projects",
-        "Show projects in Central Region",
-        "Show education sector projects",
-        "Show projects in progress",
+        "How many projects are there in Lilongwe district?",
+        "What is the total budget for all projects?",
+        "List all projects in the Infrastructure sector",
+        "Show me projects with completion percentage greater than 50%",
+        "What is the average budget for projects in each district?",
     ]
     
     headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Content-Type": "application/json"
     }
     
     for query in test_queries:
@@ -30,12 +39,15 @@ def test_query_endpoint():
             "message": query,
             "source_lang": "english",
             "page": 1,
-            "page_size": 5
+            "page_size": 30,
+            "continue_previous": False
         }
         
         try:
+            url = f"{base_url}{api_path}"
+            logger.info(f"Making request to: {url}")
             response = requests.post(
-                f"{base_url}/query",
+                url,
                 headers=headers,
                 json=payload
             )
@@ -43,37 +55,24 @@ def test_query_endpoint():
             if response.status_code == 200:
                 result = response.json()
                 logger.info("Success!")
-                logger.info(f"Response message: {result.get('message', '')}")
-                logger.info(f"Response text: {result.get('response', '')}")
-                
-                # Log SQL query details
-                source = result.get('source', {})
-                sql = source.get('sql', '')
-                logger.info(f"SQL Query: {sql}")
-                logger.info(f"Source details: {json.dumps(source, indent=2)}")
-                
-                # Log metadata
-                metadata = result.get('metadata', {})
-                logger.info(f"Metadata: {json.dumps(metadata, indent=2)}")
+                logger.info("Natural Language Response:")
+                logger.info(result.get("response", "No response"))
+                logger.info("\nSQL Query:")
+                if source := result.get("source"):
+                    logger.info(source.get("sql", "No SQL query"))
+                logger.info("\nMetadata:")
+                if metadata := result.get("metadata"):
+                    logger.info(f"Query ID: {metadata.get('query_id')}")
+                    logger.info(f"Processing Time: {metadata.get('processing_time')}s")
+                    logger.info(f"Timestamp: {metadata.get('timestamp')}")
             else:
-                logger.error(f"Error {response.status_code}: {response.text}")
+                logger.error(f"Error! Status code: {response.status_code}")
+                logger.error(f"Response: {response.text}")
                 
         except Exception as e:
-            logger.error(f"Request failed: {str(e)}")
-
-def test_health_endpoint():
-    """Test the /health endpoint"""
-    try:
-        response = requests.get("http://localhost:8001/health")
-        if response.status_code == 200:
-            logger.info("\nHealth check passed!")
-            logger.info(json.dumps(response.json(), indent=2))
-        else:
-            logger.error(f"Health check failed: {response.status_code}")
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
+            logger.error(f"Exception occurred: {str(e)}")
+            continue
 
 if __name__ == "__main__":
     logger.info("Testing API endpoints...")
-    test_health_endpoint()
-    test_query_endpoint() 
+    test_query_endpoint()
