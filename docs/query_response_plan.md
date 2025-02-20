@@ -3,70 +3,116 @@
 ## Overview
 This document outlines the implementation of query responses for the Infrastructure Transparency Chatbot. The chatbot provides access to infrastructure project information from the `malawi_projects1.db` database.
 
-## 1. General Query Responses
+## Query Types and Responses
 
-### Core Fields
-For general queries about multiple projects, the following fields are displayed:
-- Project Name (`PROJECTNAME`)
-- Fiscal Year (`FISCALYEAR`)
-- Region (`REGION`)
-- District (`DISTRICT`)
-- Total Budget (`TOTALBUDGET`)
-- Project Status (`PROJECTSTATUS`)
-- Project Sector (`PROJECTSECTOR`)
+### 1. General Project Queries
 
-### Response Format
-1. **Project List View**
-   ```sql
-   SELECT 
-       PROJECTNAME,
-       FISCALYEAR,
-       REGION,
-       DISTRICT,
-       TOTALBUDGET,
-       PROJECTSTATUS,
-       PROJECTSECTOR
-   FROM proj_dashboard 
-   WHERE ISLATEST = 1
-   ORDER BY PROJECTNAME ASC
-   ```
+#### Input Pattern Examples
+- "Show me education projects"
+- "List health projects in Southern Region"
+- "What projects are completed in Lilongwe?"
 
-2. **Summary Statistics**
-   The response includes aggregated information:
-   - Total projects per region
-   - Projects by sector
-   - Budget allocation by sector
-   - Status distribution
+#### Response Format
+```
+Project: [PROJECTNAME]
+Sector: [PROJECTSECTOR]
+Location: [REGION], [DISTRICT]
+Status: [PROJECTSTATUS]
+Budget: MWK [TOTALBUDGET formatted with commas]
+Completion: [COMPLETIONPERCENTAGE]%
+```
 
-## 2. Specific Project Queries
+#### Implementation Details
+- Implemented in `response_generator.py`
+- Uses `_format_project_list()` method
+- Handles pagination automatically
+- Formats currency and percentages
+- Provides "Not available" for null values
 
-### Detailed Fields
-When querying a specific project, additional details are included:
-- All core fields (from general queries)
-- Contractor Name (`CONTRACTORNAME`)
-- Contract Start Date (`CONTRACTSTARTDATE`)
-- Total Expenditure (`TOTALEXPENDITURETODATE`)
-- Funding Source (`FUNDINGSOURCE`)
-- Project Code (`PROJECTCODE`)
-- Last Monitoring Visit (`LASTVISIT`)
+### 2. Specific Project Queries
 
-### Implementation Details
+#### Input Pattern Examples
+- "Tell me about Project X"
+- "Show details for Completion of Staff House"
+- "What is the status of Project Y?"
 
-1. **Query Processing**
-   - Natural language queries are parsed to identify project-specific indicators
-   - Results are paginated (30 items per page)
-   - Language support for English, Russian, and Uzbek
+#### Response Format
+```markdown
+# [PROJECTNAME]
+Project Code: [PROJECTCODE]
+Sector: [PROJECTSECTOR]
+Status: [PROJECTSTATUS]
+Stage: [STAGE]
 
-2. **Response Formatting**
-   - Project information is displayed in a structured format
-   - Budget values include currency formatting
-   - Dates are formatted according to locale
-   - Statistics are presented in a clear, summarized format
+## Location
+Region: [REGION]
+District: [DISTRICT]
+Traditional Authority: [TRADITIONALAUTHORITY]
 
-3. **Additional Features**
-   - Suggested follow-up questions based on query context
-   - Error handling for no results or invalid queries
-   - Support for "show more" pagination requests
+## Financial Details
+Total Budget: MWK [TOTALBUDGET]
+Total Expenditure to Date: MWK [TOTALEXPENDITURETODATE]
+Funding Source: [FUNDINGSOURCE]
+
+## Timeline
+Start Date: [STARTDATE]
+Estimated Completion Date: [COMPLETIONESTIDATE]
+Last Site Visit: [LASTVISIT]
+Completion Percentage: [COMPLETIONPERCENTAGE]%
+
+## Contractor Details
+Contractor: [CONTRACTORNAME]
+Contract Signing Date: [SIGNINGDATE]
+
+## Project Description
+[PROJECTDESC]
+```
+
+#### Implementation Details
+- Implemented in `response_generator.py`
+- Uses `_format_single_project()` method
+- Formats dates as "Month DD, YYYY"
+- Formats currency with commas and 2 decimal places
+- Sections information for better readability
+- Handles missing data gracefully
+
+### 3. Error Handling
+
+#### No Results Found
+```
+"No projects found matching your criteria."
+```
+
+#### Invalid Query
+```
+"I couldn't understand your query. Please try asking about specific projects, sectors, or locations."
+```
+
+#### Database Error
+```
+"Sorry, I encountered an error while fetching the data. Please try again."
+```
+
+## Implementation Notes
+
+### 1. Data Formatting
+- Currency: "MWK 123,456.78"
+- Dates: "February 18, 2025"
+- Percentages: "45.5%"
+- Null values: "Not available"
+
+### 2. Performance Optimizations
+- Efficient DataFrame handling
+- Proper connection management
+- Query result caching
+- Pagination support
+
+### 3. Testing Coverage
+- General queries
+- Specific project queries
+- Edge cases
+- Response formatting
+- Error scenarios
 
 ## API Endpoint
 
