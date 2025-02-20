@@ -1,3 +1,0 @@
-{
-  "detail": "Error processing query: (sqlite3.OperationalError) near \"Error\": syntax error\n[SQL: Error: (sqlite3.OperationalError) near \"Tell\": syntax error\n[SQL: Tell me about education projects in Rumphi]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)"
-}
