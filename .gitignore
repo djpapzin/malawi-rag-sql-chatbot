@@ -11,7 +11,6 @@ __pycache__/
 .Python
 env/
 venv/
-.env
 
 # IDE specific files
 .idea/
@@ -45,7 +44,6 @@ models/
 logs/
 
 # API keys and sensitive data
-.env
 keys/
 credentials/
 
@@ -63,8 +61,6 @@ docs/_build/
 
 # Service files and sensitive data
 *.service
-.env
-*.env
 /services/*.service
 
 # Logs
@@ -76,8 +72,6 @@ docs/_build/
 
 # Service files and sensitive data
 *.service
-.env
-*.env
 /services/*.service
 
 # Logs
