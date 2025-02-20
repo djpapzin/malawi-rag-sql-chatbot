@@ -12,6 +12,8 @@ def setup_logger():
     log_dir = os.path.dirname(settings.LOG_FILE)
     if log_dir:
         os.makedirs(log_dir, exist_ok=True)
+        # Ensure directory has write permissions
+        os.chmod(log_dir, 0o755)
     
     logger = logging.getLogger('infrastructure_chatbot')
     logger.setLevel(logging.INFO)  # Set a default log level (INFO)
@@ -20,7 +22,8 @@ def setup_logger():
     file_handler = RotatingFileHandler(
         settings.LOG_FILE,
         maxBytes=10485760,  # 10MB
-        backupCount=5
+        backupCount=5,
+        mode='a+'  # Append mode with create if not exists
     )
     file_handler.setFormatter(
         logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
