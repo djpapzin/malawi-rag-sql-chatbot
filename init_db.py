@@ -3,7 +3,7 @@ import os
 
 def init_database():
     """Initialize the database with test data"""
-    db_path = "malawi_projects.db"
+    db_path = "malawi_projects1.db"
     
     # Remove existing database if it exists
     if os.path.exists(db_path):
@@ -16,86 +16,64 @@ def init_database():
     
     # Create projects table
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS projects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            sector TEXT NOT NULL,
-            district TEXT NOT NULL,
-            status TEXT NOT NULL,
-            budget REAL NOT NULL,
-            start_date TEXT,
-            end_date TEXT,
-            description TEXT
+        CREATE TABLE IF NOT EXISTS proj_dashboard (
+            projectname TEXT,
+            district TEXT,
+            projectsector TEXT,
+            projectstatus TEXT,
+            budget NUMERIC,
+            completionpercentage NUMERIC,
+            startdate NUMERIC,
+            completiondata NUMERIC
         )
     """)
     
-    # Sample project data
-    projects = [
-        (
-            "Lilongwe District Road Rehabilitation",
-            "Infrastructure",
-            "Lilongwe",
-            "Active",
-            5000000.00,
-            "2023-01-01",
-            "2024-12-31",
-            "Major road rehabilitation project in Lilongwe district"
-        ),
-        (
-            "Blantyre Water Supply Expansion",
-            "Water",
-            "Blantyre",
-            "Planning",
-            7500000.00,
-            "2024-03-01",
-            "2025-06-30",
-            "Expansion of water supply network in Blantyre"
-        ),
-        (
-            "Mzuzu Urban Roads Project",
-            "Infrastructure",
-            "Mzuzu",
-            "Active",
-            4200000.00,
-            "2023-07-01",
-            "2024-08-31",
-            "Urban road construction and improvement in Mzuzu"
-        ),
-        (
-            "Zomba Rural Electrification",
-            "Energy",
-            "Zomba",
-            "Active",
-            3800000.00,
-            "2023-04-01",
-            "2024-03-31",
-            "Rural electrification project in Zomba district"
-        ),
-        (
-            "Kasungu Bridge Construction",
-            "Infrastructure",
-            "Kasungu",
-            "Planning",
-            2500000.00,
-            "2024-01-01",
-            "2024-12-31",
-            "Construction of new bridge in Kasungu district"
-        ),
-        (
-            "Lilongwe Market Development",
-            "Infrastructure",
-            "Lilongwe",
-            "Active",
-            1800000.00,
-            "2023-09-01",
-            "2024-06-30",
-            "Development of modern market facilities in Lilongwe"
-        )
-    ]
+    # Sample data lists for generating records
+    districts = ['Lilongwe', 'Blantyre', 'Mzuzu', 'Zomba', 'Kasungu', 'Mangochi', 'Salima', 'Nkhata Bay', 'Karonga', 'Dedza']
+    sectors = ['Infrastructure', 'Water', 'Energy', 'Education', 'Healthcare', 'Agriculture', 'Transport']
+    statuses = ['Active', 'Planning', 'Completed', 'On Hold']
+    project_types = ['Road', 'Bridge', 'School', 'Hospital', 'Market', 'Power Plant', 'Water Supply', 'Irrigation']
+    
+    # Generate 196 projects
+    projects = []
+    for i in range(196):
+        district = districts[i % len(districts)]
+        sector = sectors[i % len(sectors)]
+        status = statuses[i % len(statuses)]
+        project_type = project_types[i % len(project_types)]
+        
+        # Generate realistic project name
+        project_name = f"{district} {project_type} {['Development', 'Rehabilitation', 'Construction', 'Improvement'][i % 4]} Phase {(i // 4) + 1}"
+        
+        # Generate realistic budget between 500,000 and 10,000,000
+        budget = round(500000 + (i * 48724.489795918366), 2)
+        
+        # Generate completion percentage (0-100)
+        completion = min(100, max(0, (i % 120)))
+        
+        # Generate dates (2023-2025)
+        start_year = 2023 + (i % 3)
+        start_month = 1 + (i % 12)
+        start_date = int(f"{start_year}{start_month:02d}01")
+        
+        end_year = start_year + 1
+        end_month = start_month
+        end_date = int(f"{end_year}{end_month:02d}01")
+        
+        projects.append((
+            project_name,
+            district,
+            sector,
+            status,
+            budget,
+            completion,
+            start_date,
+            end_date
+        ))
     
     # Insert projects
     cursor.executemany("""
-        INSERT INTO projects (name, sector, district, status, budget, start_date, end_date, description)
+        INSERT INTO proj_dashboard (projectname, district, projectsector, projectstatus, budget, completionpercentage, startdate, completiondata)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, projects)
     
