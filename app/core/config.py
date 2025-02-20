@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     DEBUG: bool = True
     API_PREFIX: str = "/api/v1"
-    PORT: str = "8001"
+    PORT: str = "8000"
     HOST: str = "0.0.0.0"
     NODE_ENV: str = "development"
     
