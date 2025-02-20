@@ -6,7 +6,12 @@ import os
 
 def setup_logger():
     # Create logs directory if it doesn't exist
-    os.makedirs(os.path.dirname(settings.LOG_FILE), exist_ok=True)
+    if not settings.LOG_FILE:
+        settings.LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "logs", "app.log")
+    
+    log_dir = os.path.dirname(settings.LOG_FILE)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
     
     logger = logging.getLogger('infrastructure_chatbot')
     logger.setLevel(logging.INFO)  # Set a default log level (INFO)

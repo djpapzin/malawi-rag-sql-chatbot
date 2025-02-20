@@ -29,14 +29,29 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     DEBUG: bool = True
     API_PREFIX: str = "/api/v1"
+    PORT: str = "8001"
+    HOST: str = "0.0.0.0"
+    NODE_ENV: str = "development"
     
     # Database Settings
     DATABASE_URL: str = os.path.join(BASE_DIR, "malawi_projects1.db")
+    DATABASE_TYPE: str = "sqlite"
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 10
     
+    # API Keys and External Services
+    TOGETHER_API_KEY: str = "your_key_here"
+    AZURE_TRANSLATION_KEY: str = "your_key_here"
+    AZURE_TRANSLATION_REGION: str = "your_region"
+    AZURE_TRANSLATION_ENDPOINT: str = "https://api.cognitive.microsofttranslator.com/"
+    
+    # CORS Settings
+    CORS_ORIGINS: str = '["http://localhost:3000", "https://ai.kwantu.support"]'
+    
     # Model Configuration
     EMBEDDING_MODEL: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+    LLM_MODEL: str = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K"
+    LLM_TEMPERATURE: str = "0.1"
     MAX_SEARCH_RESULTS: int = 3
     
     # Logging Configuration
@@ -181,9 +196,11 @@ class Settings(BaseSettings):
         "uz": {"symbol": "MK", "separator": " ", "decimal": ","}
     }
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True,
+        "extra": "allow"
+    }
 
     def get_language_code(self, language_name: str) -> str:
         """Get language code from language name"""
