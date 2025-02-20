@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 class QuerySource(BaseModel):
     """Model for query source information"""
+    type: str = "sql"
     sql: str
-    table: str
-    filters: Dict[str, Any]
+    database: str = "malawi_projects1.db"
 
     class Config:
         from_attributes = True
@@ -27,11 +27,9 @@ class ChatQuery(BaseModel):
 
 class QueryMetadata(BaseModel):
     """Model for query execution metadata"""
-    query_time: str
-    total_results: int
-    current_page: int
-    total_pages: int
-    has_more: bool
+    timestamp: str
+    query_id: str
+    processing_time: float
 
     class Config:
         from_attributes = True
@@ -39,7 +37,6 @@ class QueryMetadata(BaseModel):
 class ChatResponse(BaseModel):
     """Model for chat response with sources"""
     response: str
-    message: str
     metadata: QueryMetadata
     source: Optional[QuerySource] = None
 
