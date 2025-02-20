@@ -19,7 +19,7 @@ def test_query_endpoint():
     api_path = f"{API_PREFIX}/query"  # Include API prefix in path
     
     test_queries = [
-        "How many projects are there in Lilongwe district?",
+        "How many education projects are there in Central Region?",
         "What is the total budget for all projects?",
         "List all projects in the Infrastructure sector",
         "Show me projects with completion percentage greater than 50%",
@@ -36,11 +36,7 @@ def test_query_endpoint():
         logger.info('='*50)
         
         payload = {
-            "message": query,
-            "source_lang": "english",
-            "page": 1,
-            "page_size": 30,
-            "continue_previous": False
+            "message": query
         }
         
         try:
