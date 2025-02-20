@@ -3,6 +3,9 @@ import json
 import logging
 from dotenv import load_dotenv
 import os
+from datetime import datetime
+from src.result_handler import ResultHandler
+import time
 
 # Load environment variables
 load_dotenv()
@@ -30,7 +33,15 @@ def test_query_endpoint():
         "Content-Type": "application/json"
     }
     
-    for query in test_queries:
+    # Initialize result handler
+    result_handler = ResultHandler()
+    
+    for i, query in enumerate(test_queries):
+        # Add delay between requests to avoid rate limiting
+        if i > 0:
+            logger.info("Waiting 2 seconds to avoid rate limiting...")
+            time.sleep(2)
+            
         logger.info(f"\n{'='*50}")
         logger.info(f"Testing query: {query}")
         logger.info('='*50)
@@ -54,13 +65,23 @@ def test_query_endpoint():
                 logger.info("Natural Language Response:")
                 logger.info(result.get("response", "No response"))
                 logger.info("\nSQL Query:")
+                sql_query = ""
                 if source := result.get("source"):
-                    logger.info(source.get("sql", "No SQL query"))
+                    sql_query = source.get("sql", "No SQL query")
+                    logger.info(sql_query)
                 logger.info("\nMetadata:")
                 if metadata := result.get("metadata"):
                     logger.info(f"Query ID: {metadata.get('query_id')}")
                     logger.info(f"Processing Time: {metadata.get('processing_time')}s")
                     logger.info(f"Timestamp: {metadata.get('timestamp')}")
+                
+                # Save results
+                result_handler.save_results(
+                    query=sql_query,
+                    results=result.get("results", ""),
+                    answer=result.get("response", ""),
+                    natural_query=query
+                )
             else:
                 logger.error(f"Error! Status code: {response.status_code}")
                 logger.error(f"Response: {response.text}")
