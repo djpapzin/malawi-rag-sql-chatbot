@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Malawi Projects Chatbot API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/rag-sql-chatbot
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      responses:
+        '200':
+          description: Service is healthy
+  /query:
+    post:
+      summary: Submit natural language query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatQuery'
+      responses:
+        '200':
+          description: Successful query response
+components:
+  schemas:
+    ChatQuery:
+      type: object
+      properties:
+        message:
+          type: string
+        source_lang:
+          type: string
+          default: "english"
+        page:
+          type: integer
+          default: 1
+        page_size:
+          type: integer
+          default: 30
