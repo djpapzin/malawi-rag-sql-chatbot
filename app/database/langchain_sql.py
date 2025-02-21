@@ -1,6 +1,6 @@
 from typing import Dict, Any
 from langchain_community.utilities import SQLDatabase
-from langchain_community.llms import Together
+from langchain_together import Together
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -68,7 +68,7 @@ class LangChainSQLIntegration:
             # Initialize LLM
             self.llm = Together(
                 model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K",
-                together_api_key=os.getenv("TOGETHER_API_KEY"),
+                api_key=os.getenv("TOGETHER_API_KEY"),
                 temperature=0.1,  # Lower temperature for more deterministic output
                 max_tokens=128  # Limit tokens to prevent long explanations
             )
