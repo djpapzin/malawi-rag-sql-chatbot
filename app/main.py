@@ -51,9 +51,11 @@ app = FastAPI(
     openapi_url=None  # Disable default openapi
 )
 
+# Initialize templates
+templates = Jinja2Templates(directory="app/templates")
+
 # Set up static files and templates
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
-templates = Jinja2Templates(directory="frontend/templates")
 
 # Create a sub-application with the API prefix
 api_app = FastAPI(
@@ -86,6 +88,11 @@ logger.info(f"Using QueryParser from module: {QueryParser.__module__}")
 @app.get("/")
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/health")
+async def root_health_check():
+    """Root health check endpoint"""
+    return await health_check()
 
 @api_app.post("/query")
 async def process_query(query: ChatQuery) -> ChatResponse:
