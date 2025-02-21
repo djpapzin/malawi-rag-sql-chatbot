@@ -1,0 +1,33 @@
+# Server Configuration
+PORT=8000
+HOST=0.0.0.0
+NODE_ENV=development
+
+# Database Configuration
+DATABASE_TYPE=sqlite
+DATABASE_URL=sqlite:///malawi_projects1.db
+
+# API Configuration
+API_PREFIX=/api/rag-sql-chatbot
+CORS_ORIGINS=["http://localhost:3000", "http://154.0.164.254:3000", "https://ai.kwantu.support"]
+
+# LLM Configuration
+TOGETHER_API_KEY=
+LLM_MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K
+LLM_TEMPERATURE=0.1
+
+# Translation Service
+AZURE_TRANSLATION_KEY=your_key_here
+AZURE_TRANSLATION_REGION=your_region
+AZURE_TRANSLATION_ENDPOINT=https://api.cognitive.microsofttranslator.com/
+
+# Logging
+LOG_LEVEL=INFO
+LOG_FILE=app.log
+
+# LangSmith Configuration
+LANGSMITH_API_KEY=
+LANGSMITH_ENDPOINT_URL=https://api.smith.langchain.com
+LANGSMITH_PROJECT=rag-sql-chatbot
+ENABLE_TRACING=true
+ENABLE_DEBUG=true
