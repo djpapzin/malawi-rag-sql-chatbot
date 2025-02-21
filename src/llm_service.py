@@ -36,12 +36,12 @@ class LLMService:
         # Initialize Together LLM
         self.llm = Together(
             model=self.model,
+            api_key=self.api_key,
             temperature=self.temperature,
             max_tokens=self.max_tokens,
             top_k=self.top_k,
             top_p=self.top_p,
-            repetition_penalty=self.repetition_penalty,
-            together_api_key=self.api_key
+            repetition_penalty=self.repetition_penalty
         )
         logger.info(f"Successfully initialized Together API with model {self.model}")
     
