@@ -1,7 +1,72 @@
 # API Usage Guide
 
+## Base URL
+```
+http://localhost:8000/api/rag-sql-chatbot
+```
+
 ## Authentication
 Currently using API key in `TOGETHER_API_KEY` environment variable
+
+## Endpoints
+
+### Health Check
+```powershell
+curl.exe http://localhost:8000/api/rag-sql-chatbot/health
+```
+
+### Query Endpoint
+```powershell
+# PowerShell Example
+$body = @{
+    message = "What is the total budget for infrastructure projects?"
+    source_lang = "english"
+    page = 1
+    page_size = 30
+    continue_previous = $false
+} | ConvertTo-Json
+
+Invoke-WebRequest -Uri "http://localhost:8000/api/rag-sql-chatbot/query" `
+    -Method Post `
+    -ContentType "application/json" `
+    -Body $body
+```
+
+```bash
+# Bash Example
+curl -X POST http://localhost:8000/api/rag-sql-chatbot/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What is the total budget for infrastructure projects?",
+    "source_lang": "english",
+    "page": 1,
+    "page_size": 30,
+    "continue_previous": false
+  }'
+```
+
+## Request Format
+```json
+{
+    "message": "Your query here",
+    "source_lang": "english",
+    "page": 1,
+    "page_size": 30,
+    "continue_previous": false
+}
+```
+
+## Response Format
+```json
+{
+    "response": "The total budget for infrastructure projects is...",
+    "metadata": {
+        "query_time": "2025-02-21T15:30:48",
+        "sql_query": "SELECT SUM(budget) FROM proj_dashboard...",
+        "source": "proj_dashboard"
+    }
+}
+```
 
 ## Rate Limits
 - 10 requests/minute
@@ -9,8 +74,8 @@ Currently using API key in `TOGETHER_API_KEY` environment variable
 
 ## Rate Limiting Headers
 ```powershell
-$response.Headers['X-RateLimit-Limit']        # 100
-$response.Headers['X-RateLimit-Remaining']   # 99
+$response.Headers['X-RateLimit-Limit']      # 100
+$response.Headers['X-RateLimit-Remaining']  # 99
 $response.Headers['X-RateLimit-Reset']      # 1708524000 (Unix timestamp)
 ```
 
