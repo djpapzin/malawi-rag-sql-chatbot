@@ -53,11 +53,77 @@ The application will be available at http://localhost:8000
 
 ## API Endpoints
 
-- `POST /api/rag-sql-chatbot/query`: Main endpoint for querying infrastructure projects
-  - Accepts natural language queries
-  - Returns project information and metadata
-- `GET /api/rag-sql-chatbot/health`: Health check endpoint
-  - Monitors database and API status
+Base URL: `http://localhost:8000/api/rag-sql-chatbot`
+
+### Health Check
+```bash
+curl http://localhost:8000/api/rag-sql-chatbot/health
+```
+
+### Query Endpoint
+```powershell
+$headers = @{ "Content-Type" = "application/json" }
+$body = @{
+    message = "List education projects"
+    source_lang = "english"
+    page = 1
+    page_size = 5
+} | ConvertTo-Json
+
+Invoke-WebRequest -Uri "http://localhost:8000/api/rag-sql-chatbot/query" -Method Post -Headers $headers -Body $body
+```
+
+## API Documentation
+
+### Base URL
+`http://localhost:8000/api/rag-sql-chatbot`
+
+### Endpoints
+
+#### Health Check
+```powershell
+curl.exe -X GET http://localhost:8000/api/rag-sql-chatbot/health
+```
+
+#### Query Processing
+```powershell
+$body = @{
+    message = 'Show current road projects in Lilongwe district'
+    source_lang = 'english'
+    page = 1
+    page_size = 10
+} | ConvertTo-Json
+
+Invoke-WebRequest -Uri 'http://localhost:8000/api/rag-sql-chatbot/query' \
+-Method Post \
+-ContentType 'application/json' \
+-Body $body
+```
+
+### Response Format
+```json
+{
+  "response": "...",
+  "metadata": {
+    "timestamp": "2025-02-21T13:20:45.123456",
+    "query_id": "550e8400-e29b-41d4-a716-446655440000",
+    "processing_time": 1.234
+  },
+  "source": {
+    "type": "sql",
+    "sql": "SELECT * FROM projects WHERE sector = 'roads' AND district = 'Lilongwe'",
+    "database": "malawi_projects1.db"
+  }
+}
+```
+
+## Environment Variables
+Create a `.env` file with:
+```
+API_PREFIX=/api/rag-sql-chatbot
+TOGETHER_API_KEY=your_api_key
+DATABASE_URL=sqlite:///malawi_projects1.db
+```
 
 ## Configuration
 
@@ -120,11 +186,28 @@ DATABASE_URL=sqlite:///malawi_projects1.db
    - Project timeline
    - Current status
 
+## Continuous Deployment
+```powershell
+# Sample deployment script
+$env:TOGETHER_API_KEY = $env:TOGETHER_API_KEY
+flyctl deploy --local-only --dockerfile Dockerfile.prod
+```
+
 ## Testing
 
 Run the test suite:
 ```bash
 pytest tests/
+```
+
+## Documentation Verification
+```powershell
+# Validate OpenAPI spec
+./docs/validate_openapi.ps1
+
+# Check all documentation links
+Install-Module -Name MarkdownLinkCheck -Force
+Get-ChildItem docs/*.md | %{ MarkdownLinkCheck -Path $_ }
 ```
 
 ## Documentation
