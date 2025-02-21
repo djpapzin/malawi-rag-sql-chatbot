@@ -73,51 +73,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function appendMessage(type, content) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${type}-message bg-white rounded-lg p-4 shadow-md`;
+        messageDiv.className = `message ${type}`;
         
-        if (type === 'user') {
-            messageDiv.innerHTML = `
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                            U
-                        </div>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-gray-800">${escapeHtml(content)}</p>
-                    </div>
-                </div>
-            `;
-        } else if (type === 'bot') {
-            messageDiv.innerHTML = `
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white">
-                            D
-                        </div>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-gray-800">${escapeHtml(content)}</p>
-                    </div>
-                </div>
-            `;
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = type === 'user' ? 'U' : 'D';
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        if (type === 'error') {
+            messageContent.innerHTML = `<div class="error-text">${escapeHtml(content)}</div>`;
+            messageDiv.classList.add('error');
         } else {
-            messageDiv.innerHTML = `
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white">
-                            !
-                        </div>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-red-600">${escapeHtml(content)}</p>
-                    </div>
-                </div>
-            `;
+            messageContent.innerHTML = escapeHtml(content);
         }
-
+        
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(messageContent);
         chatContainer.appendChild(messageDiv);
-        messageDiv.scrollIntoView({ behavior: 'smooth' });
+        
+        // Scroll to bottom
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        return messageDiv;
     }
 
     function toggleLoadingState(loading) {
@@ -145,5 +124,15 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
+    }
+
+    // Handle tile clicks
+    window.initiateChat = function(message) {
+        chatInput.value = message;
+        handleSendMessage();
+        guidanceTiles.style.opacity = '0';
+        setTimeout(() => {
+            guidanceTiles.style.display = 'none';
+        }, 300);
     }
 });
