@@ -4,50 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to Dwizani!</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 flex flex-col items-center p-6">
-    
-    <!-- Main Header -->
-    <div class="main-header">
-        <h1>Welcome to Dwizani!</h1>
-        <p>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-3xl font-bold text-center mb-4">Welcome to Dwizani!</h1>
+        
+        <p class="text-center text-gray-600 mb-8">
             I am Dwizani, a prototype AI chatbot that can answer questions about infrastructure projects. 
             My name means 'what you should know' in Chichewa. For now I have access to data on projects being constructed in Malawi.
         </p>
-    </div>
 
-    <!-- Guidance Tiles -->
-    <div class="guidance-tiles">
-        <!-- Sector Box -->
-        <div class="guidance-tile">
-            <h3>Find projects by sector</h3>
-            <p>Ask about health, education or roads.</p>
+        <!-- Guidance Tiles -->
+        <div class="guidance-tiles grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            <!-- Project Information -->
+            <div class="tile bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                 onclick="initiateChat('What is the total budget for infrastructure projects in the proj_dashboard table?')">
+                <h3 class="text-xl font-semibold mb-2">Project Information</h3>
+                <p class="text-gray-600">Ask about specific project details, budgets, and general information.</p>
+                <div class="example-query">Example: "What is the total budget for infrastructure projects in the proj_dashboard table?"</div>
+            </div>
+
+            <!-- Location-based Queries -->
+            <div class="tile bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                 onclick="initiateChat('Show me all projects in Zomba district')">
+                <h3 class="text-xl font-semibold mb-2">Location-based Queries</h3>
+                <p class="text-gray-600">Find projects by region, district, or specific locations.</p>
+                <div class="example-query">Example: "Show me all projects in Zomba district"</div>
+            </div>
+
+            <!-- Status Updates -->
+            <div class="tile bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                 onclick="initiateChat('List all completed projects in the Southern Region')">
+                <h3 class="text-xl font-semibold mb-2">Status Updates</h3>
+                <p class="text-gray-600">Check project progress and completion status.</p>
+                <div class="example-query">Example: "List all completed projects in the Southern Region"</div>
+            </div>
+
+            <!-- Budget Analysis -->
+            <div class="tile bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                 onclick="initiateChat('What is the average project budget by district?')">
+                <h3 class="text-xl font-semibold mb-2">Budget Analysis</h3>
+                <p class="text-gray-600">Explore project budgets, expenditures, and financial metrics.</p>
+                <div class="example-query">Example: "What is the average project budget by district?"</div>
+            </div>
+
+            <!-- Contractor Information -->
+            <div class="tile bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                 onclick="initiateChat('Who are the contractors working on projects in Lilongwe?')">
+                <h3 class="text-xl font-semibold mb-2">Contractor Information</h3>
+                <p class="text-gray-600">Find information about project contractors and their assignments.</p>
+                <div class="example-query">Example: "Who are the contractors working on projects in Lilongwe?"</div>
+            </div>
+
+            <!-- Timeline Queries -->
+            <div class="tile bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                 onclick="initiateChat('Which projects started in fiscal year 2024?')">
+                <h3 class="text-xl font-semibold mb-2">Timeline Queries</h3>
+                <p class="text-gray-600">Discover project timelines, start dates, and completion schedules.</p>
+                <div class="example-query">Example: "Which projects started in fiscal year 2024?"</div>
+            </div>
         </div>
 
-        <!-- Location Box -->
-        <div class="guidance-tile">
-            <h3>Find project by location</h3>
-            <p>Ask about a specific district or region in Malawi.</p>
+        <!-- Chat Interface -->
+        <div class="chat-interface bg-white rounded-lg shadow-md p-4">
+            <div id="chat-container" class="chat-container mb-4"></div>
+            <div class="chat-input-container">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Ask me about infrastructure projects in Malawi...">
+                <button id="sendButton" class="send-button">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
-
-        <!-- Specific Project Box -->
-        <div class="guidance-tile">
-            <h3>Find a specific project</h3>
-            <p>Ask about a specific project to learn about the contractor and expenditure to date.</p>
-        </div>
-    </div>
-
-    <!-- Chat Input -->
-    <div class="chat-input-container">
-        <input type="text" class="chat-input" placeholder="Ask me about infrastructure projects in Malawi..." id="chatInput">
-        <button class="send-button" id="sendButton">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-        </button>
     </div>
 
     <script src="/static/js/main.js"></script>
