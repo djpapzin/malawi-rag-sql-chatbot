@@ -100,10 +100,12 @@ class LangSmithConfig:
                     return result
                 except Exception as e:
                     if callbacks:
-                        # Log error to LangSmith
+                        # Log error to LangSmith with run_id
                         for handler in callbacks.handlers:
                             if hasattr(handler, "on_chain_error"):
-                                handler.on_chain_error(error=e, metadata=metadata)
+                                run_id = getattr(handler, "run_id", None)
+                                if run_id:
+                                    handler.on_chain_error(error=e, metadata=metadata, run_id=run_id)
                     raise
                     
             return wrapper
