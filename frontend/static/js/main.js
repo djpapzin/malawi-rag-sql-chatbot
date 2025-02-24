@@ -98,6 +98,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Handle tile clicks
+    document.querySelectorAll('.tile').forEach(tile => {
+        tile.addEventListener('click', () => {
+            const exampleQuery = tile.querySelector('.example-query').textContent.replace('Example: ', '').replace(/["]/g, '');
+            chatInput.value = exampleQuery;
+            chatInput.focus();
+            sendMessage();
+            guidanceTiles.style.opacity = '0';
+            setTimeout(() => {
+                guidanceTiles.style.display = 'none';
+            }, 300);
+        });
+    });
+
+    // Handle tile clicks
     window.initiateChat = function(query) {
         chatInput.value = query;
         sendMessage();
