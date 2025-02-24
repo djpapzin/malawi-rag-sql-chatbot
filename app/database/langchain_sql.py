@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, List
 from langchain_community.utilities import SQLDatabase
 from langchain_together import Together
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
@@ -60,25 +60,20 @@ Table: proj_dashboard
 Columns:
 - projectname (text)
 - district (text)
-- fiscalyear (text)
-- region (text)
 - projectsector (text)
-- status (text)
+- projectstatus (text)
 - budget (numeric)
-- contractor_name (text)
-- contract_start_date (text)
-- expenditure_to_date (numeric)
-- funding_source (text)
-- project_code (text)
-- last_monitoring_visit (text)
+- completionpercentage (numeric)
+- startdate (numeric)
+- completiondata (numeric)
 
 For general queries, return:
 - projectname
-- fiscalyear
 - district
-- budget
-- status
 - projectsector
+- projectstatus
+- budget
+- completionpercentage
 
 For specific queries, return all columns.
 
@@ -90,18 +85,21 @@ Example Queries:
    SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure';
 
 3. List all infrastructure projects (general query):
-   SELECT projectname, fiscalyear, district, budget, status, projectsector 
+   SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage
    FROM proj_dashboard 
    WHERE LOWER(projectsector) = 'infrastructure';
 
 4. Show project details (specific query):
    SELECT * FROM proj_dashboard WHERE projectname = 'Project Name';
 
-Question: {question}
+5. Show projects in a district:
+   SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage
+   FROM proj_dashboard
+   WHERE LOWER(district) = 'zomba';
 
-Return ONLY the SQL query, starting with SELECT:
-SELECT""")
-            
+Question: {question}
+""")
+
             # Set up the answer generation prompt
             self.answer_prompt = PromptTemplate.from_template(
                 """Given the following SQL query and its results, provide a clear and concise answer to the question.
@@ -153,17 +151,17 @@ SELECT""")
             if 'SELECT' in query.upper()[5:]:
                 # Multiple SELECT statements found, take only the first one
                 query = query[:query.upper()[5:].find('SELECT') + 5]
-            
-            # Clean up the query
+        
+        # Clean up the query
             query = query.strip()
             if not query.endswith(';'):
                 query += ';'
-                
+        
             # Validate query structure
             if all(word.upper() in query.upper() for word in ['SELECT', 'FROM', 'PROJ_DASHBOARD']):
                 logger.info(f"Found valid SQL query: {repr(query)}")
-                return query
-            
+        return query
+
         logger.error(f"No valid SQL query found in text: {repr(text)}")
         raise ValueError("No valid SQL query found in response")
 
@@ -186,7 +184,7 @@ SELECT""")
             try:
                 response = await asyncio.wait_for(
                     sql_chain.ainvoke({"question": question}),
-                    timeout=10.0  # 10 second timeout
+                    timeout=30.0  # 30 second timeout
                 )
                 logger.info(f"Raw LLM response: {response}")
                 sql_query = self._extract_sql_query(response)
@@ -214,7 +212,7 @@ SELECT""")
                     return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
                 else:
                     return """
-                        SELECT projectname, fiscalyear, district, budget, status, projectsector 
+                        SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage 
                         FROM proj_dashboard 
                         WHERE LOWER(projectsector) = 'infrastructure'
                     """
@@ -249,7 +247,7 @@ SELECT""")
                 return f"SELECT * FROM proj_dashboard WHERE {where_clause}"
             else:
                 # Default to general query format for district or other filters
-                base_fields = "projectname, fiscalyear, district, budget, status, projectsector"
+                base_fields = "projectname, district, projectsector, projectstatus, budget, completionpercentage"
                 where_clause = ""
                 
                 # Check for district filter
@@ -267,100 +265,47 @@ SELECT""")
     async def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
         """Get an answer for a natural language query"""
         try:
-            logger.info(f"Processing question: {repr(question)}")
+            logger.info(f"Processing question: '{question}'")
             
             # Generate SQL query
             sql_query = await self.generate_sql_query(question)
             logger.info(f"Generated SQL query: {sql_query}")
             
-            # Execute query
-            try:
-                result = await self.db.execute_query(sql_query)
-                logger.info(f"Query result: {result}")
-                
-                # Determine query type and format response
-                if 'total budget' in question.lower():
-                    # Format as general query response
-                    total_budget = result[0][0] if result and result[0] else 0
-                    return GeneralQueryResponse(
-                        query_type="general",
-                        results=[{
-                            "project_name": "Budget Summary",
-                            "fiscal_year": str(datetime.now().year),
-                            "location": {
-                                "region": "All",
-                                "district": "All"
-                            },
-                            "budget": {
-                                "amount": float(total_budget),
-                                "formatted": f"MWK {total_budget:,.2f}"
-                            },
-                            "status": "N/A",
-                            "project_sector": "All" if 'infrastructure' not in question.lower() else "Infrastructure"
-                        }],
-                        metadata=QueryMetadata(
-                            total_results=1,
-                            query_time=datetime.now().isoformat(),
-                            sql_query=sql_query
-                        )
-                    )
+            # Execute query and measure time
+            start_time = datetime.now()
+            raw_results = await self.db.execute_query(sql_query)
+            query_time = (datetime.now() - start_time).total_seconds()
+            
+            logger.info(f"Query result: {raw_results}")
+            
+            # Convert raw results to list of dicts
+            if raw_results:
+                if 'total_budget' in sql_query.lower():
+                    # Handle total budget queries
+                    results = [{'total_budget': raw_results[0][0]}]
                 else:
-                    # Format as specific query response for project details
-                    projects = []
-                    for row in result:
-                        if len(row) >= 8:  # Check if we have all required fields
-                            project = {
-                                "project_name": row[0] if row[0] else "N/A",
-                                "fiscal_year": row[2] if row[2] else "N/A",
-                                "location": {
-                                    "region": row[3] if len(row) > 3 and row[3] else "N/A",
-                                    "district": row[1] if row[1] else "N/A"
-                                },
-                                "budget": {
-                                    "amount": float(row[4]) if row[4] else 0,
-                                    "formatted": f"MWK {float(row[4]):,.2f}" if row[4] else "N/A"
-                                },
-                                "status": f"{row[5]}% Complete" if row[5] else "N/A",
-                                "project_sector": row[6] if row[6] else "N/A",
-                                "contractor_name": row[7] if len(row) > 7 and row[7] else "N/A"
-                            }
-                            
-                            # Add additional fields for specific queries
-                            if len(row) > 8:
-                                project.update({
-                                    "contract_start_date": row[8] if row[8] else "N/A",
-                                    "expenditure_to_date": {
-                                        "amount": float(row[9]) if row[9] else 0,
-                                        "formatted": f"MWK {float(row[9]):,.2f}" if row[9] else "N/A"
-                                    },
-                                    "sector": row[6] if row[6] else "N/A",
-                                    "source_of_funding": row[10] if len(row) > 10 and row[10] else "N/A",
-                                    "project_code": row[11] if len(row) > 11 and row[11] else "N/A",
-                                    "last_monitoring_visit": row[12] if len(row) > 12 and row[12] else "N/A"
-                                })
-                            
-                            projects.append(project)
+                    # Get column names from cursor description
+                    with self.db.get_connection() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(sql_query)
+                        columns = [desc[0] for desc in cursor.description]
                     
-                    response_type = "specific" if len(row) > 8 else "general"
-                    response_class = SpecificQueryResponse if response_type == "specific" else GeneralQueryResponse
-                    
-                    return response_class(
-                        query_type=response_type,
-                        results=projects,
-                        metadata=QueryMetadata(
-                            total_results=len(projects),
-                            query_time=datetime.now().isoformat(),
-                            sql_query=sql_query
-                        )
-                    )
-                    
-            except Exception as e:
-                logger.error(f"Error executing SQL query: {str(e)}")
-                raise ValueError(f"Error executing SQL query: {str(e)}")
-                
+                    # Convert to list of dicts
+                    results = []
+                    for row in raw_results:
+                        result_dict = {}
+                        for i, value in enumerate(row):
+                            result_dict[columns[i]] = value
+                        results.append(result_dict)
+            else:
+                results = []
+            
+            # Format the results
+            return self.format_query_results(results, query_time, sql_query)
+            
         except Exception as e:
-            logger.error(f"Error in get_answer: {str(e)}")
-            raise ValueError(str(e))
+            logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
+            raise ValueError(f"Error processing query: {str(e)}")
 
     async def process_query(self, question: str) -> str:
         """Process a natural language query and return a response"""
@@ -457,6 +402,86 @@ SELECT""")
             logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
             raise ValueError(f"Error processing query: {str(e)}")
 
+    def format_query_results(self, results: List[Dict[str, Any]], query_time: float, sql_query: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
+        """Format query results into appropriate response model"""
+        try:
+            # Check if this is a total budget query
+            if len(results) == 1 and 'total_budget' in results[0]:
+                total_budget = results[0]['total_budget'] or 0
+                formatted_results = [{
+                    'project_name': 'Total Budget Summary',
+                    'total_budget': {
+                        'amount': float(total_budget),
+                        'formatted': f'MWK {total_budget:,.2f}'
+                    }
+                }]
+                
+                metadata = QueryMetadata(
+                    total_results=1,
+                    query_time=f"{query_time:.2f}s",
+                    sql_query=sql_query
+                )
+                
+                return GeneralQueryResponse(
+                    results=formatted_results,
+                    metadata=metadata
+                )
+
+            # For regular project queries
+            formatted_results = []
+            for row in results:
+                budget = row.get('budget', 0) or 0
+                completion = row.get('completionpercentage', 0) or 0
+                
+                budget_amount = MonetaryAmount(
+                    amount=float(budget),
+                    formatted=f'MWK {float(budget):,.2f}'
+                )
+                
+                # Basic project info
+                project_info = {
+                    'project_name': row.get('projectname', 'Unknown'),
+                    'district': row.get('district', 'Unknown'),
+                    'project_sector': row.get('projectsector', 'Unknown'),
+                    'project_status': row.get('projectstatus', 'Unknown'),
+                    'total_budget': budget_amount.dict(),
+                    'completion_percentage': float(completion)
+                }
+                
+                # Add detailed info if available
+                if 'startdate' in row:
+                    project_info.update({
+                        'start_date': str(row.get('startdate', 'Unknown')),
+                        'completion_date': str(row.get('completiondata', 'Unknown'))
+                    })
+                
+                formatted_results.append(project_info)
+            
+            metadata = QueryMetadata(
+                total_results=len(results),
+                query_time=f"{query_time:.2f}s",
+                sql_query=sql_query
+            )
+            
+            # Determine if this is a detailed query based on the fields present
+            is_detailed = any('startdate' in row for row in results)
+            
+            if is_detailed:
+                return SpecificQueryResponse(
+                    results=formatted_results,
+                    metadata=metadata
+                )
+            else:
+                return GeneralQueryResponse(
+                    results=formatted_results,
+                    metadata=metadata
+                )
+                
+        except Exception as e:
+            logger.error(f"Error formatting query results: {str(e)}")
+            logger.error(f"Results that caused error: {results}")
+            raise
+
     def get_table_info(self) -> Dict[str, Any]:
         """
         Get information about the database schema.
@@ -468,14 +493,14 @@ SELECT""")
             schema = {
                 "table_name": "proj_dashboard",
                 "columns": [
-                    {"name": "projectname", "type": "TEXT", "description": "projectname"},
-                    {"name": "district", "type": "TEXT", "description": "district"},
-                    {"name": "projectsector", "type": "TEXT", "description": "projectsector"},
-                    {"name": "projectstatus", "type": "TEXT", "description": "projectstatus"},
-                    {"name": "budget", "type": "NUM", "description": "budget"},
-                    {"name": "completionpercentage", "type": "NUM", "description": "completionpercentage"},
-                    {"name": "startdate", "type": "NUM", "description": "startdate"},
-                    {"name": "completiondata", "type": "NUM", "description": "completiondata"}
+                    {"name": "projectname", "type": "text", "description": "projectname"},
+                    {"name": "district", "type": "text", "description": "district"},
+                    {"name": "projectsector", "type": "text", "description": "projectsector"},
+                    {"name": "projectstatus", "type": "text", "description": "projectstatus"},
+                    {"name": "budget", "type": "numeric", "description": "budget"},
+                    {"name": "completionpercentage", "type": "numeric", "description": "completionpercentage"},
+                    {"name": "startdate", "type": "numeric", "description": "startdate"},
+                    {"name": "completiondata", "type": "numeric", "description": "completiondata"}
                 ]
             }
             return schema
