@@ -46,10 +46,11 @@ class LangChainSQLIntegration:
             
             # Initialize LLM
             self.llm = Together(
-                model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K",
+                model="mistralai/Mixtral-8x7B-Instruct-v0.1",
                 api_key=TOGETHER_API_KEY,
                 temperature=0.1,  # Lower temperature for more deterministic output
-                max_tokens=512  # Increased token limit
+                max_tokens=512,  # Limit response length
+                timeout=30  # 30 second timeout
             )
             
             # Set up the SQL generation prompt
@@ -265,42 +266,57 @@ EXAMPLES:
             logger.info("Generating SQL query...")
             
             # Generate SQL query with timeout
-            from asyncio import wait_for
             sql_chain = self.sql_prompt | self.llm | StrOutputParser()
-            sql_query = await wait_for(
+            sql_query = await asyncio.wait_for(
                 sql_chain.ainvoke({"question": question}),
-                timeout=30  # 30 second timeout
+                timeout=15  # 15 second timeout for SQL generation
             )
             
             logger.info(f"Generated SQL query: {sql_query}")
             
+            # Clean up the SQL query
+            sql_query = sql_query.strip().rstrip(';')
+            if not sql_query.lower().startswith('select'):
+                raise ValueError("Invalid SQL query generated")
+                
             # Execute query
-            with self.db.get_connection() as conn:
-                df = pd.read_sql_query(sql_query, conn)
-            
-            # Convert results to string format
-            if 'total_budget' in df.columns:
-                total = df['total_budget'].iloc[0]
-                results = f"MWK {total:,.2f}"
-            else:
-                results = df.to_string() if not df.empty else "No results found"
+            try:
+                with self.db.get_connection() as conn:
+                    df = pd.read_sql_query(sql_query, conn)
+                    
+                # Convert results to string format
+                if df.empty:
+                    return "No results found for your query."
+                    
+                if 'total_budget' in df.columns:
+                    total = float(df['total_budget'].iloc[0] or 0)
+                    results = f"MWK {total:,.2f}"
+                else:
+                    results = df.to_string()
+                    
+            except Exception as e:
+                logger.error(f"SQL execution error: {str(e)}")
+                raise ValueError(f"Error executing SQL query: {str(e)}")
             
             # Generate natural language answer with timeout
             answer_chain = self.answer_prompt | self.llm | StrOutputParser()
-            answer = await wait_for(
+            answer = await asyncio.wait_for(
                 answer_chain.ainvoke({
                     "question": question,
                     "query": sql_query,
                     "results": results
                 }),
-                timeout=30  # 30 second timeout
+                timeout=15  # 15 second timeout for answer generation
             )
             
             return answer
             
         except asyncio.TimeoutError:
             logger.error("LLM request timed out")
-            raise TimeoutError("Request took too long to process. Please try again with a simpler query.")
+            raise TimeoutError("Request took too long to process. Please try again.")
+        except ValueError as e:
+            logger.error(f"Value error: {str(e)}")
+            raise
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
             raise ValueError(f"Error processing query: {str(e)}")
