@@ -45,19 +45,19 @@ pip install -r requirements.txt
 1. Start the Backend:
 ```bash
 # From the project root
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
 ```
 
 2. Access the Application:
-The application will be available at http://localhost:8000
+The application will be available at http://localhost:5000
 
 ## API Endpoints
 
-Base URL: `http://localhost:8000/api/rag-sql-chatbot`
+Base URL: `http://localhost:5000/api/rag-sql-chatbot`
 
 ### Health Check
 ```bash
-curl http://localhost:8000/api/rag-sql-chatbot/health
+curl http://localhost:5000/api/rag-sql-chatbot/health
 ```
 
 ### Query Endpoint
@@ -70,19 +70,19 @@ $body = @{
     page_size = 5
 } | ConvertTo-Json
 
-Invoke-WebRequest -Uri "http://localhost:8000/api/rag-sql-chatbot/query" -Method Post -Headers $headers -Body $body
+Invoke-WebRequest -Uri "http://localhost:5000/api/rag-sql-chatbot/query" -Method Post -Headers $headers -Body $body
 ```
 
 ## API Documentation
 
 ### Base URL
-`http://localhost:8000/api/rag-sql-chatbot`
+`http://localhost:5000/api/rag-sql-chatbot`
 
 ### Endpoints
 
 #### Health Check
 ```powershell
-curl.exe -X GET http://localhost:8000/api/rag-sql-chatbot/health
+curl.exe -X GET http://localhost:5000/api/rag-sql-chatbot/health
 ```
 
 #### Query Processing
@@ -94,7 +94,7 @@ $body = @{
     page_size = 10
 } | ConvertTo-Json
 
-Invoke-WebRequest -Uri 'http://localhost:8000/api/rag-sql-chatbot/query' \
+Invoke-WebRequest -Uri 'http://localhost:5000/api/rag-sql-chatbot/query' \
 -Method Post \
 -ContentType 'application/json' \
 -Body $body
@@ -131,7 +131,7 @@ Required environment variables in `.env`:
 
 ```env
 # Server Configuration
-PORT=8000
+PORT=5000
 HOST=0.0.0.0
 NODE_ENV=development
 
