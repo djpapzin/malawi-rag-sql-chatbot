@@ -98,3 +98,16 @@ class DatabaseManager:
         finally:
             if conn:
                 conn.close()
+                
+    async def execute_query(self, query: str) -> List[Tuple]:
+        """Execute a SQL query and return the results"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                results = cursor.fetchall()
+                logger.info(f"Query executed successfully, returned {len(results)} rows")
+                return results
+        except sqlite3.Error as e:
+            logger.error(f"Error executing query: {e}")
+            raise ValueError(f"Error executing SQL query: {str(e)}")
