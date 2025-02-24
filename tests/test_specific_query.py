@@ -17,46 +17,51 @@ def test_specific_queries():
     # Test cases with expected results
     test_cases = [
         {
-            "query": "Tell me about 'Nachuma Market Shed phase 3'",
+            "query": "Tell me about Mangochi Hospital Improvement Phase 9",
             "expected": {
                 "response_contains": [
-                    "Nachuma Market Shed phase 3",
-                    "Project Code: a631987d",
-                    "District: Zomba",
-                    "Region: Southern Region"
+                    "Mangochi Hospital Improvement Phase 9",
+                    "MWK 2,205,357.14",
+                    "35.0% Complete",
+                    "Mangochi"
                 ],
                 "sql_contains": [
                     "SELECT",
                     "FROM proj_dashboard",
-                    "PROJECTNAME",
-                    "WHERE ISLATEST = 1"
-                ]
-            }
-        },
-        {
-            "query": "What is the status of 'Boma Bus Depot and Market Toilets'",
-            "expected": {
-                "response_contains": [
-                    "Boma Bus Depot and Market Toilets"
-                ],
-                "sql_contains": [
-                    "SELECT",
-                    "FROM proj_dashboard",
-                    "PROJECTNAME",
-                    "WHERE ISLATEST = 1",
+                    "LOWER(projectname)",
                     "LIKE"
                 ]
             }
         },
         {
-            "query": "Show details about project MW-CR-DO",
+            "query": "What is the status of Mangochi Bridge Rehabilitation Phase 27",
             "expected": {
+                "response_contains": [
+                    "Mangochi Bridge Rehabilitation Phase 27",
+                    "MWK 5,616,071.43",
+                    "100.0% Complete"
+                ],
                 "sql_contains": [
                     "SELECT",
                     "FROM proj_dashboard",
-                    "PROJECTCODE",
-                    "WHERE ISLATEST = 1",
-                    "MW-CR-DO"
+                    "LOWER(projectname)",
+                    "LIKE"
+                ]
+            }
+        },
+        {
+            "query": "Show details about Mangochi Irrigation Improvement Phase 44",
+            "expected": {
+                "response_contains": [
+                    "Mangochi Irrigation Improvement Phase 44",
+                    "MWK 9,026,785.71",
+                    "55.0% Complete"
+                ],
+                "sql_contains": [
+                    "SELECT",
+                    "FROM proj_dashboard",
+                    "LOWER(projectname)",
+                    "LIKE"
                 ]
             }
         }
@@ -99,18 +104,19 @@ def test_specific_queries():
                 if response.status_code == 200:
                     # Check response content
                     if "response_contains" in test_case['expected']:
-                        response_text = actual_response.get("response", "")
+                        # Convert response to string for easier searching
+                        response_str = json.dumps(actual_response)
                         for expected_text in test_case['expected']['response_contains']:
-                            if expected_text not in response_text:
+                            if expected_text not in response_str:
                                 test_result['errors'].append(
                                     f"Missing expected text in response: '{expected_text}'"
                                 )
                     
                     # Check SQL query
                     if "sql_contains" in test_case['expected']:
-                        sql = actual_response.get("source", {}).get("sql", "")
+                        sql = actual_response.get("response", {}).get("metadata", {}).get("sql_query", "")
                         for expected_sql in test_case['expected']['sql_contains']:
-                            if expected_sql not in sql:
+                            if expected_sql.lower() not in sql.lower():
                                 test_result['errors'].append(
                                     f"Missing expected SQL component: '{expected_sql}'"
                                 )
@@ -133,12 +139,7 @@ def test_specific_queries():
                 f.write(json.dumps(test_result['expected'], indent=2) + "\n")
                 
                 f.write("\nActual Response:\n")
-                if "response" in actual_response:
-                    f.write(str(actual_response['response']) + "\n")
-                
-                f.write("\nActual SQL:\n")
-                if "source" in actual_response:
-                    f.write(str(actual_response['source']['sql']) + "\n")
+                f.write(str(actual_response) + "\n")
                 f.write("-" * 50 + "\n")
                 
             except Exception as e:

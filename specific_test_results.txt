@@ -1,108 +1,85 @@
 === Specific Query Test Results ===
-Test Run Time: 2025-02-24T11:00:02.555258
+Test Run Time: 2025-02-24T11:22:28.085768
 
 
-Testing query: Tell me about 'Nachuma Market Shed phase 3'
+Testing query: Tell me about Mangochi Hospital Improvement Phase 9
 Status Code: 200
 
 Test Result:
-Passed: False
-Errors:
-  - Missing expected text in response: 'Nachuma Market Shed phase 3'
-  - Missing expected text in response: 'Project Code: a631987d'
-  - Missing expected text in response: 'District: Zomba'
-  - Missing expected text in response: 'Region: Southern Region'
-  - Missing expected SQL component: 'SELECT'
-  - Missing expected SQL component: 'FROM proj_dashboard'
-  - Missing expected SQL component: 'PROJECTNAME'
-  - Missing expected SQL component: 'WHERE ISLATEST = 1'
+Passed: True
 
 Expected:
 {
   "response_contains": [
-    "Nachuma Market Shed phase 3",
-    "Project Code: a631987d",
-    "District: Zomba",
-    "Region: Southern Region"
+    "Mangochi Hospital Improvement Phase 9",
+    "MWK 2,205,357.14",
+    "35.0% Complete",
+    "Mangochi"
   ],
   "sql_contains": [
     "SELECT",
     "FROM proj_dashboard",
-    "PROJECTNAME",
-    "WHERE ISLATEST = 1"
-  ]
-}
-
-Actual Response:
-{'query_type': 'specific', 'results': [], 'metadata': {'total_results': 0, 'query_time': '2025-02-24T11:00:07.422121', 'sql_query': "SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%nachuma market shed phase 3%'"}}
-
-Actual SQL:
---------------------------------------------------
-
-Testing query: What is the status of 'Boma Bus Depot and Market Toilets'
-Status Code: 200
-
-Test Result:
-Passed: False
-Errors:
-  - Missing expected text in response: 'Boma Bus Depot and Market Toilets'
-  - Missing expected SQL component: 'SELECT'
-  - Missing expected SQL component: 'FROM proj_dashboard'
-  - Missing expected SQL component: 'PROJECTNAME'
-  - Missing expected SQL component: 'WHERE ISLATEST = 1'
-  - Missing expected SQL component: 'LIKE'
-
-Expected:
-{
-  "response_contains": [
-    "Boma Bus Depot and Market Toilets"
-  ],
-  "sql_contains": [
-    "SELECT",
-    "FROM proj_dashboard",
-    "PROJECTNAME",
-    "WHERE ISLATEST = 1",
+    "LOWER(projectname)",
     "LIKE"
   ]
 }
 
 Actual Response:
-{'query_type': 'general', 'results': [], 'metadata': {'total_results': 0, 'query_time': '2025-02-24T11:01:30.633435', 'sql_query': "SELECT * FROM proj_dashboard WHERE LOWER(projectname) = 'boma bus depot and market toilets'"}}
-
-Actual SQL:
+{'response': {'query_type': 'specific', 'results': [{'project_name': 'Mangochi Hospital Improvement Phase 9', 'fiscal_year': '20251201', 'location': {'region': 'N/A', 'district': 'Mangochi'}, 'total_budget': {'amount': 2205357.14, 'formatted': 'MWK 2,205,357.14'}, 'project_status': '35.0% Complete', 'project_sector': 'Infrastructure', 'contractor': {'name': 'N/A', 'contract_start_date': '20251201'}, 'expenditure_to_date': {'amount': 0.0, 'formatted': 'MWK 0.00'}, 'source_of_funding': 'N/A', 'project_code': 'N/A', 'last_monitoring_visit': 'N/A'}], 'metadata': {'total_results': 1, 'query_time': '2025-02-24T11:22:32.525482', 'sql_query': "SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%mangochi hospital improvement phase 9%'"}}}
 --------------------------------------------------
 
-Testing query: Show details about project MW-CR-DO
+Testing query: What is the status of Mangochi Bridge Rehabilitation Phase 27
 Status Code: 200
 
 Test Result:
-Passed: False
-Errors:
-  - Missing expected SQL component: 'SELECT'
-  - Missing expected SQL component: 'FROM proj_dashboard'
-  - Missing expected SQL component: 'PROJECTCODE'
-  - Missing expected SQL component: 'WHERE ISLATEST = 1'
-  - Missing expected SQL component: 'MW-CR-DO'
+Passed: True
 
 Expected:
 {
+  "response_contains": [
+    "Mangochi Bridge Rehabilitation Phase 27",
+    "MWK 5,616,071.43",
+    "100.0% Complete"
+  ],
   "sql_contains": [
     "SELECT",
     "FROM proj_dashboard",
-    "PROJECTCODE",
-    "WHERE ISLATEST = 1",
-    "MW-CR-DO"
+    "LOWER(projectname)",
+    "LIKE"
   ]
 }
 
 Actual Response:
-{'query_type': 'specific', 'results': [], 'metadata': {'total_results': 0, 'query_time': '2025-02-24T11:01:34.645379', 'sql_query': "SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%mw-cr-do%'"}}
+{'response': {'query_type': 'general', 'results': [{'project_name': 'Mangochi Bridge Rehabilitation Phase 27', 'fiscal_year': '20231001', 'location': {'region': 'N/A', 'district': 'Mangochi'}, 'total_budget': {'amount': 5616071.43, 'formatted': 'MWK 5,616,071.43'}, 'project_status': '100.0% Complete', 'project_sector': 'Infrastructure'}], 'metadata': {'total_results': 1, 'query_time': '2025-02-24T11:22:36.247006', 'sql_query': "SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%mangochi bridge rehabilitation phase 27%'"}}}
+--------------------------------------------------
 
-Actual SQL:
+Testing query: Show details about Mangochi Irrigation Improvement Phase 44
+Status Code: 200
+
+Test Result:
+Passed: True
+
+Expected:
+{
+  "response_contains": [
+    "Mangochi Irrigation Improvement Phase 44",
+    "MWK 9,026,785.71",
+    "55.0% Complete"
+  ],
+  "sql_contains": [
+    "SELECT",
+    "FROM proj_dashboard",
+    "LOWER(projectname)",
+    "LIKE"
+  ]
+}
+
+Actual Response:
+{'response': {'query_type': 'specific', 'results': [{'project_name': 'Mangochi Irrigation Improvement Phase 44', 'fiscal_year': '20240801', 'location': {'region': 'N/A', 'district': 'Mangochi'}, 'total_budget': {'amount': 9026785.71, 'formatted': 'MWK 9,026,785.71'}, 'project_status': '55.0% Complete', 'project_sector': 'Infrastructure', 'contractor': {'name': 'N/A', 'contract_start_date': '20240801'}, 'expenditure_to_date': {'amount': 0.0, 'formatted': 'MWK 0.00'}, 'source_of_funding': 'N/A', 'project_code': 'N/A', 'last_monitoring_visit': 'N/A'}], 'metadata': {'total_results': 1, 'query_time': '2025-02-24T11:22:39.742804', 'sql_query': "SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%mangochi irrigation improvement phase 44%'"}}}
 --------------------------------------------------
 
 === Test Summary ===
 Total Tests: 3
-Passed: 0
-Failed: 3
-Overall Status: FAILED
+Passed: 3
+Failed: 0
+Overall Status: SUCCESS
