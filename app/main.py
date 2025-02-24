@@ -6,6 +6,7 @@ import logging
 import traceback
 from datetime import datetime
 from typing import Union
+import asyncio
 from .models import (
     ChatQuery,
     ChatResponse,
@@ -98,23 +99,22 @@ async def process_query(query: ChatQuery) -> ChatResponse:
         # Log incoming query
         logger.info(f"Processing query: {query.message}")
         
-        # Get answer from SQL integration with timeout
-        from asyncio import TimeoutError
-        from asyncio import wait_for
-        
         try:
-            # Set a 45-second timeout for the entire operation
-            result = await wait_for(
-                sql_integration.process_query(query.message),
-                timeout=45
-            )
-            return result
-        except TimeoutError:
+            # Get answer from SQL integration
+            result = await sql_integration.get_answer(query.message)
+            
+            # Return response in new format
+            return ChatResponse(response=result)
+            
+        except asyncio.TimeoutError:
             logger.error("Query processing timed out")
             raise HTTPException(
                 status_code=504,
                 detail="Query processing timed out. Please try again with a simpler query."
             )
+            
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
         
     except Exception as e:
         # Log error
@@ -123,5 +123,5 @@ async def process_query(query: ChatQuery) -> ChatResponse:
         # Raise HTTPException
         raise HTTPException(
             status_code=500,
-            detail=f"Error processing query: {str(e)}"
+            detail=str(e)
         )

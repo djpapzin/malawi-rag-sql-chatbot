@@ -51,39 +51,25 @@
                     <div class="example-query">Example: "List all completed projects in the Southern Region"</div>
                 </div>
             </div>
-
-            <div class="chat-input-container mt-6">
-                <div class="bg-white p-4 rounded-lg shadow-sm flex items-center gap-4">
-                    <input type="text" 
-                           id="user-input" 
-                           class="flex-1 border border-gray-200 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                           placeholder="Ask me about infrastructure projects in Malawi...">
-                    <button id="sendButton" 
-                            class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors flex items-center gap-2">
-                        <span>Send</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
         </div>
 
-        <div id="chat-view" class="mt-8 hidden">
+        <div id="chat-view" class="mt-8">
             <div id="chat-messages" class="space-y-4 min-h-[300px] max-h-[500px] overflow-y-auto bg-white rounded-lg shadow-sm p-4 mb-4"></div>
-            
-            <div class="chat-input-container">
-                <div class="bg-white p-4 rounded-lg shadow-sm flex items-center gap-4">
-                    <input type="text" 
-                           class="flex-1 border border-gray-200 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                           placeholder="Type your message...">
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors flex items-center gap-2">
-                        <span>Send</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-                        </svg>
-                    </button>
-                </div>
+        </div>
+
+        <div class="chat-input-container mt-6 sticky bottom-0 bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-sm">
+            <div class="flex items-center gap-4">
+                <input type="text" 
+                       id="user-input" 
+                       class="flex-1 border border-gray-200 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                       placeholder="Ask me about infrastructure projects in Malawi...">
+                <button id="sendButton" 
+                        class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors flex items-center gap-2">
+                    <span>Send</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>

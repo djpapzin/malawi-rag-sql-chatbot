@@ -77,7 +77,7 @@ class ChatQuery(BaseModel):
 
 class ChatResponse(BaseModel):
     """Model for chat response"""
-    response: Union[GeneralQueryResponse, SpecificQueryResponse]
+    response: str
 
     class Config:
         from_attributes = True

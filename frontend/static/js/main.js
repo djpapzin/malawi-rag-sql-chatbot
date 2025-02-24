@@ -19,9 +19,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let isLoading = false;
 
     async function sendMessage() {
-        const message = chatInput.value.trim();
+        if (isLoading) return;
         
+        const message = chatInput.value.trim();
         if (!message) return;
+        
+        isLoading = true;
         
         // Clear input
         chatInput.value = '';
@@ -38,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
             
-            const response = await fetch('/query', {
+            const response = await fetch('http://localhost:5000/query', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -55,16 +58,30 @@ document.addEventListener('DOMContentLoaded', function() {
             
             clearTimeout(timeoutId);
             
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Failed to get response');
-            }
-            
             const data = await response.json();
             console.log('Received response:', data);
             
+            if (!response.ok) {
+                throw new Error(data.detail || `Server error: ${response.status}`);
+            }
+            
             if (data && data.response) {
-                appendMessage(data.response);
+                // Format the response for display
+                let formattedResponse = '';
+                if (data.response.results && data.response.results.length > 0) {
+                    formattedResponse = data.response.results.map(project => {
+                        return `Project: ${project.project_name}\n` +
+                               `Location: ${project.location.district}\n` +
+                               `Budget: ${project.total_budget.formatted}\n` +
+                               `Status: ${project.project_status}\n` +
+                               `Sector: ${project.project_sector}`;
+                    }).join('\n\n');
+                    
+                    formattedResponse += `\n\nTotal Results: ${data.response.metadata.total_results}`;
+                } else {
+                    formattedResponse = 'No results found for your query.';
+                }
+                appendMessage(formattedResponse);
             } else {
                 console.error('Invalid response format:', data);
                 appendMessage('Sorry, I received an invalid response format. Please try again.');
@@ -76,6 +93,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 appendMessage(`Sorry, I encountered an error: ${error.message}`);
             }
+        } finally {
+            isLoading = false;
         }
     }
 
@@ -93,17 +112,8 @@ document.addEventListener('DOMContentLoaded', function() {
             '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>';
 
         const messageContent = document.createElement('div');
-        messageContent.className = 'flex-1 text-gray-300';
-        
-        // Format the message content
-        let formattedContent = message;
-        if (!isUser) {
-            formattedContent = message.replace(/###\s*Step\s*\d+:/g, match => {
-                return `<strong class="block text-white mb-2">${match}</strong>`;
-            });
-        }
-        
-        messageContent.innerHTML = formattedContent;
+        messageContent.className = 'flex-1 text-gray-300 whitespace-pre-wrap';
+        messageContent.textContent = message;
         
         contentWrapper.appendChild(avatar);
         contentWrapper.appendChild(messageContent);

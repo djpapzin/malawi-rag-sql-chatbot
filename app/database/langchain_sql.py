@@ -24,6 +24,7 @@ from ..models import (
     QueryMetadata,
     DatabaseManager
 )
+import asyncio
 
 # Load environment variables
 load_dotenv()
@@ -48,8 +49,7 @@ class LangChainSQLIntegration:
                 model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K",
                 api_key=TOGETHER_API_KEY,
                 temperature=0.1,  # Lower temperature for more deterministic output
-                max_tokens=512,  # Increased token limit
-                request_timeout=30  # Add 30 second timeout
+                max_tokens=512  # Increased token limit
             )
             
             # Set up the SQL generation prompt
@@ -60,20 +60,24 @@ class LangChainSQLIntegration:
                 - projectname: Project name
                 - district: District
                 - projectsector: Project sector (values include: 'Infrastructure', 'Water', etc.)
-                - budget: Total budget
+                - budget: Total budget (numeric)
                 - completionpercentage: Completion percentage
                 - startdate: Start date
                 - completiondata: Completion data
 
 IMPORTANT RULES:
                 1. Use ONLY the exact column names shown above (in lowercase)
-2. Always query from the 'proj_dashboard' table
-3. Use single quotes for string values
+                2. Always query from the 'proj_dashboard' table
+                3. Use single quotes for string values
                 4. For sector queries, use projectsector column
+                5. For budget queries, use SUM(budget) and format as currency
 
 EXAMPLES:
                 Q: Show me all infrastructure projects
                 A: SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure';
+                
+                Q: What is the total budget for all projects?
+                A: SELECT SUM(budget) as total_budget FROM proj_dashboard;
                 
                 Q: Give me details about the Mangochi Road project
                 A: SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%mangochi road%';
@@ -86,6 +90,7 @@ EXAMPLES:
             # Set up the answer generation prompt
             self.answer_prompt = PromptTemplate.from_template(
                 """Given the following SQL query and its results, provide a clear and concise answer to the question.
+                Format any monetary amounts as "MWK X,XXX.XX".
                 
                 Question: {question}
                 SQL Query: {query}
@@ -99,7 +104,7 @@ EXAMPLES:
         except Exception as e:
             logger.error(f"Error initializing LangChainSQLIntegration: {str(e)}")
             raise
-
+        
     async def generate_sql_query(self, question: str) -> str:
         """Generate SQL query from natural language question"""
         try:
@@ -259,9 +264,13 @@ EXAMPLES:
         try:
             logger.info("Generating SQL query...")
             
-            # Generate SQL query
+            # Generate SQL query with timeout
+            from asyncio import wait_for
             sql_chain = self.sql_prompt | self.llm | StrOutputParser()
-            sql_query = await sql_chain.ainvoke({"question": question})
+            sql_query = await wait_for(
+                sql_chain.ainvoke({"question": question}),
+                timeout=30  # 30 second timeout
+            )
             
             logger.info(f"Generated SQL query: {sql_query}")
             
@@ -270,18 +279,28 @@ EXAMPLES:
                 df = pd.read_sql_query(sql_query, conn)
             
             # Convert results to string format
-            results = df.to_string() if not df.empty else "No results found"
+            if 'total_budget' in df.columns:
+                total = df['total_budget'].iloc[0]
+                results = f"MWK {total:,.2f}"
+            else:
+                results = df.to_string() if not df.empty else "No results found"
             
-            # Generate natural language answer
+            # Generate natural language answer with timeout
             answer_chain = self.answer_prompt | self.llm | StrOutputParser()
-            answer = await answer_chain.ainvoke({
-                "question": question,
-                "query": sql_query,
-                "results": results
-            })
+            answer = await wait_for(
+                answer_chain.ainvoke({
+                    "question": question,
+                    "query": sql_query,
+                    "results": results
+                }),
+                timeout=30  # 30 second timeout
+            )
             
             return answer
             
+        except asyncio.TimeoutError:
+            logger.error("LLM request timed out")
+            raise TimeoutError("Request took too long to process. Please try again with a simpler query.")
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
             raise ValueError(f"Error processing query: {str(e)}")
