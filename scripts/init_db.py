@@ -3,7 +3,7 @@ import os
 
 def init_database():
     """Initialize the database with test data"""
-    db_path = "malawi_projects1.db"
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "app", "database", "projects.db")
     
     # Remove existing database if it exists
     if os.path.exists(db_path):
