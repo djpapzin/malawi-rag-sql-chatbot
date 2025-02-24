@@ -1,98 +1,86 @@
 import requests
 import json
-import logging
-from dotenv import load_dotenv
-import os
-from datetime import datetime
-from result_handler import ResultHandler
+from requests.exceptions import Timeout, RequestException
 import time
 
-# Load environment variables
-load_dotenv()
-
-# Get API prefix from environment
-API_PREFIX = os.getenv('API_PREFIX', '')
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-def test_query_endpoint():
-    """Test the /query endpoint with various queries"""
-    base_url = "http://127.0.0.1:5000"
-    api_path = "/query"
+def test_api():
+    url = "http://localhost:5000/query"
+    headers = {"Content-Type": "application/json"}
+    timeout = 30  # 30 seconds timeout
     
-    test_queries = [
-        "What is the total budget for infrastructure projects?",
-        "Show me all infrastructure projects",
-        "What is the total budget for all projects?",
-    ]
+    def make_request(query_data, max_retries=3):
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(url, headers=headers, json=query_data, timeout=timeout)
+                return response
+            except Timeout:
+                print(f"Request timed out (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    time.sleep(2)  # Wait 2 seconds before retrying
+                else:
+                    raise
+            except RequestException as e:
+                print(f"Request failed: {str(e)}")
+                raise
     
-    headers = {
-        "Content-Type": "application/json"
-    }
-    
-    # Initialize result handler
-    result_handler = ResultHandler()
-    
-    for i, query in enumerate(test_queries):
-        # Add delay between requests to avoid rate limiting
-        if i > 0:
-            logger.info("Waiting 2 seconds to avoid rate limiting...")
-            time.sleep(2)
-            
-        logger.info(f"\n{'='*50}")
-        logger.info(f"Testing query: {query}")
-        logger.info('='*50)
-        
-        payload = {
-            "message": query
-        }
-        
+    with open('test_results.txt', 'w') as f:
+        # Test general query
+        general_query = {"message": "Show me all infrastructure projects"}
+        f.write(f"\nTesting general query: {general_query['message']}\n")
         try:
-            response = requests.post(
-                f"{base_url}{api_path}",
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
-            
-            # Log raw response
-            logger.info(f"Status Code: {response.status_code}")
-            logger.info(f"Raw Response: {response.text}")
-            
-            if response.ok:
-                data = response.json()
-                logger.info("\nResponse Data:")
-                logger.info(json.dumps(data, indent=2))
+            response = make_request(general_query)
+            f.write(f"Status Code: {response.status_code}\n")
+            if response.status_code == 200:
+                result = response.json()
+                f.write("\nResults:\n")
+                for project in result["response"]["results"]:
+                    f.write(f"\nProject: {project['project_name']}\n")
+                    f.write(f"Location: {project['location']['region']}, {project['location']['district']}\n")
+                    f.write(f"Budget: {project['total_budget']['formatted']}\n")
+                    f.write(f"Status: {project['project_status']}\n")
+                    f.write(f"Sector: {project['project_sector']}\n")
                 
-                # Save results
-                result_handler.add_result(
-                    query=query,
-                    status_code=response.status_code,
-                    response_data=data,
-                    timestamp=datetime.now().isoformat()
-                )
+                f.write(f"\nTotal Results: {result['response']['metadata']['total_results']}\n")
+                f.write(f"Query Time: {result['response']['metadata']['query_time']}\n")
             else:
-                logger.error(f"Error: {response.text}")
-                result_handler.add_result(
-                    query=query,
-                    status_code=response.status_code,
-                    response_data={"error": response.text},
-                    timestamp=datetime.now().isoformat()
-                )
-                
+                f.write(f"Error response: {response.text}\n")
         except Exception as e:
-            logger.error(f"Exception: {str(e)}")
-            result_handler.add_result(
-                query=query,
-                status_code=500,
-                response_data={"error": str(e)},
-                timestamp=datetime.now().isoformat()
-            )
-            
-    # Save results to markdown
-    result_handler.save_results("api_test_results.md")
+            f.write(f"Error processing general query: {str(e)}\n")
+        
+        # Wait a bit before the next request
+        time.sleep(2)
+        
+        # Test specific query
+        specific_query = {"message": "Show me details about Mangochi infrastructure projects"}
+        print(f"\nTesting specific query: {specific_query['message']}")
+        try:
+            response = make_request(specific_query)
+            print(f"Status Code: {response.status_code}")
+            if response.status_code == 200:
+                result = response.json()
+                print("\nResults:")
+                for project in result["response"]["results"]:
+                    print(f"\nProject Details:")
+                    print(f"Name: {project['project_name']}")
+                    print(f"Location: {project['location']['region']}, {project['location']['district']}")
+                    print(f"Budget: {project['total_budget']['formatted']}")
+                    print(f"Status: {project['project_status']}")
+                    print(f"Contractor: {project['contractor']['name']}")
+                    print(f"Contract Start: {project['contractor']['contract_start_date']}")
+                    print(f"Expenditure: {project['expenditure_to_date']['formatted']}")
+                    print(f"Sector: {project['project_sector']}")
+                    print(f"Funding Source: {project['source_of_funding']}")
+                    print(f"Project Code: {project['project_code']}")
+                    print(f"Last Monitoring: {project['last_monitoring_visit']}")
+                
+                print(f"\nTotal Results: {result['response']['metadata']['total_results']}")
+                print(f"Query Time: {result['response']['metadata']['query_time']}")
+            else:
+                print(f"Error response: {response.text}")
+        except Exception as e:
+            print(f"Error processing specific query: {str(e)}")
+        
+        print("Test results have been written to test_results.txt")
 
 if __name__ == "__main__":
-    logger.info("Testing API endpoints...")
-    test_query_endpoint()
+    test_api() 

@@ -1,0 +1,1038 @@
+{
+  "test_run_time": "2025-02-24T13:49:13.690817",
+  "results": [
+    {
+      "title": "Sector Query",
+      "description": "Testing query for finding projects by sector and calculating total budget",
+      "natural_language_query": "What is the total budget for infrastructure projects?",
+      "sql_query": "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'",
+      "status_code": 200,
+      "response_time": 2.5720858573913574,
+      "response_data": {
+        "response": {
+          "query_type": "general",
+          "results": [
+            {
+              "project_name": "Total Budget Summary",
+              "total_budget": {
+                "amount": 142925000.0,
+                "formatted": "MWK 142,925,000.00"
+              }
+            }
+          ],
+          "metadata": {
+            "total_results": 1,
+            "query_time": "0.00s",
+            "sql_query": "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
+          }
+        }
+      }
+    },
+    {
+      "title": "Location Query",
+      "description": "Testing query for finding projects by location",
+      "natural_language_query": "Show me all projects in Zomba district",
+      "sql_query": "SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage FROM proj_dashboard WHERE LOWER(district) = 'zomba'",
+      "status_code": 200,
+      "response_time": 32.093438386917114,
+      "response_data": {
+        "response": {
+          "query_type": "general",
+          "results": [
+            {
+              "project_name": "Zomba Hospital Improvement Phase 1",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 646173.47,
+                "formatted": "MWK 646,173.47"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Zomba Power Plant Rehabilitation Phase 4",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 1133418.37,
+                "formatted": "MWK 1,133,418.37"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Zomba Irrigation Improvement Phase 6",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 1620663.27,
+                "formatted": "MWK 1,620,663.27"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Zomba Bridge Rehabilitation Phase 9",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 2107908.16,
+                "formatted": "MWK 2,107,908.16"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            },
+            {
+              "project_name": "Zomba Hospital Improvement Phase 11",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 2595153.06,
+                "formatted": "MWK 2,595,153.06"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Zomba Power Plant Rehabilitation Phase 14",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 3082397.96,
+                "formatted": "MWK 3,082,397.96"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            },
+            {
+              "project_name": "Zomba Irrigation Improvement Phase 16",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 3569642.86,
+                "formatted": "MWK 3,569,642.86"
+              },
+              "status": "Unknown",
+              "project_sector": "Infrastructure"
+            },
+            {
+              "project_name": "Zomba Bridge Rehabilitation Phase 19",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 4056887.76,
+                "formatted": "MWK 4,056,887.76"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Zomba Hospital Improvement Phase 21",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 4544132.65,
+                "formatted": "MWK 4,544,132.65"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Zomba Power Plant Rehabilitation Phase 24",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 5031377.55,
+                "formatted": "MWK 5,031,377.55"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Zomba Irrigation Improvement Phase 26",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 5518622.45,
+                "formatted": "MWK 5,518,622.45"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            },
+            {
+              "project_name": "Zomba Bridge Rehabilitation Phase 29",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 6005867.35,
+                "formatted": "MWK 6,005,867.35"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Zomba Hospital Improvement Phase 31",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 6493112.24,
+                "formatted": "MWK 6,493,112.24"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            },
+            {
+              "project_name": "Zomba Power Plant Rehabilitation Phase 34",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 6980357.14,
+                "formatted": "MWK 6,980,357.14"
+              },
+              "status": "Unknown",
+              "project_sector": "Infrastructure"
+            },
+            {
+              "project_name": "Zomba Irrigation Improvement Phase 36",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 7467602.04,
+                "formatted": "MWK 7,467,602.04"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Zomba Bridge Rehabilitation Phase 39",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 7954846.94,
+                "formatted": "MWK 7,954,846.94"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Zomba Hospital Improvement Phase 41",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 8442091.84,
+                "formatted": "MWK 8,442,091.84"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Zomba Power Plant Rehabilitation Phase 44",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 8929336.73,
+                "formatted": "MWK 8,929,336.73"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            },
+            {
+              "project_name": "Zomba Irrigation Improvement Phase 46",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 9416581.63,
+                "formatted": "MWK 9,416,581.63"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Zomba Bridge Rehabilitation Phase 49",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Zomba"
+              },
+              "total_budget": {
+                "amount": 9903826.53,
+                "formatted": "MWK 9,903,826.53"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            }
+          ],
+          "metadata": {
+            "total_results": 20,
+            "query_time": "0.00s",
+            "sql_query": "SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage FROM proj_dashboard WHERE LOWER(district) = 'zomba'"
+          }
+        }
+      }
+    },
+    {
+      "title": "Status Query",
+      "description": "Testing query for finding completed projects",
+      "natural_language_query": "List all completed projects",
+      "sql_query": "SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage \nFROM proj_dashboard \nWHERE LOWER(projectstatus) = 'completed';",
+      "status_code": 200,
+      "response_time": 11.180599927902222,
+      "response_data": {
+        "response": {
+          "query_type": "general",
+          "results": [
+            {
+              "project_name": "Mzuzu School Construction Phase 1",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 597448.98,
+                "formatted": "MWK 597,448.98"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Salima Water Supply Construction Phase 2",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 792346.94,
+                "formatted": "MWK 792,346.94"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Lilongwe School Construction Phase 3",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 987244.9,
+                "formatted": "MWK 987,244.90"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Kasungu Water Supply Construction Phase 4",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 1182142.86,
+                "formatted": "MWK 1,182,142.86"
+              },
+              "status": "Unknown",
+              "project_sector": "Infrastructure"
+            },
+            {
+              "project_name": "Karonga School Construction Phase 5",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Karonga"
+              },
+              "total_budget": {
+                "amount": 1377040.82,
+                "formatted": "MWK 1,377,040.82"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            },
+            {
+              "project_name": "Mzuzu Water Supply Construction Phase 6",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 1571938.78,
+                "formatted": "MWK 1,571,938.78"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Salima School Construction Phase 7",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 1766836.73,
+                "formatted": "MWK 1,766,836.73"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            },
+            {
+              "project_name": "Lilongwe Water Supply Construction Phase 8",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 1961734.69,
+                "formatted": "MWK 1,961,734.69"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Kasungu School Construction Phase 9",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 2156632.65,
+                "formatted": "MWK 2,156,632.65"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Karonga Water Supply Construction Phase 10",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Karonga"
+              },
+              "total_budget": {
+                "amount": 2351530.61,
+                "formatted": "MWK 2,351,530.61"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Mzuzu School Construction Phase 11",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 2546428.57,
+                "formatted": "MWK 2,546,428.57"
+              },
+              "status": "Unknown",
+              "project_sector": "Infrastructure"
+            },
+            {
+              "project_name": "Salima Water Supply Construction Phase 12",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 2741326.53,
+                "formatted": "MWK 2,741,326.53"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            },
+            {
+              "project_name": "Lilongwe School Construction Phase 13",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 2936224.49,
+                "formatted": "MWK 2,936,224.49"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Kasungu Water Supply Construction Phase 14",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 3131122.45,
+                "formatted": "MWK 3,131,122.45"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            },
+            {
+              "project_name": "Karonga School Construction Phase 15",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Karonga"
+              },
+              "total_budget": {
+                "amount": 3326020.41,
+                "formatted": "MWK 3,326,020.41"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Mzuzu Water Supply Construction Phase 16",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 3520918.37,
+                "formatted": "MWK 3,520,918.37"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Salima School Construction Phase 17",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 3715816.33,
+                "formatted": "MWK 3,715,816.33"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Lilongwe Water Supply Construction Phase 18",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 3910714.29,
+                "formatted": "MWK 3,910,714.29"
+              },
+              "status": "Unknown",
+              "project_sector": "Infrastructure"
+            },
+            {
+              "project_name": "Kasungu School Construction Phase 19",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 4105612.24,
+                "formatted": "MWK 4,105,612.24"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            },
+            {
+              "project_name": "Karonga Water Supply Construction Phase 20",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Karonga"
+              },
+              "total_budget": {
+                "amount": 4300510.2,
+                "formatted": "MWK 4,300,510.20"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Mzuzu School Construction Phase 21",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 4495408.16,
+                "formatted": "MWK 4,495,408.16"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            },
+            {
+              "project_name": "Salima Water Supply Construction Phase 22",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 4690306.12,
+                "formatted": "MWK 4,690,306.12"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Lilongwe School Construction Phase 23",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 4885204.08,
+                "formatted": "MWK 4,885,204.08"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Kasungu Water Supply Construction Phase 24",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 5080102.04,
+                "formatted": "MWK 5,080,102.04"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Karonga School Construction Phase 25",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Karonga"
+              },
+              "total_budget": {
+                "amount": 5275000.0,
+                "formatted": "MWK 5,275,000.00"
+              },
+              "status": "Unknown",
+              "project_sector": "Infrastructure"
+            },
+            {
+              "project_name": "Mzuzu Water Supply Construction Phase 26",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 5469897.96,
+                "formatted": "MWK 5,469,897.96"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            },
+            {
+              "project_name": "Salima School Construction Phase 27",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 5664795.92,
+                "formatted": "MWK 5,664,795.92"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Lilongwe Water Supply Construction Phase 28",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 5859693.88,
+                "formatted": "MWK 5,859,693.88"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            },
+            {
+              "project_name": "Kasungu School Construction Phase 29",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 6054591.84,
+                "formatted": "MWK 6,054,591.84"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Karonga Water Supply Construction Phase 30",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Karonga"
+              },
+              "total_budget": {
+                "amount": 6249489.8,
+                "formatted": "MWK 6,249,489.80"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Mzuzu School Construction Phase 31",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 6444387.76,
+                "formatted": "MWK 6,444,387.76"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Salima Water Supply Construction Phase 32",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 6639285.71,
+                "formatted": "MWK 6,639,285.71"
+              },
+              "status": "Unknown",
+              "project_sector": "Infrastructure"
+            },
+            {
+              "project_name": "Lilongwe School Construction Phase 33",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 6834183.67,
+                "formatted": "MWK 6,834,183.67"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            },
+            {
+              "project_name": "Kasungu Water Supply Construction Phase 34",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 7029081.63,
+                "formatted": "MWK 7,029,081.63"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Karonga School Construction Phase 35",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Karonga"
+              },
+              "total_budget": {
+                "amount": 7223979.59,
+                "formatted": "MWK 7,223,979.59"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            },
+            {
+              "project_name": "Mzuzu Water Supply Construction Phase 36",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 7418877.55,
+                "formatted": "MWK 7,418,877.55"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Salima School Construction Phase 37",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 7613775.51,
+                "formatted": "MWK 7,613,775.51"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Lilongwe Water Supply Construction Phase 38",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 7808673.47,
+                "formatted": "MWK 7,808,673.47"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Kasungu School Construction Phase 39",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 8003571.43,
+                "formatted": "MWK 8,003,571.43"
+              },
+              "status": "Unknown",
+              "project_sector": "Infrastructure"
+            },
+            {
+              "project_name": "Karonga Water Supply Construction Phase 40",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Karonga"
+              },
+              "total_budget": {
+                "amount": 8198469.39,
+                "formatted": "MWK 8,198,469.39"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            },
+            {
+              "project_name": "Mzuzu School Construction Phase 41",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 8393367.35,
+                "formatted": "MWK 8,393,367.35"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Salima Water Supply Construction Phase 42",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 8588265.31,
+                "formatted": "MWK 8,588,265.31"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            },
+            {
+              "project_name": "Lilongwe School Construction Phase 43",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 8783163.27,
+                "formatted": "MWK 8,783,163.27"
+              },
+              "status": "Unknown",
+              "project_sector": "Energy"
+            },
+            {
+              "project_name": "Kasungu Water Supply Construction Phase 44",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 8978061.22,
+                "formatted": "MWK 8,978,061.22"
+              },
+              "status": "Unknown",
+              "project_sector": "Transport"
+            },
+            {
+              "project_name": "Karonga School Construction Phase 45",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Karonga"
+              },
+              "total_budget": {
+                "amount": 9172959.18,
+                "formatted": "MWK 9,172,959.18"
+              },
+              "status": "Unknown",
+              "project_sector": "Education"
+            },
+            {
+              "project_name": "Mzuzu Water Supply Construction Phase 46",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Mzuzu"
+              },
+              "total_budget": {
+                "amount": 9367857.14,
+                "formatted": "MWK 9,367,857.14"
+              },
+              "status": "Unknown",
+              "project_sector": "Infrastructure"
+            },
+            {
+              "project_name": "Salima School Construction Phase 47",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Salima"
+              },
+              "total_budget": {
+                "amount": 9562755.1,
+                "formatted": "MWK 9,562,755.10"
+              },
+              "status": "Unknown",
+              "project_sector": "Healthcare"
+            },
+            {
+              "project_name": "Lilongwe Water Supply Construction Phase 48",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Lilongwe"
+              },
+              "total_budget": {
+                "amount": 9757653.06,
+                "formatted": "MWK 9,757,653.06"
+              },
+              "status": "Unknown",
+              "project_sector": "Water"
+            },
+            {
+              "project_name": "Kasungu School Construction Phase 49",
+              "fiscal_year": "Unknown",
+              "location": {
+                "region": "Unknown",
+                "district": "Kasungu"
+              },
+              "total_budget": {
+                "amount": 9952551.02,
+                "formatted": "MWK 9,952,551.02"
+              },
+              "status": "Unknown",
+              "project_sector": "Agriculture"
+            }
+          ],
+          "metadata": {
+            "total_results": 49,
+            "query_time": "0.00s",
+            "sql_query": "SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage \nFROM proj_dashboard \nWHERE LOWER(projectstatus) = 'completed';"
+          }
+        }
+      }
+    }
+  ]
+}
