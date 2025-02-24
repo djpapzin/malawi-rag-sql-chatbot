@@ -69,16 +69,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Format the response for display
                 let formattedResponse = '';
                 if (data.response.results && data.response.results.length > 0) {
+                    const result = data.response.results[0];
                     // Check if it's a total budget query
-                    if (data.response.results.length === 1 && data.response.results[0].project_name === "Total Budget Summary") {
-                        formattedResponse = `The total budget for all projects is ${data.response.results[0].total_budget.formatted}`;
+                    if ('total_budget' in result) {
+                        const budget = parseFloat(result.total_budget.amount);
+                        formattedResponse = `The total budget is MWK ${budget.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })}`;
                     } else {
                         formattedResponse = data.response.results.map(project => {
                             return `Project: ${project.project_name}\n` +
-                                   `Location: ${project.location.district}\n` +
-                                   `Budget: ${project.total_budget.formatted}\n` +
+                                   `District: ${project.district}\n` +
+                                   `Sector: ${project.project_sector}\n` +
                                    `Status: ${project.project_status}\n` +
-                                   `Sector: ${project.project_sector}`;
+                                   `Budget: ${project.total_budget.formatted}\n` +
+                                   `Completion: ${project.completion_percentage}%`;
                         }).join('\n\n');
                         
                         formattedResponse += `\n\nTotal Results: ${data.response.metadata.total_results}`;
