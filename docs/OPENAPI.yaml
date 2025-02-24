@@ -3,7 +3,7 @@ info:
   title: Malawi Projects Chatbot API
   version: 1.0.0
 servers:
-  - url: http://localhost:8000/api/rag-sql-chatbot
+  - url: http://localhost:5000/api/rag-sql-chatbot
 paths:
   /health:
     get:

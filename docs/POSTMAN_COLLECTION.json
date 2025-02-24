@@ -41,7 +41,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost:8000/api/rag-sql-chatbot"
+      "value": "http://localhost:5000/api/rag-sql-chatbot"
     }
   ]
 }

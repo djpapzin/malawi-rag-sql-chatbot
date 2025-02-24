@@ -3,7 +3,7 @@
 ## Artillery Configuration
 ```yaml
 config:
-  target: "http://localhost:8000"
+  target: "http://localhost:5000"
   phases:
     - duration: 60
       arrivalRate: 10

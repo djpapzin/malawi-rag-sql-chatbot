@@ -1,9 +1,8 @@
 # API Usage Guide
 
 ## Base URL
-```
-http://localhost:8000/api/rag-sql-chatbot
-```
+The base URL for all API endpoints is:
+http://localhost:5000/api/rag-sql-chatbot
 
 ## Authentication
 Currently using API key in `TOGETHER_API_KEY` environment variable
@@ -12,29 +11,32 @@ Currently using API key in `TOGETHER_API_KEY` environment variable
 
 ### Health Check
 ```powershell
-curl.exe http://localhost:8000/api/rag-sql-chatbot/health
+curl.exe http://localhost:5000/api/rag-sql-chatbot/health
 ```
 
 ### Query Endpoint
+### PowerShell Example
 ```powershell
-# PowerShell Example
+$headers = @{
+    "Content-Type" = "application/json"
+}
+
 $body = @{
-    message = "What is the total budget for infrastructure projects?"
+    message = "Show me education projects in Zomba"
     source_lang = "english"
     page = 1
-    page_size = 30
-    continue_previous = $false
+    page_size = 10
 } | ConvertTo-Json
 
-Invoke-WebRequest -Uri "http://localhost:8000/api/rag-sql-chatbot/query" `
+Invoke-WebRequest -Uri "http://localhost:5000/api/rag-sql-chatbot/query" `
     -Method Post `
-    -ContentType "application/json" `
+    -Headers $headers `
     -Body $body
 ```
 
+### Curl Example
 ```bash
-# Bash Example
-curl -X POST http://localhost:8000/api/rag-sql-chatbot/query \
+curl -X POST http://localhost:5000/api/rag-sql-chatbot/query \
   -H "Content-Type: application/json" \
   -d '{
     "message": "What is the total budget for infrastructure projects?",

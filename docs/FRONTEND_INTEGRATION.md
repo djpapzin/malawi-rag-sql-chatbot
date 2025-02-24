@@ -2,7 +2,7 @@
 
 ## Required Environment Variables
 ```ini
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/rag-sql-chatbot
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api/rag-sql-chatbot
 NEXT_PUBLIC_DEFAULT_PAGE_SIZE=10
 ```
 
