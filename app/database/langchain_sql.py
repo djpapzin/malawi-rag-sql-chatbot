@@ -54,28 +54,28 @@ class LangChainSQLIntegration:
             # Set up the SQL generation prompt
             self.sql_prompt = PromptTemplate.from_template(
                 """Given the following question about a database, write a SQL query that would answer the question.
-                The database has a table called 'proj_dashboard' with the following columns in UPPERCASE:
+                The database has a table called 'proj_dashboard' with the following columns in lowercase:
                 
-                - PROJECTNAME: Project name
-                - FISCALYEAR: Fiscal year
-                - REGION: Region
-                - DISTRICT: District
-                - TOTALBUDGET: Total budget
-                - PROJECTSTATUS: Project status
-                - PROJECTSECTOR: Project sector
-                - CONTRACTORNAME: Contractor name
-                - CONTRACTSTARTDATE: Contract start date
-                - EXPENDITURETODATE: Expenditure to date
-                - SOURCEOFFUNDING: Source of funding
-                - PROJECTCODE: Project code
-                - LASTMONITORINGVISIT: Last monitoring visit
-                
-                EXAMPLES:
+                - projectname: Project name
+                - district: District
+                - projectsector: Project sector (values include: 'Infrastructure', 'Water', etc.)
+                - budget: Total budget
+                - completionpercentage: Completion percentage
+                - startdate: Start date
+                - completiondata: Completion data
+
+IMPORTANT RULES:
+                1. Use ONLY the exact column names shown above (in lowercase)
+2. Always query from the 'proj_dashboard' table
+3. Use single quotes for string values
+                4. For sector queries, use projectsector column
+
+EXAMPLES:
                 Q: Show me all infrastructure projects
-                A: SELECT * FROM proj_dashboard WHERE UPPER(PROJECTSECTOR) = 'INFRASTRUCTURE';
+                A: SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure';
                 
                 Q: Give me details about the Mangochi Road project
-                A: SELECT * FROM proj_dashboard WHERE PROJECTNAME LIKE '%Mangochi Road%';
+                A: SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%mangochi road%';
                 
                 Question: {question}
                 
@@ -94,7 +94,7 @@ class LangChainSQLIntegration:
             )
             
             logger.info("Initialized LangChainSQLIntegration")
-            
+
         except Exception as e:
             logger.error(f"Error initializing LangChainSQLIntegration: {str(e)}")
             raise
@@ -110,6 +110,7 @@ class LangChainSQLIntegration:
             )
             
             text = chain.invoke({"question": question})
+            logger.info(f"LLM response: {text}")
             
             # Extract SQL query from response
             sql_lines = [line for line in text.split('\n') if line.strip().upper().startswith('SELECT')]
@@ -119,11 +120,46 @@ class LangChainSQLIntegration:
             query = sql_lines[0].strip().rstrip(';')
             logger.info(f"Extracted query: {query}")
             
+            # Basic validation
+            if not all(col in query.upper() for col in ['FROM', 'PROJ_DASHBOARD']):
+                raise ValueError(f"Invalid query format: {query}")
+            
             return query
             
         except Exception as e:
             logger.error(f"Error generating SQL query: {str(e)}")
-            raise ValueError(f"Failed to generate SQL query: {str(e)}")
+            # Improved fallback queries with better matching
+            if 'infrastructure' in question.lower():
+                return "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
+            elif any(word in question.lower() for word in ['details', 'about', 'specific']):
+                # Extract the project name from the question
+                search_terms = []
+                if 'about' in question.lower():
+                    search_terms = question.lower().split('about')[-1].strip().split()
+                elif 'for' in question.lower():
+                    search_terms = question.lower().split('for')[-1].strip().split()
+                elif 'on' in question.lower():
+                    search_terms = question.lower().split('on')[-1].strip().split()
+                
+                # Remove common words and create search pattern
+                stop_words = {'the', 'a', 'an', 'in', 'at', 'of', 'to', 'for', 'by', 'with', 'project', 'details', 'rehabilitation'}
+                search_terms = [term for term in search_terms if term not in stop_words]
+                
+                # Create individual LIKE conditions for each search term
+                conditions = []
+                for term in search_terms:
+                    conditions.append(f"LOWER(projectname) LIKE '%{term}%'")
+                
+                # Combine conditions with OR for more flexible matching
+                where_clause = ' OR '.join(conditions)
+                
+                # Add projectsector condition if infrastructure is mentioned
+                if 'infrastructure' in question.lower():
+                    where_clause = f"({where_clause}) AND LOWER(projectsector) = 'infrastructure'"
+                
+                return f"SELECT * FROM proj_dashboard WHERE {where_clause}"
+            else:
+                raise ValueError(f"Failed to generate SQL query and no fallback available: {str(e)}")
 
     def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
         """Get answer for a question using SQL"""
@@ -138,7 +174,6 @@ class LangChainSQLIntegration:
             with self.db.get_connection() as conn:
                 df = pd.read_sql_query(query, conn)
             logger.info(f"Query returned {len(df)} rows")
-            logger.info(f"DataFrame columns: {df.columns.tolist()}")
             
             # Determine if this is a general or specific query
             is_specific = any(word in question.lower() for word in ["details", "specific", "about"])
@@ -146,42 +181,37 @@ class LangChainSQLIntegration:
             
             # Format results according to query type
             if is_specific:
-                logger.info("Processing specific query results...")
                 results = []
                 for _, row in df.iterrows():
-                    try:
-                        result = DetailedProjectInfo(
-                            project_name=str(row['PROJECTNAME']),
-                            fiscal_year=str(row['FISCALYEAR']),
-                            location=Location(
-                                region=str(row['REGION']),
-                                district=str(row['DISTRICT'])
-                            ),
-                            total_budget=MonetaryAmount(
-                                amount=float(row['TOTALBUDGET'] if pd.notnull(row['TOTALBUDGET']) else 0),
-                                formatted=f"MWK {float(row['TOTALBUDGET'] if pd.notnull(row['TOTALBUDGET']) else 0):,.2f}"
-                            ),
-                            project_status=str(row['PROJECTSTATUS']),
-                            project_sector=str(row['PROJECTSECTOR']),
-                            contractor=Contractor(
-                                name=str(row['CONTRACTORNAME'] if pd.notnull(row['CONTRACTORNAME']) else 'N/A'),
-                                contract_start_date=str(row['CONTRACTSTARTDATE'] if pd.notnull(row['CONTRACTSTARTDATE']) else 'N/A')
-                            ),
-                            expenditure_to_date=MonetaryAmount(
-                                amount=float(row['EXPENDITURETODATE'] if pd.notnull(row['EXPENDITURETODATE']) else 0),
-                                formatted=f"MWK {float(row['EXPENDITURETODATE'] if pd.notnull(row['EXPENDITURETODATE']) else 0):,.2f}"
-                            ),
-                            source_of_funding=str(row['SOURCEOFFUNDING'] if pd.notnull(row['SOURCEOFFUNDING']) else 'N/A'),
-                            project_code=str(row['PROJECTCODE'] if pd.notnull(row['PROJECTCODE']) else 'N/A'),
-                            last_monitoring_visit=str(row['LASTMONITORINGVISIT'] if pd.notnull(row['LASTMONITORINGVISIT']) else 'N/A')
-                        )
-                        results.append(result)
-                    except Exception as e:
-                        logger.error(f"Error processing row: {row}")
-                        logger.error(f"Error details: {str(e)}")
-                        continue
+                    result = DetailedProjectInfo(
+                        project_name=str(row['projectname']),
+                        fiscal_year=str(row['startdate']),  # Using startdate as fiscal year
+                        location=Location(
+                            region="N/A",  # Region not in schema
+                            district=str(row['district'])
+                        ),
+                        total_budget=MonetaryAmount(
+                            amount=float(row['budget'] if pd.notnull(row['budget']) else 0),
+                            formatted=f"MWK {float(row['budget'] if pd.notnull(row['budget']) else 0):,.2f}"
+                        ),
+                        project_status=f"{float(row['completionpercentage'] if pd.notnull(row['completionpercentage']) else 0):.1f}% Complete",
+                        project_sector=str(row['projectsector']),
+                        contractor=Contractor(
+                            name="N/A",  # Not in schema
+                            contract_start_date=str(row['startdate'])
+                        ),
+                        expenditure_to_date=MonetaryAmount(
+                            amount=0,  # Not in schema
+                            formatted="MWK 0.00"
+                        ),
+                        source_of_funding="N/A",  # Not in schema
+                        project_code="N/A",  # Not in schema
+                        last_monitoring_visit="N/A"  # Not in schema
+                    )
+                    results.append(result)
                 
                 return SpecificQueryResponse(
+                    query_type="specific",
                     results=results,
                     metadata=QueryMetadata(
                         total_results=len(results),
@@ -190,31 +220,26 @@ class LangChainSQLIntegration:
                     )
                 )
             else:
-                logger.info("Processing general query results...")
                 results = []
                 for _, row in df.iterrows():
-                    try:
-                        result = GeneralProjectInfo(
-                            project_name=str(row['PROJECTNAME']),
-                            fiscal_year=str(row['FISCALYEAR']),
-                            location=Location(
-                                region=str(row['REGION']),
-                                district=str(row['DISTRICT'])
-                            ),
-                            total_budget=MonetaryAmount(
-                                amount=float(row['TOTALBUDGET'] if pd.notnull(row['TOTALBUDGET']) else 0),
-                                formatted=f"MWK {float(row['TOTALBUDGET'] if pd.notnull(row['TOTALBUDGET']) else 0):,.2f}"
-                            ),
-                            project_status=str(row['PROJECTSTATUS']),
-                            project_sector=str(row['PROJECTSECTOR'])
-                        )
-                        results.append(result)
-                    except Exception as e:
-                        logger.error(f"Error processing row: {row}")
-                        logger.error(f"Error details: {str(e)}")
-                        continue
+                    result = GeneralProjectInfo(
+                        project_name=str(row['projectname']),
+                        fiscal_year=str(row['startdate']),  # Using startdate as fiscal year
+                        location=Location(
+                            region="N/A",  # Region not in schema
+                            district=str(row['district'])
+                        ),
+                        total_budget=MonetaryAmount(
+                            amount=float(row['budget'] if pd.notnull(row['budget']) else 0),
+                            formatted=f"MWK {float(row['budget'] if pd.notnull(row['budget']) else 0):,.2f}"
+                        ),
+                        project_status=f"{float(row['completionpercentage'] if pd.notnull(row['completionpercentage']) else 0):.1f}% Complete",
+                        project_sector=str(row['projectsector'])
+                    )
+                    results.append(result)
                 
                 return GeneralQueryResponse(
+                    query_type="general",
                     results=results,
                     metadata=QueryMetadata(
                         total_results=len(results),
