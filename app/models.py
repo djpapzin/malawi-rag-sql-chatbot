@@ -32,29 +32,22 @@ class QueryMetadata(BaseModel):
 class GeneralProjectInfo(BaseModel):
     """Model for general project information"""
     project_name: str
-    fiscal_year: str
-    location: Location
-    budget: MonetaryAmount
-    status: str
+    district: str
     project_sector: str
+    project_status: str
+    budget: MonetaryAmount
+    completion_percentage: float
 
 class DetailedProjectInfo(BaseModel):
     """Model for detailed project information"""
-    # Basic info (same as general query)
     project_name: str
-    fiscal_year: str
-    location: Location
+    district: str
+    project_sector: str
+    project_status: str
     budget: MonetaryAmount
-    status: str
-    
-    # Additional specific info
-    contractor_name: str
-    contract_start_date: str
-    expenditure_to_date: MonetaryAmount
-    sector: str
-    source_of_funding: str
-    project_code: str
-    last_monitoring_visit: str
+    completion_percentage: float
+    start_date: str
+    completion_date: str
 
 class GeneralQueryResponse(BaseModel):
     """Model for general query response"""
