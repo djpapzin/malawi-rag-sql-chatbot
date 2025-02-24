@@ -1,0 +1,176 @@
+
+Testing general query: Show me all infrastructure projects
+Status Code: 200
+
+Results:
+
+Project: Lilongwe Road Development Phase 1
+Location: N/A, Lilongwe
+Budget: MWK 500,000.00
+Status: 0.0% Complete
+Sector: Infrastructure
+
+Project: Nkhata Bay Irrigation Improvement Phase 2
+Location: N/A, Nkhata Bay
+Budget: MWK 841,071.43
+Status: 7.0% Complete
+Sector: Infrastructure
+
+Project: Kasungu Water Supply Construction Phase 4
+Location: N/A, Kasungu
+Budget: MWK 1,182,142.86
+Status: 14.0% Complete
+Sector: Infrastructure
+
+Project: Blantyre Power Plant Rehabilitation Phase 6
+Location: N/A, Blantyre
+Budget: MWK 1,523,214.29
+Status: 21.0% Complete
+Sector: Infrastructure
+
+Project: Karonga Market Development Phase 8
+Location: N/A, Karonga
+Budget: MWK 1,864,285.71
+Status: 28.0% Complete
+Sector: Infrastructure
+
+Project: Mangochi Hospital Improvement Phase 9
+Location: N/A, Mangochi
+Budget: MWK 2,205,357.14
+Status: 35.0% Complete
+Sector: Infrastructure
+
+Project: Mzuzu School Construction Phase 11
+Location: N/A, Mzuzu
+Budget: MWK 2,546,428.57
+Status: 42.0% Complete
+Sector: Infrastructure
+
+Project: Dedza Bridge Rehabilitation Phase 13
+Location: N/A, Dedza
+Budget: MWK 2,887,500.00
+Status: 49.0% Complete
+Sector: Infrastructure
+
+Project: Salima Road Development Phase 15
+Location: N/A, Salima
+Budget: MWK 3,228,571.43
+Status: 56.0% Complete
+Sector: Infrastructure
+
+Project: Zomba Irrigation Improvement Phase 16
+Location: N/A, Zomba
+Budget: MWK 3,569,642.86
+Status: 63.0% Complete
+Sector: Infrastructure
+
+Project: Lilongwe Water Supply Construction Phase 18
+Location: N/A, Lilongwe
+Budget: MWK 3,910,714.29
+Status: 70.0% Complete
+Sector: Infrastructure
+
+Project: Nkhata Bay Power Plant Rehabilitation Phase 20
+Location: N/A, Nkhata Bay
+Budget: MWK 4,251,785.71
+Status: 77.0% Complete
+Sector: Infrastructure
+
+Project: Kasungu Market Development Phase 22
+Location: N/A, Kasungu
+Budget: MWK 4,592,857.14
+Status: 84.0% Complete
+Sector: Infrastructure
+
+Project: Blantyre Hospital Improvement Phase 23
+Location: N/A, Blantyre
+Budget: MWK 4,933,928.57
+Status: 91.0% Complete
+Sector: Infrastructure
+
+Project: Karonga School Construction Phase 25
+Location: N/A, Karonga
+Budget: MWK 5,275,000.00
+Status: 98.0% Complete
+Sector: Infrastructure
+
+Project: Mangochi Bridge Rehabilitation Phase 27
+Location: N/A, Mangochi
+Budget: MWK 5,616,071.43
+Status: 100.0% Complete
+Sector: Infrastructure
+
+Project: Mzuzu Road Development Phase 29
+Location: N/A, Mzuzu
+Budget: MWK 5,957,142.86
+Status: 100.0% Complete
+Sector: Infrastructure
+
+Project: Dedza Irrigation Improvement Phase 30
+Location: N/A, Dedza
+Budget: MWK 6,298,214.29
+Status: 100.0% Complete
+Sector: Infrastructure
+
+Project: Salima Water Supply Construction Phase 32
+Location: N/A, Salima
+Budget: MWK 6,639,285.71
+Status: 6.0% Complete
+Sector: Infrastructure
+
+Project: Zomba Power Plant Rehabilitation Phase 34
+Location: N/A, Zomba
+Budget: MWK 6,980,357.14
+Status: 13.0% Complete
+Sector: Infrastructure
+
+Project: Lilongwe Market Development Phase 36
+Location: N/A, Lilongwe
+Budget: MWK 7,321,428.57
+Status: 20.0% Complete
+Sector: Infrastructure
+
+Project: Nkhata Bay Hospital Improvement Phase 37
+Location: N/A, Nkhata Bay
+Budget: MWK 7,662,500.00
+Status: 27.0% Complete
+Sector: Infrastructure
+
+Project: Kasungu School Construction Phase 39
+Location: N/A, Kasungu
+Budget: MWK 8,003,571.43
+Status: 34.0% Complete
+Sector: Infrastructure
+
+Project: Blantyre Bridge Rehabilitation Phase 41
+Location: N/A, Blantyre
+Budget: MWK 8,344,642.86
+Status: 41.0% Complete
+Sector: Infrastructure
+
+Project: Karonga Road Development Phase 43
+Location: N/A, Karonga
+Budget: MWK 8,685,714.29
+Status: 48.0% Complete
+Sector: Infrastructure
+
+Project: Mangochi Irrigation Improvement Phase 44
+Location: N/A, Mangochi
+Budget: MWK 9,026,785.71
+Status: 55.0% Complete
+Sector: Infrastructure
+
+Project: Mzuzu Water Supply Construction Phase 46
+Location: N/A, Mzuzu
+Budget: MWK 9,367,857.14
+Status: 62.0% Complete
+Sector: Infrastructure
+
+Project: Dedza Power Plant Rehabilitation Phase 48
+Location: N/A, Dedza
+Budget: MWK 9,708,928.57
+Status: 69.0% Complete
+Sector: Infrastructure
+
+Total Results: 28
+Query Time: 2025-02-24T10:48:43.867169
