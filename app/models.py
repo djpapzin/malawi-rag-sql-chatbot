@@ -34,14 +34,24 @@ class GeneralProjectInfo(BaseModel):
     project_name: str
     fiscal_year: str
     location: Location
-    total_budget: MonetaryAmount
-    project_status: str
+    budget: MonetaryAmount
+    status: str
     project_sector: str
 
-class DetailedProjectInfo(GeneralProjectInfo):
+class DetailedProjectInfo(BaseModel):
     """Model for detailed project information"""
-    contractor: Contractor
+    # Basic info (same as general query)
+    project_name: str
+    fiscal_year: str
+    location: Location
+    budget: MonetaryAmount
+    status: str
+    
+    # Additional specific info
+    contractor_name: str
+    contract_start_date: str
     expenditure_to_date: MonetaryAmount
+    sector: str
     source_of_funding: str
     project_code: str
     last_monitoring_visit: str
@@ -49,13 +59,13 @@ class DetailedProjectInfo(GeneralProjectInfo):
 class GeneralQueryResponse(BaseModel):
     """Model for general query response"""
     query_type: str = "general"
-    results: List[GeneralProjectInfo]
+    results: List[Dict[str, Any]]  # Using Dict for more flexible formatting
     metadata: QueryMetadata
 
 class SpecificQueryResponse(BaseModel):
     """Model for specific query response"""
     query_type: str = "specific"
-    results: List[DetailedProjectInfo]
+    results: List[Dict[str, Any]]  # Using Dict for more flexible formatting
     metadata: QueryMetadata
 
 class QuerySource(BaseModel):
