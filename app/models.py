@@ -5,6 +5,7 @@ from datetime import datetime
 import pandas as pd
 import sqlite3
 from contextlib import contextmanager
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -86,31 +87,46 @@ class ChatResponse(BaseModel):
         from_attributes = True
 
 class DatabaseManager:
-    def __init__(self, db_path: str = 'malawi_projects1.db'):
+    def __init__(self, db_path: str = None):
+        # Use the database in app/database/projects.db by default
+        if db_path is None:
+            db_path = os.path.join(os.path.dirname(__file__), 'database', 'projects.db')
+        
+        # Convert to absolute path if relative
+        if not os.path.isabs(db_path):
+            db_path = os.path.abspath(db_path)
+            
         self.db_path = db_path
         
     @contextmanager
     def get_connection(self):
         conn = None
         try:
+            if not os.path.exists(self.db_path):
+                raise FileNotFoundError(f"Database file not found: {self.db_path}")
             conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row  # Enable row factory for named columns
             yield conn
         except sqlite3.Error as e:
             logger.error(f"Database connection error: {e}")
             raise
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            raise
         finally:
             if conn:
                 conn.close()
-                
-    async def execute_query(self, query: str) -> List[Tuple]:
-        """Execute a SQL query and return the results"""
+
+    def execute_query(self, query: str) -> Tuple[List[Dict[str, Any]], float]:
+        start_time = datetime.now()
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(query)
-                results = cursor.fetchall()
-                logger.info(f"Query executed successfully, returned {len(results)} rows")
-                return results
-        except sqlite3.Error as e:
-            logger.error(f"Error executing query: {e}")
-            raise ValueError(f"Error executing SQL query: {str(e)}")
+                results = [dict(row) for row in cursor.fetchall()]
+                query_time = (datetime.now() - start_time).total_seconds()
+                return results, query_time
+        except Exception as e:
+            logger.error(f"Query execution error: {e}")
+            logger.error(f"Failed query: {query}")
+            raise
