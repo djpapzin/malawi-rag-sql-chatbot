@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-02-25T00:51:12.786695",
+  "timestamp": "2025-02-25T00:53:58.913524",
   "results": [
     {
       "title": "Total Infrastructure Budget",
@@ -13,7 +13,7 @@
         "SUM(budget)",
         "infrastructure"
       ],
-      "response_time": 2.0615642070770264,
+      "response_time": 2.041968822479248,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
@@ -34,7 +34,7 @@
       "expected_sql_components": [
         "AVG(budget)"
       ],
-      "response_time": 11.710283994674683,
+      "response_time": 4.399136066436768,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
@@ -57,7 +57,7 @@
         "district",
         "zomba"
       ],
-      "response_time": 2.0477089881896973,
+      "response_time": 2.040846824645996,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
@@ -79,7 +79,7 @@
         "COUNT(*)",
         "lilongwe"
       ],
-      "response_time": 2.0486061573028564,
+      "response_time": 2.0705111026763916,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
@@ -101,7 +101,7 @@
         "projectstatus",
         "completed"
       ],
-      "response_time": 2.066135883331299,
+      "response_time": 2.0500736236572266,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
@@ -123,7 +123,7 @@
         "COUNT(*)",
         "active"
       ],
-      "response_time": 8.02409553527832,
+      "response_time": 3.847524404525757,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
@@ -145,7 +145,7 @@
         "projectsector",
         "education"
       ],
-      "response_time": 3.6955630779266357,
+      "response_time": 3.8308651447296143,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
@@ -168,7 +168,7 @@
         "projectsector",
         "water"
       ],
-      "response_time": 3.908933401107788,
+      "response_time": 3.8609774112701416,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
@@ -190,7 +190,7 @@
         "completionpercentage",
         "75"
       ],
-      "response_time": 3.8672728538513184,
+      "response_time": 4.566354990005493,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
@@ -212,7 +212,7 @@
         "completionpercentage",
         "25"
       ],
-      "response_time": 3.689788341522217,
+      "response_time": 3.660714864730835,
       "status_code": 500,
       "errors": [
         "Unexpected status code: 500"
