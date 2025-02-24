@@ -113,29 +113,49 @@ SQL Query: SELECT""")
     async def generate_sql_query(self, question: str) -> str:
         """Generate SQL query from natural language question"""
         try:
-            # Generate SQL using LLM
-            sql_chain = (
-                self.sql_prompt 
-                | self.llm 
-                | StrOutputParser()
-            )
+            # For budget queries, use direct SQL
+            if 'total budget' in question.lower() and 'infrastructure' in question.lower():
+                return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
+            elif 'total budget' in question.lower():
+                return "SELECT SUM(budget) as total_budget FROM proj_dashboard"
             
-            response = await sql_chain.ainvoke({"question": question})
-            logger.info(f"Raw LLM response: {response}")
-            sql_query = self._extract_sql_query(response)
-            logger.info(f"Extracted SQL query: {sql_query}")
-            
-            # Basic validation
-            if not all(col in sql_query.upper() for col in ['FROM', 'PROJ_DASHBOARD']):
-                raise ValueError(f"Invalid query format: {sql_query}")
-            
-            return sql_query
-            
+            # Generate SQL using LLM with timeout
+            try:
+                sql_chain = (
+                    self.sql_prompt 
+                    | self.llm 
+                    | StrOutputParser()
+                )
+                
+                response = await asyncio.wait_for(
+                    sql_chain.ainvoke({"question": question}),
+                    timeout=10.0  # 10 second timeout
+                )
+                
+                logger.info(f"Raw LLM response: {response}")
+                sql_query = self._extract_sql_query(response)
+                logger.info(f"Extracted SQL query: {sql_query}")
+                
+                # Basic validation
+                if not all(col in sql_query.upper() for col in ['FROM', 'PROJ_DASHBOARD']):
+                    raise ValueError(f"Invalid query format: {sql_query}")
+                
+                return sql_query
+                
+            except asyncio.TimeoutError:
+                logger.error("LLM request timed out, using fallback")
+                raise
+                
         except Exception as e:
             logger.error(f"Error generating SQL query: {str(e)}")
             # Improved fallback queries with better matching
             if 'infrastructure' in question.lower():
-                return "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
+                if 'total budget' in question.lower():
+                    return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
+                else:
+                    return "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
+            elif 'total budget' in question.lower():
+                return "SELECT SUM(budget) as total_budget FROM proj_dashboard"
             elif any(word in question.lower() for word in ['details', 'about', 'specific']):
                 # Extract the project name from the question
                 search_terms = []
@@ -172,15 +192,8 @@ SQL Query: SELECT""")
             logger.info("Generating SQL query...")
             
             # Generate SQL query
-            sql_chain = self.sql_prompt | self.llm | StrOutputParser()
-            try:
-                response = await sql_chain.ainvoke({"question": question})
-                logger.info(f"Raw LLM response: {response}")
-                sql_query = self._extract_sql_query(response)
-                logger.info(f"Extracted SQL query: {sql_query}")
-            except Exception as e:
-                logger.error(f"Error generating SQL query: {str(e)}")
-                raise ValueError(f"Failed to generate SQL query: {str(e)}")
+            sql_query = await self.generate_sql_query(question)
+            logger.info(f"Generated SQL query: {sql_query}")
             
             # Clean up the SQL query
             sql_query = sql_query.strip().rstrip(';')

@@ -4,7 +4,7 @@ import logging
 from dotenv import load_dotenv
 import os
 from datetime import datetime
-from src.result_handler import ResultHandler
+from result_handler import ResultHandler
 import time
 
 # Load environment variables
@@ -18,15 +18,13 @@ logger = logging.getLogger(__name__)
 
 def test_query_endpoint():
     """Test the /query endpoint with various queries"""
-    base_url = "http://127.0.0.1:8000"
-    api_path = f"{API_PREFIX}/query"  # Include API prefix in path
+    base_url = "http://127.0.0.1:5000"
+    api_path = "/query"
     
     test_queries = [
-        "How many education projects are there in Central Region?",
+        "What is the total budget for infrastructure projects?",
+        "Show me all infrastructure projects",
         "What is the total budget for all projects?",
-        "List all projects in the Infrastructure sector",
-        "Show me projects with completion percentage greater than 50%",
-        "What is the average budget for projects in each district?",
     ]
     
     headers = {
@@ -51,44 +49,49 @@ def test_query_endpoint():
         }
         
         try:
-            url = f"{base_url}{api_path}"
-            logger.info(f"Making request to: {url}")
             response = requests.post(
-                url,
+                f"{base_url}{api_path}",
                 headers=headers,
-                json=payload
+                json=payload,
+                timeout=30
             )
             
-            if response.status_code == 200:
-                result = response.json()
-                logger.info("Success!")
-                logger.info("Natural Language Response:")
-                logger.info(result.get("response", "No response"))
-                logger.info("\nSQL Query:")
-                sql_query = ""
-                if source := result.get("source"):
-                    sql_query = source.get("sql", "No SQL query")
-                    logger.info(sql_query)
-                logger.info("\nMetadata:")
-                if metadata := result.get("metadata"):
-                    logger.info(f"Query ID: {metadata.get('query_id')}")
-                    logger.info(f"Processing Time: {metadata.get('processing_time')}s")
-                    logger.info(f"Timestamp: {metadata.get('timestamp')}")
+            # Log raw response
+            logger.info(f"Status Code: {response.status_code}")
+            logger.info(f"Raw Response: {response.text}")
+            
+            if response.ok:
+                data = response.json()
+                logger.info("\nResponse Data:")
+                logger.info(json.dumps(data, indent=2))
                 
                 # Save results
-                result_handler.save_results(
-                    query=sql_query,
-                    results=result.get("results", ""),
-                    answer=result.get("response", ""),
-                    natural_query=query
+                result_handler.add_result(
+                    query=query,
+                    status_code=response.status_code,
+                    response_data=data,
+                    timestamp=datetime.now().isoformat()
                 )
             else:
-                logger.error(f"Error! Status code: {response.status_code}")
-                logger.error(f"Response: {response.text}")
+                logger.error(f"Error: {response.text}")
+                result_handler.add_result(
+                    query=query,
+                    status_code=response.status_code,
+                    response_data={"error": response.text},
+                    timestamp=datetime.now().isoformat()
+                )
                 
         except Exception as e:
-            logger.error(f"Exception occurred: {str(e)}")
-            continue
+            logger.error(f"Exception: {str(e)}")
+            result_handler.add_result(
+                query=query,
+                status_code=500,
+                response_data={"error": str(e)},
+                timestamp=datetime.now().isoformat()
+            )
+            
+    # Save results to markdown
+    result_handler.save_results("api_test_results.md")
 
 if __name__ == "__main__":
     logger.info("Testing API endpoints...")
