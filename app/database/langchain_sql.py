@@ -98,43 +98,75 @@ SQL Query: SELECT""")
         
     def _extract_sql_query(self, text: str) -> str:
         """Extract the SQL query from the LLM response"""
+        logger.info(f"Extracting SQL query from text: {repr(text)}")
+        
         # Remove any markdown code block markers
         text = text.replace('```sql', '').replace('```', '')
         
-        # Find the first SELECT statement
-        matches = re.finditer(r'SELECT.*?;', text, re.IGNORECASE | re.DOTALL)
-        for match in matches:
-            query = match.group(0)
-            if query.strip():
-                return query.strip()
+        # Find SELECT statement
+        matches = []
+        
+        # Try different patterns from most to least strict
+        patterns = [
+            r'SELECT\s+.*?(?:;|$)',  # Match until semicolon or end of string
+            r'SELECT\s+[^#\n]*',      # Match until comment or newline
+            r'SELECT\s+[^.]*'         # Match until period
+        ]
+        
+        for pattern in patterns:
+            matches = list(re.finditer(pattern, text, re.IGNORECASE | re.DOTALL))
+            if matches:
+                break
                 
+        for match in matches:
+            query = match.group(0).strip()
+            
+            # Basic validation
+            if not query:
+                continue
+                
+            # Remove any trailing explanation text
+            if 'SELECT' in query.upper()[5:]:
+                # Multiple SELECT statements found, take only the first one
+                query = query[:query.upper()[5:].find('SELECT') + 5]
+            
+            # Clean up the query
+            query = query.strip()
+            if not query.endswith(';'):
+                query += ';'
+                
+            # Validate query structure
+            if all(word.upper() in query.upper() for word in ['SELECT', 'FROM', 'PROJ_DASHBOARD']):
+                logger.info(f"Found valid SQL query: {repr(query)}")
+                return query
+            
+        logger.error(f"No valid SQL query found in text: {repr(text)}")
         raise ValueError("No valid SQL query found in response")
 
     async def generate_sql_query(self, question: str) -> str:
         """Generate SQL query from natural language question"""
         try:
-            # For budget queries, use direct SQL
-            if 'total budget' in question.lower() and 'infrastructure' in question.lower():
-                return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
-            elif 'total budget' in question.lower():
-                return "SELECT SUM(budget) as total_budget FROM proj_dashboard"
-            
             # Generate SQL using LLM with timeout
+            sql_chain = (
+                self.sql_prompt 
+                | self.llm 
+                | StrOutputParser()
+            )
+            
             try:
-                sql_chain = (
-                    self.sql_prompt 
-                    | self.llm 
-                    | StrOutputParser()
-                )
-                
                 response = await asyncio.wait_for(
                     sql_chain.ainvoke({"question": question}),
-                    timeout=10.0  # 10 second timeout
+                    timeout=30.0  # 30 second timeout
                 )
-                
                 logger.info(f"Raw LLM response: {response}")
                 sql_query = self._extract_sql_query(response)
-                logger.info(f"Extracted SQL query: {sql_query}")
+                
+                # Additional validation for common issues
+                sql_query = sql_query.replace('`', '"')  # Replace backticks with double quotes
+                sql_query = sql_query.replace('are all columns (*)', '*')  # Fix common LLM mistake
+                sql_query = sql_query.replace('all columns', '*')  # Fix common LLM mistake
+                
+                logger.info(f"Validated SQL query: {repr(sql_query)}")
                 
                 # Basic validation
                 if not all(col in sql_query.upper() for col in ['FROM', 'PROJ_DASHBOARD']):
@@ -143,12 +175,15 @@ SQL Query: SELECT""")
                 return sql_query
                 
             except asyncio.TimeoutError:
-                logger.error("LLM request timed out, using fallback")
+                logger.error("SQL generation timed out")
+                raise
+            except Exception as e:
+                logger.error(f"Error in LLM processing: {str(e)}")
                 raise
                 
-        except Exception as e:
-            logger.error(f"Error generating SQL query: {str(e)}")
-            # Improved fallback queries with better matching
+        except asyncio.TimeoutError:
+            logger.error("SQL generation timed out, using fallback")
+            # Fallback queries for when LLM fails
             if 'infrastructure' in question.lower():
                 if 'total budget' in question.lower():
                     return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
@@ -184,7 +219,10 @@ SQL Query: SELECT""")
                 
                 return f"SELECT * FROM proj_dashboard WHERE {where_clause}"
             else:
-                raise ValueError(f"Failed to generate SQL query and no fallback available: {str(e)}")
+                raise ValueError(f"Failed to generate SQL query and no fallback available")
+        except Exception as e:
+            logger.error(f"Error generating SQL query: {str(e)}")
+            raise ValueError(f"Failed to generate SQL query: {str(e)}")
 
     async def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
         """Get an answer for a natural language query"""
