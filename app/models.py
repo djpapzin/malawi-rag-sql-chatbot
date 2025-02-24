@@ -5,72 +5,9 @@ from datetime import datetime
 import pandas as pd
 import sqlite3
 from contextlib import contextmanager
-from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
-# Base Models
-class Location(BaseModel):
-    """Model for location information"""
-    region: str
-    district: str
-
-class MonetaryValue(BaseModel):
-    """Model for monetary values with formatting"""
-    amount: Decimal
-    formatted: str
-
-class ContractorInfo(BaseModel):
-    """Model for contractor information"""
-    name: str
-    contract_start_date: str
-
-class ProjectBase(BaseModel):
-    """Base model for project information"""
-    project_name: str
-    fiscal_year: str
-    location: Location
-    budget: MonetaryValue
-    status: str
-    sector: str
-
-class ProjectGeneral(ProjectBase):
-    """Model for general project information"""
-    pass
-
-class ProjectSpecific(ProjectBase):
-    """Model for specific project information"""
-    contractor: ContractorInfo
-    expenditure_to_date: MonetaryValue
-    funding_source: str
-    project_code: str
-    last_monitoring_visit: str
-
-class Summary(BaseModel):
-    """Model for query summary information"""
-    total_projects: int
-    total_budget: MonetaryValue
-
-class ResponseMetadata(BaseModel):
-    """Model for response metadata"""
-    query_timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
-    query_id: str
-
-# Response Models
-class GeneralQueryResponse(BaseModel):
-    """Model for general query responses"""
-    query_type: str = "general"
-    results: List[ProjectGeneral]
-    summary: Summary
-    metadata: ResponseMetadata
-
-class SpecificQueryResponse(BaseModel):
-    """Model for specific query responses"""
-    query_type: str = "specific"
-    result: ProjectSpecific
-    metadata: ResponseMetadata
-
-# Legacy Models (for backward compatibility)
 class QuerySource(BaseModel):
     """Model for query source information"""
     type: str = "sql"
@@ -122,16 +59,3 @@ class DatabaseManager:
         finally:
             if conn:
                 conn.close()
-
-# Utility functions for formatting
-def format_currency(amount: Decimal) -> str:
-    """Format currency in MWK format"""
-    return f"MWK {amount:,.2f}"
-
-def format_date(date_str: str) -> str:
-    """Format date in consistent format"""
-    try:
-        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-        return date_obj.strftime("%Y-%m-%d")
-    except ValueError:
-        return date_str

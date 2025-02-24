@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Union
+from typing import Dict, Any
 from langchain_community.utilities import SQLDatabase
 from langchain_together import Together
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
@@ -11,13 +11,6 @@ from sqlalchemy import text
 import re
 import logging
 import traceback
-from ..response_formatter import (
-    format_general_response,
-    format_specific_response,
-    is_specific_query,
-    GeneralQueryResponse,
-    SpecificQueryResponse
-)
 
 # Load environment variables
 load_dotenv()
@@ -182,7 +175,7 @@ SELECT district, AVG(budget) FROM proj_dashboard GROUP BY district;
             logger.error(f"Error generating SQL query: {str(e)}\nFull trace: {traceback.format_exc()}")
             raise ValueError(f"Failed to generate SQL query: {str(e)}")
 
-    def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
+    def get_answer(self, question: str) -> Dict[str, Any]:
         """
         Get a complete answer to a question about the database.
         
@@ -190,7 +183,7 @@ SELECT district, AVG(budget) FROM proj_dashboard GROUP BY district;
             question (str): Natural language question about the database
             
         Returns:
-            Union[GeneralQueryResponse, SpecificQueryResponse]: Formatted response based on query type
+            Dict[str, Any]: Dictionary containing the answer and intermediate steps
         """
         try:
             # Generate SQL query
@@ -210,26 +203,23 @@ SELECT district, AVG(budget) FROM proj_dashboard GROUP BY district;
                 logger.error(f"Query execution failed: {str(exec_error)}\nQuery: {query}")
                 raise ValueError(f"Query execution failed: {str(exec_error)}")
             
-            # Convert result to list of dictionaries
-            if isinstance(result, str):
-                # Handle single value results
-                if result.strip('()').replace('.0', '').isdigit():
-                    value = float(result.strip('()'))
-                    result = [{'value': value}]
-                else:
-                    result = [{'result': result}]
-            elif isinstance(result, tuple):
-                # Handle tuple results
-                result = [{'value': item} for item in result]
+            # Generate natural language answer
+            chain = (
+                self.answer_prompt 
+                | self.llm 
+                | StrOutputParser()
+            )
             
-            # Format response based on query type
-            if is_specific_query(question):
-                if result and len(result) > 0:
-                    return format_specific_response(result[0])
-                else:
-                    raise ValueError("No results found for specific query")
-            else:
-                return format_general_response(result)
+            answer = chain.invoke({
+                "query": query,
+                "results": str(result),
+                "question": question
+            })
+            
+            return {
+                "response": answer,
+                "sql": query
+            }
             
         except Exception as e:
             logger.error(f"Error getting answer: {str(e)}\nFull trace: {traceback.format_exc()}")
