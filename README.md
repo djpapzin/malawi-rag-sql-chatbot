@@ -6,17 +6,17 @@ A specialized chatbot for querying and exploring Malawi's infrastructure project
 
 - Natural language querying of infrastructure projects
 - Interactive chat interface with guidance tiles for:
-  - Finding projects by sector (health, education, roads)
-  - Finding projects by location (districts and regions)
+  - Finding projects by sector (Infrastructure, Water, Energy, etc.)
+  - Finding projects by location (districts)
   - Finding specific project details
 - Detailed project information including:
   - Project Name
-  - Fiscal Year
-  - Region
   - District
-  - Total Budget
-  - Project Status
   - Project Sector
+  - Project Status
+  - Budget (in MWK)
+  - Completion Percentage
+  - Start and Completion Dates
 - Real-time chat responses
 - Loading states and error handling
 - Responsive design for all devices
@@ -27,18 +27,35 @@ A specialized chatbot for querying and exploring Malawi's infrastructure project
 
 - Python 3.8+
 - SQLite3
-- Virtual environment
+- Conda (for environment management)
 
 ### Installation
 
 ```bash
 # Create and activate virtual environment
-conda create -n rag-sql-bot python=3.11
-conda activate rag-sql-bot
+conda create -n rag-sql-env python=3.11
+conda activate rag-sql-env
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Generate the database
+python scripts/init_db.py
 ```
+
+### Database Structure
+
+The application uses a single table `proj_dashboard` with the following structure:
+- `projectname`: Name of the infrastructure project
+- `district`: District location (e.g., Lilongwe, Blantyre, etc.)
+- `projectsector`: Sector (Infrastructure, Water, Energy, etc.)
+- `projectstatus`: Status (Active, Planning, Completed, On Hold)
+- `budget`: Project budget in MWK
+- `completionpercentage`: Project completion (0-100)
+- `startdate`: Start date (YYYYMMDD format)
+- `completiondata`: Completion date (YYYYMMDD format)
+
+The database is automatically populated with 196 sample records when running `init_db.py`.
 
 ## Running the Application
 
@@ -53,11 +70,9 @@ The application will be available at http://localhost:5000
 
 ## API Endpoints
 
-Base URL: `http://localhost:5000/api/rag-sql-chatbot`
-
 ### Health Check
 ```bash
-curl http://localhost:5000/api/rag-sql-chatbot/health
+curl http://localhost:5000/health
 ```
 
 ### Query Endpoint
@@ -70,49 +85,31 @@ $body = @{
     page_size = 5
 } | ConvertTo-Json
 
-Invoke-WebRequest -Uri "http://localhost:5000/api/rag-sql-chatbot/query" -Method Post -Headers $headers -Body $body
-```
-
-## API Documentation
-
-### Base URL
-`http://localhost:5000/api/rag-sql-chatbot`
-
-### Endpoints
-
-#### Health Check
-```powershell
-curl.exe -X GET http://localhost:5000/api/rag-sql-chatbot/health
-```
-
-#### Query Processing
-```powershell
-$body = @{
-    message = 'Show current road projects in Lilongwe district'
-    source_lang = 'english'
-    page = 1
-    page_size = 10
-} | ConvertTo-Json
-
-Invoke-WebRequest -Uri 'http://localhost:5000/api/rag-sql-chatbot/query' \
--Method Post \
--ContentType 'application/json' \
--Body $body
+Invoke-WebRequest -Uri "http://localhost:5000/query" -Method Post -Headers $headers -Body $body
 ```
 
 ### Response Format
 ```json
 {
-  "response": "...",
-  "metadata": {
-    "timestamp": "2025-02-21T13:20:45.123456",
-    "query_id": "550e8400-e29b-41d4-a716-446655440000",
-    "processing_time": 1.234
-  },
-  "source": {
-    "type": "sql",
-    "sql": "SELECT * FROM projects WHERE sector = 'roads' AND district = 'Lilongwe'",
-    "database": "malawi_projects1.db"
+  "response": {
+    "results": [
+      {
+        "project_name": "Zomba School Construction Phase 1",
+        "district": "Zomba",
+        "project_sector": "Education",
+        "project_status": "Active",
+        "total_budget": {
+          "amount": 500000,
+          "formatted": "MWK 500,000.00"
+        },
+        "completion_percentage": 45
+      }
+    ],
+    "metadata": {
+      "total_results": 1,
+      "query_time": "2.5s",
+      "sql_query": "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'education'"
+    }
   }
 }
 ```
@@ -120,28 +117,7 @@ Invoke-WebRequest -Uri 'http://localhost:5000/api/rag-sql-chatbot/query' \
 ## Environment Variables
 Create a `.env` file with:
 ```
-API_PREFIX=/api/rag-sql-chatbot
 TOGETHER_API_KEY=your_api_key
-DATABASE_URL=sqlite:///malawi_projects1.db
-```
-
-## Configuration
-
-Required environment variables in `.env`:
-
-```env
-# Server Configuration
-PORT=5000
-HOST=0.0.0.0
-NODE_ENV=development
-
-# API Configuration
-API_PREFIX=/api/rag-sql-chatbot
-CORS_ORIGINS=["http://localhost:3000"]
-
-# Database Configuration
-DATABASE_TYPE=sqlite
-DATABASE_URL=sqlite:///malawi_projects1.db
 ```
 
 ## Project Structure
@@ -158,6 +134,8 @@ DATABASE_URL=sqlite:///malawi_projects1.db
 │   │   └── img/         # Images and icons
 │   └── templates/        # HTML templates
 ├── docs/                  # Documentation
+├── scripts/              # Setup and utility scripts
+│   └── init_db.py       # Database initialization script
 └── tests/                # Test suite
 ```
 
@@ -172,26 +150,32 @@ DATABASE_URL=sqlite:///malawi_projects1.db
 
 ### Query Types
 1. **Sector-based Queries**
-   - Health sector projects
-   - Education initiatives
-   - Road infrastructure
+   - Infrastructure projects
+   - Water and sanitation
+   - Energy initiatives
+   - Education projects
+   - Healthcare facilities
+   - Agriculture projects
+   - Transport infrastructure
 
 2. **Location-based Queries**
-   - District-specific projects
-   - Regional development initiatives
+   - Projects in specific districts:
+     - Lilongwe
+     - Blantyre
+     - Mzuzu
+     - Zomba
+     - Kasungu
+     - Mangochi
+     - Salima
+     - Nkhata Bay
+     - Karonga
+     - Dedza
 
-3. **Project-specific Queries**
-   - Contractor information
-   - Budget allocation
-   - Project timeline
-   - Current status
-
-## Continuous Deployment
-```powershell
-# Sample deployment script
-$env:TOGETHER_API_KEY = $env:TOGETHER_API_KEY
-flyctl deploy --local-only --dockerfile Dockerfile.prod
-```
+3. **Status-based Queries**
+   - Active projects
+   - Planning phase projects
+   - Completed projects
+   - On Hold projects
 
 ## Testing
 
@@ -200,19 +184,15 @@ Run the test suite:
 pytest tests/
 ```
 
-## Documentation Verification
-```powershell
-# Validate OpenAPI spec
-./docs/validate_openapi.ps1
-
-# Check all documentation links
-Install-Module -Name MarkdownLinkCheck -Force
-Get-ChildItem docs/*.md | %{ MarkdownLinkCheck -Path $_ }
+For testing specific queries:
+```bash
+python tests/test_tile_queries.py
 ```
 
 ## Documentation
 
 Additional documentation can be found in the `docs/` directory:
+- [Database Schema](docs/DATABASE_SCHEMA.md)
 - API Documentation
 - Frontend Integration Guide
 - Testing Guidelines
