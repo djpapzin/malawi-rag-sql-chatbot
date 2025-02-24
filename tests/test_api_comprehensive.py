@@ -44,335 +44,303 @@ def print_section(title, content=""):
         logger.info(content)
     logger.info("")
 
-class APITester:
-    def __init__(self):
-        self.test_cases = [
-            # Budget Queries
-            {
-                "category": "Budget Queries",
-                "tests": [
-                    {
-                        "title": "Total Infrastructure Budget",
-                        "query": "What is the total budget for infrastructure projects?",
-                        "expected_contains": ["total_budget", "infrastructure", "MWK"],
-                        "sql_contains": ["SUM(budget)", "projectsector", "infrastructure"]
-                    },
-                    {
-                        "title": "Average Project Budget",
-                        "query": "What is the average budget for all projects?",
-                        "expected_contains": ["AVG(budget)", "MWK"],
-                        "sql_contains": ["AVG(budget)", "proj_dashboard"]
-                    }
-                ]
-            },
-            # Location Queries
-            {
-                "category": "Location Queries",
-                "tests": [
-                    {
-                        "title": "Zomba Projects",
-                        "query": "Show me all projects in Zomba district",
-                        "expected_contains": ["Zomba", "projectname", "budget"],
-                        "sql_contains": ["district", "zomba"]
-                    },
-                    {
-                        "title": "Lilongwe Projects Count",
-                        "query": "How many projects are there in Lilongwe?",
-                        "expected_contains": ["COUNT", "Lilongwe"],
-                        "sql_contains": ["COUNT", "district", "lilongwe"]
-                    }
-                ]
-            },
-            # Status Queries
-            {
-                "category": "Status Queries",
-                "tests": [
-                    {
-                        "title": "Completed Projects",
-                        "query": "List all completed projects",
-                        "expected_contains": ["Completed", "projectname"],
-                        "sql_contains": ["projectstatus", "completed"]
-                    },
-                    {
-                        "title": "Active Projects Count",
-                        "query": "How many active projects are there?",
-                        "expected_contains": ["Active", "COUNT"],
-                        "sql_contains": ["COUNT", "projectstatus", "active"]
-                    }
-                ]
-            },
-            # Sector Queries
-            {
-                "category": "Sector Queries",
-                "tests": [
-                    {
-                        "title": "Education Projects",
-                        "query": "Show all education sector projects",
-                        "expected_contains": ["Education", "projectname"],
-                        "sql_contains": ["projectsector", "education"]
-                    },
-                    {
-                        "title": "Water Projects Budget",
-                        "query": "What is the total budget for water projects?",
-                        "expected_contains": ["Water", "total_budget"],
-                        "sql_contains": ["SUM(budget)", "projectsector", "water"]
-                    }
-                ]
-            },
-            # Completion Percentage Queries
-            {
-                "category": "Completion Queries",
-                "tests": [
-                    {
-                        "title": "High Completion Projects",
-                        "query": "Show projects with completion percentage above 75%",
-                        "expected_contains": ["completionpercentage", "75"],
-                        "sql_contains": ["completionpercentage", ">", "75"]
-                    },
-                    {
-                        "title": "Low Completion Projects",
-                        "query": "List projects with less than 25% completion",
-                        "expected_contains": ["completionpercentage", "25"],
-                        "sql_contains": ["completionpercentage", "<", "25"]
-                    }
-                ]
-            }
-        ]
-        self.results = []
-
-    def format_response_data(self, response_data: Dict) -> str:
-        """Format the response data for display"""
-        try:
-            results = response_data.get("response", {}).get("results", [])
-            if not results:
-                return "No results found"
-
-            output = []
-            for result in results:
-                if "total_budget" in result:
-                    # Handle total/average budget responses
-                    amount = result["total_budget"].get("amount", 0)
-                    formatted = result["total_budget"].get("formatted", format_currency(amount))
-                    output.append(f"Total: {formatted}")
-                else:
-                    # Handle project listing responses
-                    project_details = [
-                        f"Project: {result.get('project_name', 'N/A')}",
-                        f"District: {result.get('district', 'N/A')}",
-                        f"Sector: {result.get('project_sector', 'N/A')}",
-                        f"Status: {result.get('project_status', 'N/A')}",
-                        f"Budget: {result.get('total_budget', {}).get('formatted', 'N/A')}",
-                        f"Completion: {result.get('completion_percentage', 'N/A')}%"
-                    ]
-                    output.append("\n".join(project_details))
-
-            return "\n\n".join(output)
-        except Exception as e:
-            return f"Error formatting response: {str(e)}"
-
-    def run_test(self, test_case: Dict[str, Any]) -> Dict[str, Any]:
-        """Run a single test case with detailed output"""
-        print_separator()
-        logger.info(f"Testing: {test_case['title']}")
-        print_separator()
+def run_test(query: Dict[str, Any]) -> Dict[str, Any]:
+    """Run a single test and return the results"""
+    start_time = time.time()
+    
+    try:
+        # Send request to API
+        response = requests.post(API_URL, json={"message": query["natural_language_query"]}, timeout=30)
+        response_time = time.time() - start_time
         
-        # Print natural language query
-        print_section("Natural Language Query", test_case["query"])
-        
-        start_time = time.time()
+        # Process response
         result = {
-            "category": test_case.get("category", "Uncategorized"),
-            "title": test_case["title"],
-            "query": test_case["query"],
-            "timestamp": datetime.now().isoformat(),
-            "passed": False,
+            "title": query["title"],
+            "category": query["category"],
+            "description": query["description"],
+            "natural_language_query": query["natural_language_query"],
+            "expected_content": query.get("expected_content", []),
+            "expected_sql_components": query.get("expected_sql_components", []),
+            "response_time": response_time,
+            "status_code": response.status_code,
             "errors": []
         }
-
-        try:
-            # Make request to API
-            response = requests.post(
-                API_URL,
-                json={"message": test_case["query"]},
-                timeout=30
-            )
-            
-            # Record response time
-            result["response_time"] = time.time() - start_time
-            result["status_code"] = response.status_code
-            
-            if response.status_code == 200:
-                response_data = response.json()
-                result["response"] = response_data
-                
-                # Extract and print SQL query
-                sql_query = response_data.get("response", {}).get("metadata", {}).get("sql_query", "")
-                if sql_query:
-                    print_section("Generated SQL Query", format_sql(sql_query))
-                
-                # Print raw response data
-                print_section("Raw Response Data")
-                formatted_response = self.format_response_data(response_data)
-                logger.info(formatted_response)
-                
-                # Validate expected content
-                if "expected_contains" in test_case:
-                    response_str = json.dumps(response_data).lower()
-                    for expected in test_case["expected_contains"]:
-                        if expected.lower() not in response_str:
-                            result["errors"].append(f"Missing expected content: {expected}")
-                
-                # Validate SQL components
-                if "sql_contains" in test_case:
-                    sql_str = sql_query.lower()
-                    for expected in test_case["sql_contains"]:
-                        if expected.lower() not in sql_str:
-                            result["errors"].append(f"Missing SQL component: {expected}")
-                
-                # Set passed status
-                result["passed"] = len(result["errors"]) == 0
-                
-            else:
-                result["errors"].append(f"Unexpected status code: {response.status_code}")
-                if response.text:
-                    result["error_detail"] = response.text
-                    print_section("Error Response", response.text)
-                    
-        except requests.exceptions.Timeout:
-            result["errors"].append("Request timed out")
-            result["error_detail"] = "Request took too long to complete"
-            result["response_time"] = 30.0  # Timeout duration
-            print_section("Error", "Request timed out after 30 seconds")
-        except Exception as e:
-            result["errors"].append(f"Test error: {str(e)}")
-            result["error_detail"] = str(e)
-            result["response_time"] = time.time() - start_time
-            print_section("Error", str(e))
         
-        # Print test result
-        status = "✓ PASSED" if result.get("passed", False) else "✗ FAILED"
-        print_section("Test Result", f"{status} (Response Time: {result.get('response_time', 0):.2f}s)")
-        if result.get("errors"):
+        # Extract SQL and response data
+        if response.status_code == 200:
+            response_data = response.json()
+            result["sql_query"] = response_data.get("metadata", {}).get("sql_query", "Not available")
+            result["response_data"] = response_data
+            
+            # Validate expected content
+            response_str = json.dumps(response_data).lower()
+            for content in query.get("expected_content", []):
+                if content.lower() not in response_str:
+                    result["errors"].append(f"Missing expected content: {content}")
+            
+            # Validate SQL components
+            sql_str = result["sql_query"].lower()
+            for component in query.get("expected_sql_components", []):
+                if component.lower() not in sql_str:
+                    result["errors"].append(f"Missing SQL component: {component}")
+        else:
+            result["sql_query"] = "Not available"
+            result["response_data"] = response.json() if response.status_code != 500 else {"error": str(response.text)}
+            result["errors"].append(f"Unexpected status code: {response.status_code}")
+        
+        return result
+        
+    except requests.exceptions.Timeout:
+        return {
+            **query,
+            "sql_query": "Not available",
+            "response_time": 30.0,
+            "status_code": 408,
+            "errors": ["Request timed out"]
+        }
+    except Exception as e:
+        return {
+            **query,
+            "sql_query": "Not available",
+            "response_time": time.time() - start_time,
+            "status_code": 500,
+            "errors": [f"Test error: {str(e)}"]
+        }
+
+def generate_html_report(results: List[Dict[str, Any]], filename: str):
+    """Generate an HTML report from test results"""
+    html = """
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .test { margin: 20px 0; padding: 10px; border: 1px solid #ddd; }
+            .passed { border-left: 5px solid #4CAF50; }
+            .failed { border-left: 5px solid #f44336; }
+            .error { color: #f44336; }
+            .success { color: #4CAF50; }
+            pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        </style>
+    </head>
+    <body>
+    <h1>API Test Results</h1>
+    """
+    
+    # Add summary
+    total = len(results)
+    passed = sum(1 for r in results if not r["errors"])
+    success_rate = (passed / total) * 100 if total > 0 else 0
+    avg_time = sum(r["response_time"] for r in results) / total if total > 0 else 0
+    
+    html += f"""
+    <div class="summary">
+        <h2>Summary</h2>
+        <p>Total Tests: {total}<br>
+        Passed: {passed}<br>
+        Failed: {total - passed}<br>
+        Success Rate: {success_rate:.1f}%<br>
+        Average Response Time: {avg_time:.2f}s</p>
+    </div>
+    """
+    
+    # Add test results
+    for result in results:
+        status = "passed" if not result["errors"] else "failed"
+        html += f"""
+        <div class="test {status}">
+            <h3>{result["title"]}</h3>
+            <p><strong>Category:</strong> {result["category"]}</p>
+            <p><strong>Description:</strong> {result["description"]}</p>
+            <p><strong>Query:</strong> {result["natural_language_query"]}</p>
+            <p><strong>SQL:</strong></p>
+            <pre>{result["sql_query"]}</pre>
+            <p><strong>Response Time:</strong> {result["response_time"]:.2f}s</p>
+            <p><strong>Status Code:</strong> {result["status_code"]}</p>
+        """
+        
+        if result["errors"]:
+            html += "<p><strong>Errors:</strong></p><ul>"
+            for error in result["errors"]:
+                html += f"<li class='error'>{error}</li>"
+            html += "</ul>"
+        
+        html += "</div>"
+    
+    html += "</body></html>"
+    
+    with open(filename, "w") as f:
+        f.write(html)
+
+def test_api_comprehensive():
+    """Run comprehensive API tests"""
+    test_cases = [
+        # Budget Queries
+        {
+            "category": "Budget Queries",
+            "title": "Total Infrastructure Budget",
+            "description": "Get total budget for infrastructure projects",
+            "natural_language_query": "What is the total budget for infrastructure projects?",
+            "expected_content": ["MWK"],
+            "expected_sql_components": ["SUM(budget)", "infrastructure"]
+        },
+        {
+            "category": "Budget Queries",
+            "title": "Average Project Budget",
+            "description": "Calculate average budget across all projects",
+            "natural_language_query": "What is the average budget for all projects?",
+            "expected_content": ["MWK"],
+            "expected_sql_components": ["AVG(budget)"]
+        },
+        
+        # Location Queries
+        {
+            "category": "Location Queries",
+            "title": "Zomba Projects",
+            "description": "List all projects in Zomba district",
+            "natural_language_query": "Show me all projects in Zomba district",
+            "expected_content": ["Zomba", "MWK"],
+            "expected_sql_components": ["district", "zomba"]
+        },
+        {
+            "category": "Location Queries",
+            "title": "Lilongwe Projects Count",
+            "description": "Count projects in Lilongwe",
+            "natural_language_query": "How many projects are there in Lilongwe?",
+            "expected_content": ["count"],
+            "expected_sql_components": ["COUNT(*)", "lilongwe"]
+        },
+        
+        # Status Queries
+        {
+            "category": "Status Queries",
+            "title": "Completed Projects",
+            "description": "List all completed projects",
+            "natural_language_query": "List all completed projects",
+            "expected_content": ["completed"],
+            "expected_sql_components": ["projectstatus", "completed"]
+        },
+        {
+            "category": "Status Queries",
+            "title": "Active Projects Count",
+            "description": "Count number of active projects",
+            "natural_language_query": "How many active projects are there?",
+            "expected_content": ["count"],
+            "expected_sql_components": ["COUNT(*)", "active"]
+        },
+        
+        # Sector Queries
+        {
+            "category": "Sector Queries",
+            "title": "Education Projects",
+            "description": "List all education sector projects",
+            "natural_language_query": "Show all education sector projects",
+            "expected_content": ["education"],
+            "expected_sql_components": ["projectsector", "education"]
+        },
+        {
+            "category": "Sector Queries",
+            "title": "Water Projects Budget",
+            "description": "Calculate total budget for water sector",
+            "natural_language_query": "What is the total budget for water projects?",
+            "expected_content": ["Water", "MWK"],
+            "expected_sql_components": ["projectsector", "water"]
+        },
+        
+        # Completion Queries
+        {
+            "category": "Completion Queries",
+            "title": "High Completion Projects",
+            "description": "List projects with high completion percentage",
+            "natural_language_query": "Show projects with completion percentage above 75%",
+            "expected_content": ["%"],
+            "expected_sql_components": ["completionpercentage", "75"]
+        },
+        {
+            "category": "Completion Queries",
+            "title": "Low Completion Projects",
+            "description": "List projects with low completion percentage",
+            "natural_language_query": "List projects with less than 25% completion",
+            "expected_content": ["%"],
+            "expected_sql_components": ["completionpercentage", "25"]
+        }
+    ]
+    
+    # Run all tests
+    results = []
+    for test_case in test_cases:
+        # Print test header
+        logger.info(f"\n{'='*80}")
+        logger.info(f"Testing Category: {test_case['category']}")
+        logger.info(f"{'='*80}")
+        logger.info(f"Testing: {test_case['title']}")
+        logger.info(f"{'='*80}")
+        
+        # Run test
+        result = run_test(test_case)
+        
+        # Log results
+        logger.info("Natural Language Query:")
+        logger.info("-" * 50)
+        logger.info(test_case["natural_language_query"])
+        logger.info("\n")
+        
+        if result["sql_query"] != "Not available":
+            logger.info("Generated SQL Query:")
+            logger.info("-" * 50)
+            logger.info(result["sql_query"])
+            logger.info("\n")
+        
+        if result.get("response_data"):
+            logger.info("Raw Response Data:")
+            logger.info("-" * 50)
+            logger.info(json.dumps(result["response_data"], indent=2))
+            logger.info("\n")
+        elif result.get("errors"):
+            logger.info("Error Response:")
+            logger.info("-" * 50)
+            logger.info(json.dumps({"detail": result["errors"][0]}, indent=2))
+            logger.info("\n")
+        
+        # Log test result
+        logger.info("Test Result:")
+        status = "✓ PASSED" if not result["errors"] else "✗ FAILED"
+        logger.info(f"{status} (Response Time: {result['response_time']:.2f}s)\n")
+        
+        if result["errors"]:
             logger.info("Errors:")
             for error in result["errors"]:
                 logger.info(f"  - {error}")
+            logger.info("\n")
         
-        return result
-
-    def run_all_tests(self):
-        """Run all test cases"""
-        logger.info("Starting comprehensive API tests...")
-        
-        for category in self.test_cases:
-            logger.info(f"\nTesting Category: {category['category']}")
-            print_separator()
-            
-            for test in category["tests"]:
-                test["category"] = category["category"]
-                result = self.run_test(test)
-                self.results.append(result)
-                
-        self.save_results()
-        self.generate_report()
-        self.print_summary()
-
-    def print_summary(self):
-        """Print test summary"""
-        passed = sum(1 for r in self.results if r.get("passed", False))
-        total = len(self.results)
-        avg_time = sum(r.get("response_time", 0) for r in self.results) / total if total > 0 else 0
-        
-        print_separator()
-        logger.info("Test Summary")
-        print_separator()
-        logger.info(f"Total Tests: {total}")
-        logger.info(f"Passed: {passed}")
-        logger.info(f"Failed: {total - passed}")
-        logger.info(f"Success Rate: {(passed/total)*100:.1f}%")
-        logger.info(f"Average Response Time: {avg_time:.2f}s")
-
-    def save_results(self):
-        """Save test results to JSON file"""
-        output = {
-            "test_run_time": datetime.now().isoformat(),
-            "total_tests": len(self.results),
-            "passed_tests": sum(1 for r in self.results if r.get("passed", False)),
-            "failed_tests": sum(1 for r in self.results if not r.get("passed", False)),
-            "results": self.results
-        }
-        
-        with open(RESULTS_FILE, "w") as f:
-            json.dump(output, f, indent=2)
-        logger.info(f"\nTest results saved to {RESULTS_FILE}")
-
-    def generate_report(self):
-        """Generate HTML report of test results"""
-        try:
-            # Calculate statistics
-            total_tests = len(self.results)
-            passed_tests = sum(1 for r in self.results if r.get("passed", False))
-            failed_tests = total_tests - passed_tests
-            success_rate = (passed_tests/total_tests)*100 if total_tests > 0 else 0
-            avg_time = sum(r.get("response_time", 0) for r in self.results) / total_tests if total_tests > 0 else 0
-
-            # Create HTML content
-            html = f"""
-            <html>
-            <head>
-                <title>API Test Results</title>
-                <style>
-                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                    .passed {{ color: green; }}
-                    .failed {{ color: red; }}
-                    .summary {{ background-color: #f0f0f0; padding: 10px; margin: 10px 0; }}
-                    .test-case {{ border: 1px solid #ddd; padding: 10px; margin: 10px 0; }}
-                </style>
-            </head>
-            <body>
-                <h1>API Test Results</h1>
-                <div class="summary">
-                    <h2>Summary</h2>
-                    <p>Total Tests: {total_tests}</p>
-                    <p>Passed: {passed_tests}</p>
-                    <p>Failed: {failed_tests}</p>
-                    <p>Success Rate: {success_rate:.1f}%</p>
-                    <p>Average Response Time: {avg_time:.2f}s</p>
-                </div>
-            """
-
-            # Add test results
-            for result in self.results:
-                status = "PASSED" if result.get("passed", False) else "FAILED"
-                status_class = "passed" if result.get("passed", False) else "failed"
-                
-                html += f"""
-                <div class="test-case">
-                    <h3>{result.get("category", "Uncategorized")} - {result.get("title", "Untitled")}</h3>
-                    <p class="{status_class}">Status: {status}</p>
-                    <p>Response Time: {result.get("response_time", 0):.2f}s</p>
-                    <p>Query: {result.get("query", "N/A")}</p>
-                """
-                
-                if result.get("errors"):
-                    html += "<p>Errors:</p><ul>"
-                    for error in result["errors"]:
-                        html += f"<li>{error}</li>"
-                    html += "</ul>"
-                
-                html += "</div>"
-
-            html += """
-            </body>
-            </html>
-            """
-
-            # Write report with UTF-8 encoding
-            with open(HTML_REPORT_FILE, "w", encoding="utf-8") as f:
-                f.write(html)
-            logger.info(f"\nHTML report saved to {HTML_REPORT_FILE}")
-        except Exception as e:
-            logger.error(f"Error generating HTML report: {e}")
-            logger.error(traceback.format_exc())
+        results.append(result)
+    
+    # Save results
+    with open(RESULTS_FILE, "w") as f:
+        json.dump({
+            "timestamp": datetime.now().isoformat(),
+            "results": results
+        }, f, indent=2)
+    
+    # Generate HTML report
+    generate_html_report(results, HTML_REPORT_FILE)
+    
+    # Print summary
+    total = len(results)
+    passed = sum(1 for r in results if not r["errors"])
+    success_rate = (passed / total) * 100 if total > 0 else 0
+    avg_time = sum(r["response_time"] for r in results) / total if total > 0 else 0
+    
+    logger.info(f"\n{'='*80}")
+    logger.info("Test Summary")
+    logger.info(f"{'='*80}")
+    logger.info(f"Total Tests: {total}")
+    logger.info(f"Passed: {passed}")
+    logger.info(f"Failed: {total - passed}")
+    logger.info(f"Success Rate: {success_rate:.1f}%")
+    logger.info(f"Average Response Time: {avg_time:.2f}s")
+    
+    logger.info(f"\nTest results saved to {RESULTS_FILE}")
+    logger.info(f"\nHTML report saved to {HTML_REPORT_FILE}")
 
 def main():
     try:
@@ -387,8 +355,7 @@ def main():
             return
 
         # Run tests
-        tester = APITester()
-        tester.run_all_tests()
+        test_api_comprehensive()
         
     except Exception as e:
         logger.error(f"Test script failed: {str(e)}")
