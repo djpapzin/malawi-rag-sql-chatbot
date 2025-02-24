@@ -74,7 +74,7 @@ def test_specific_queries():
                 
                 # Make request to API
                 response = requests.post(
-                    "http://localhost:8001/query",
+                    "http://localhost:5000/query",
                     json={"message": test_case['query']}
                 )
                 

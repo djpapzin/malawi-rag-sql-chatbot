@@ -1,0 +1,108 @@
+=== Specific Query Test Results ===
+Test Run Time: 2025-02-24T11:00:02.555258
+
+
+Testing query: Tell me about 'Nachuma Market Shed phase 3'
+Status Code: 200
+
+Test Result:
+Passed: False
+Errors:
+  - Missing expected text in response: 'Nachuma Market Shed phase 3'
+  - Missing expected text in response: 'Project Code: a631987d'
+  - Missing expected text in response: 'District: Zomba'
+  - Missing expected text in response: 'Region: Southern Region'
+  - Missing expected SQL component: 'SELECT'
+  - Missing expected SQL component: 'FROM proj_dashboard'
+  - Missing expected SQL component: 'PROJECTNAME'
+  - Missing expected SQL component: 'WHERE ISLATEST = 1'
+
+Expected:
+{
+  "response_contains": [
+    "Nachuma Market Shed phase 3",
+    "Project Code: a631987d",
+    "District: Zomba",
+    "Region: Southern Region"
+  ],
+  "sql_contains": [
+    "SELECT",
+    "FROM proj_dashboard",
+    "PROJECTNAME",
+    "WHERE ISLATEST = 1"
+  ]
+}
+
+Actual Response:
+{'query_type': 'specific', 'results': [], 'metadata': {'total_results': 0, 'query_time': '2025-02-24T11:00:07.422121', 'sql_query': "SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%nachuma market shed phase 3%'"}}
+
+Actual SQL:
+--------------------------------------------------
+
+Testing query: What is the status of 'Boma Bus Depot and Market Toilets'
+Status Code: 200
+
+Test Result:
+Passed: False
+Errors:
+  - Missing expected text in response: 'Boma Bus Depot and Market Toilets'
+  - Missing expected SQL component: 'SELECT'
+  - Missing expected SQL component: 'FROM proj_dashboard'
+  - Missing expected SQL component: 'PROJECTNAME'
+  - Missing expected SQL component: 'WHERE ISLATEST = 1'
+  - Missing expected SQL component: 'LIKE'
+
+Expected:
+{
+  "response_contains": [
+    "Boma Bus Depot and Market Toilets"
+  ],
+  "sql_contains": [
+    "SELECT",
+    "FROM proj_dashboard",
+    "PROJECTNAME",
+    "WHERE ISLATEST = 1",
+    "LIKE"
+  ]
+}
+
+Actual Response:
+{'query_type': 'general', 'results': [], 'metadata': {'total_results': 0, 'query_time': '2025-02-24T11:01:30.633435', 'sql_query': "SELECT * FROM proj_dashboard WHERE LOWER(projectname) = 'boma bus depot and market toilets'"}}
+
+Actual SQL:
+--------------------------------------------------
+
+Testing query: Show details about project MW-CR-DO
+Status Code: 200
+
+Test Result:
+Passed: False
+Errors:
+  - Missing expected SQL component: 'SELECT'
+  - Missing expected SQL component: 'FROM proj_dashboard'
+  - Missing expected SQL component: 'PROJECTCODE'
+  - Missing expected SQL component: 'WHERE ISLATEST = 1'
+  - Missing expected SQL component: 'MW-CR-DO'
+
+Expected:
+{
+  "sql_contains": [
+    "SELECT",
+    "FROM proj_dashboard",
+    "PROJECTCODE",
+    "WHERE ISLATEST = 1",
+    "MW-CR-DO"
+  ]
+}
+
+Actual Response:
+{'query_type': 'specific', 'results': [], 'metadata': {'total_results': 0, 'query_time': '2025-02-24T11:01:34.645379', 'sql_query': "SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%mw-cr-do%'"}}
+
+Actual SQL:
+--------------------------------------------------
+
+=== Test Summary ===
+Total Tests: 3
+Passed: 0
+Failed: 3
+Overall Status: FAILED
