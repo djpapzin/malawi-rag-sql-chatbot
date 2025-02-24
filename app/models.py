@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Union
 from pydantic import BaseModel, Field
 import logging
 from datetime import datetime
@@ -7,6 +7,56 @@ import sqlite3
 from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
+
+class Location(BaseModel):
+    """Model for location information"""
+    region: str
+    district: str
+
+class MonetaryAmount(BaseModel):
+    """Model for monetary amounts"""
+    amount: float
+    formatted: str
+
+class Contractor(BaseModel):
+    """Model for contractor information"""
+    name: str
+    contract_start_date: str
+
+class QueryMetadata(BaseModel):
+    """Model for query execution metadata"""
+    total_results: int
+    query_time: str
+    sql_query: str
+
+class GeneralProjectInfo(BaseModel):
+    """Model for general project information"""
+    project_name: str
+    fiscal_year: str
+    location: Location
+    total_budget: MonetaryAmount
+    project_status: str
+    project_sector: str
+
+class DetailedProjectInfo(GeneralProjectInfo):
+    """Model for detailed project information"""
+    contractor: Contractor
+    expenditure_to_date: MonetaryAmount
+    source_of_funding: str
+    project_code: str
+    last_monitoring_visit: str
+
+class GeneralQueryResponse(BaseModel):
+    """Model for general query response"""
+    query_type: str = "general"
+    results: List[GeneralProjectInfo]
+    metadata: QueryMetadata
+
+class SpecificQueryResponse(BaseModel):
+    """Model for specific query response"""
+    query_type: str = "specific"
+    results: List[DetailedProjectInfo]
+    metadata: QueryMetadata
 
 class QuerySource(BaseModel):
     """Model for query source information"""
@@ -25,20 +75,9 @@ class ChatQuery(BaseModel):
     page_size: Optional[int] = 30
     continue_previous: Optional[bool] = False
 
-class QueryMetadata(BaseModel):
-    """Model for query execution metadata"""
-    timestamp: str
-    query_id: str
-    processing_time: float
-
-    class Config:
-        from_attributes = True
-
 class ChatResponse(BaseModel):
-    """Model for chat response with sources"""
-    response: str
-    metadata: QueryMetadata
-    source: Optional[QuerySource] = None
+    """Model for chat response"""
+    response: Union[GeneralQueryResponse, SpecificQueryResponse]
 
     class Config:
         from_attributes = True
