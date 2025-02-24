@@ -6,11 +6,12 @@ import time
 from typing import Dict, Any, List
 import os
 from tabulate import tabulate
+import traceback
 
-# Configure logging
+# Configure logging with a cleaner format
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(message)s'  # Simplified format for cleaner output
 )
 logger = logging.getLogger(__name__)
 
@@ -26,10 +27,22 @@ def format_currency(amount: float) -> str:
 def format_sql(sql: str) -> str:
     """Format SQL query for better readability"""
     sql = sql.strip()
-    keywords = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN']
+    keywords = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN']
     for keyword in keywords:
         sql = sql.replace(keyword, f'\n{keyword}')
-    return sql
+    return sql.strip()
+
+def print_separator(char="=", length=80):
+    """Print a separator line"""
+    logger.info(char * length)
+
+def print_section(title, content=""):
+    """Print a section with title and optional content"""
+    print_separator("-", 40)
+    logger.info(f"{title}:")
+    if content:
+        logger.info(content)
+    logger.info("")
 
 class APITester:
     def __init__(self):
@@ -127,10 +140,44 @@ class APITester:
         ]
         self.results = []
 
+    def format_response_data(self, response_data: Dict) -> str:
+        """Format the response data for display"""
+        try:
+            results = response_data.get("response", {}).get("results", [])
+            if not results:
+                return "No results found"
+
+            output = []
+            for result in results:
+                if "total_budget" in result:
+                    # Handle total/average budget responses
+                    amount = result["total_budget"].get("amount", 0)
+                    formatted = result["total_budget"].get("formatted", format_currency(amount))
+                    output.append(f"Total: {formatted}")
+                else:
+                    # Handle project listing responses
+                    project_details = [
+                        f"Project: {result.get('project_name', 'N/A')}",
+                        f"District: {result.get('district', 'N/A')}",
+                        f"Sector: {result.get('project_sector', 'N/A')}",
+                        f"Status: {result.get('project_status', 'N/A')}",
+                        f"Budget: {result.get('total_budget', {}).get('formatted', 'N/A')}",
+                        f"Completion: {result.get('completion_percentage', 'N/A')}%"
+                    ]
+                    output.append("\n".join(project_details))
+
+            return "\n\n".join(output)
+        except Exception as e:
+            return f"Error formatting response: {str(e)}"
+
     def run_test(self, test_case: Dict[str, Any]) -> Dict[str, Any]:
-        """Run a single test case"""
-        logger.info(f"\nTesting: {test_case['title']}")
-        logger.info("=" * 80)
+        """Run a single test case with detailed output"""
+        print_separator()
+        logger.info(f"Testing: {test_case['title']}")
+        print_separator()
+        
+        # Print natural language query
+        print_section("Natural Language Query", test_case["query"])
         
         start_time = time.time()
         result = {
@@ -158,9 +205,15 @@ class APITester:
                 response_data = response.json()
                 result["response"] = response_data
                 
-                # Extract SQL query
+                # Extract and print SQL query
                 sql_query = response_data.get("response", {}).get("metadata", {}).get("sql_query", "")
-                result["sql_query"] = sql_query
+                if sql_query:
+                    print_section("Generated SQL Query", format_sql(sql_query))
+                
+                # Print raw response data
+                print_section("Raw Response Data")
+                formatted_response = self.format_response_data(response_data)
+                logger.info(formatted_response)
                 
                 # Validate expected content
                 if "expected_contains" in test_case:
@@ -183,13 +236,26 @@ class APITester:
                 result["errors"].append(f"Unexpected status code: {response.status_code}")
                 if response.text:
                     result["error_detail"] = response.text
+                    print_section("Error Response", response.text)
                     
         except requests.exceptions.Timeout:
             result["errors"].append("Request timed out")
             result["error_detail"] = "Request took too long to complete"
+            result["response_time"] = 30.0  # Timeout duration
+            print_section("Error", "Request timed out after 30 seconds")
         except Exception as e:
             result["errors"].append(f"Test error: {str(e)}")
             result["error_detail"] = str(e)
+            result["response_time"] = time.time() - start_time
+            print_section("Error", str(e))
+        
+        # Print test result
+        status = "✓ PASSED" if result.get("passed", False) else "✗ FAILED"
+        print_section("Test Result", f"{status} (Response Time: {result.get('response_time', 0):.2f}s)")
+        if result.get("errors"):
+            logger.info("Errors:")
+            for error in result["errors"]:
+                logger.info(f"  - {error}")
         
         return result
 
@@ -199,31 +265,39 @@ class APITester:
         
         for category in self.test_cases:
             logger.info(f"\nTesting Category: {category['category']}")
-            logger.info("=" * 80)
+            print_separator()
             
             for test in category["tests"]:
                 test["category"] = category["category"]
                 result = self.run_test(test)
                 self.results.append(result)
                 
-                # Log result
-                status = "✓ PASSED" if result["passed"] else "✗ FAILED"
-                logger.info(f"{status} - {test['title']}")
-                if not result["passed"]:
-                    for error in result["errors"]:
-                        logger.info(f"  Error: {error}")
-                logger.info(f"  Response Time: {result['response_time']:.2f}s")
-                
         self.save_results()
         self.generate_report()
+        self.print_summary()
+
+    def print_summary(self):
+        """Print test summary"""
+        passed = sum(1 for r in self.results if r.get("passed", False))
+        total = len(self.results)
+        avg_time = sum(r.get("response_time", 0) for r in self.results) / total if total > 0 else 0
+        
+        print_separator()
+        logger.info("Test Summary")
+        print_separator()
+        logger.info(f"Total Tests: {total}")
+        logger.info(f"Passed: {passed}")
+        logger.info(f"Failed: {total - passed}")
+        logger.info(f"Success Rate: {(passed/total)*100:.1f}%")
+        logger.info(f"Average Response Time: {avg_time:.2f}s")
 
     def save_results(self):
         """Save test results to JSON file"""
         output = {
             "test_run_time": datetime.now().isoformat(),
             "total_tests": len(self.results),
-            "passed_tests": sum(1 for r in self.results if r["passed"]),
-            "failed_tests": sum(1 for r in self.results if not r["passed"]),
+            "passed_tests": sum(1 for r in self.results if r.get("passed", False)),
+            "failed_tests": sum(1 for r in self.results if not r.get("passed", False)),
             "results": self.results
         }
         
@@ -232,81 +306,73 @@ class APITester:
         logger.info(f"\nTest results saved to {RESULTS_FILE}")
 
     def generate_report(self):
-        """Generate HTML report"""
-        # Calculate statistics
-        total_tests = len(self.results)
-        passed_tests = sum(1 for r in self.results if r["passed"])
-        failed_tests = total_tests - passed_tests
-        avg_response_time = sum(r["response_time"] for r in self.results) / total_tests
+        """Generate HTML report of test results"""
+        try:
+            # Calculate statistics
+            total_tests = len(self.results)
+            passed_tests = sum(1 for r in self.results if r.get("passed", False))
+            failed_tests = total_tests - passed_tests
+            success_rate = (passed_tests/total_tests)*100 if total_tests > 0 else 0
+            avg_time = sum(r.get("response_time", 0) for r in self.results) / total_tests if total_tests > 0 else 0
 
-        # Create HTML report
-        html = f"""
-        <html>
-        <head>
-            <title>API Test Results</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                .summary {{ background: #f5f5f5; padding: 20px; margin-bottom: 20px; }}
-                .passed {{ color: green; }}
-                .failed {{ color: red; }}
-                table {{ border-collapse: collapse; width: 100%; }}
-                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                th {{ background-color: #f5f5f5; }}
-                tr:nth-child(even) {{ background-color: #f9f9f9; }}
-                .error-detail {{ color: red; font-size: 0.9em; }}
-            </style>
-        </head>
-        <body>
-            <h1>API Test Results</h1>
-            <div class="summary">
-                <h2>Summary</h2>
-                <p>Test Run Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-                <p>Total Tests: {total_tests}</p>
-                <p class="passed">Passed Tests: {passed_tests}</p>
-                <p class="failed">Failed Tests: {failed_tests}</p>
-                <p>Average Response Time: {avg_response_time:.2f}s</p>
-            </div>
-        """
-
-        # Add results table
-        html += """
-            <h2>Detailed Results</h2>
-            <table>
-                <tr>
-                    <th>Category</th>
-                    <th>Test</th>
-                    <th>Query</th>
-                    <th>Status</th>
-                    <th>Response Time</th>
-                    <th>Errors</th>
-                </tr>
-        """
-
-        for result in self.results:
-            status = "✓ PASSED" if result["passed"] else "✗ FAILED"
-            status_class = "passed" if result["passed"] else "failed"
-            errors = "<br>".join(result["errors"]) if result["errors"] else ""
-            
-            html += f"""
-                <tr>
-                    <td>{result['category']}</td>
-                    <td>{result['title']}</td>
-                    <td>{result['query']}</td>
-                    <td class="{status_class}">{status}</td>
-                    <td>{result['response_time']:.2f}s</td>
-                    <td class="error-detail">{errors}</td>
-                </tr>
+            # Create HTML content
+            html = f"""
+            <html>
+            <head>
+                <title>API Test Results</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                    .passed {{ color: green; }}
+                    .failed {{ color: red; }}
+                    .summary {{ background-color: #f0f0f0; padding: 10px; margin: 10px 0; }}
+                    .test-case {{ border: 1px solid #ddd; padding: 10px; margin: 10px 0; }}
+                </style>
+            </head>
+            <body>
+                <h1>API Test Results</h1>
+                <div class="summary">
+                    <h2>Summary</h2>
+                    <p>Total Tests: {total_tests}</p>
+                    <p>Passed: {passed_tests}</p>
+                    <p>Failed: {failed_tests}</p>
+                    <p>Success Rate: {success_rate:.1f}%</p>
+                    <p>Average Response Time: {avg_time:.2f}s</p>
+                </div>
             """
 
-        html += """
-            </table>
-        </body>
-        </html>
-        """
+            # Add test results
+            for result in self.results:
+                status = "PASSED" if result.get("passed", False) else "FAILED"
+                status_class = "passed" if result.get("passed", False) else "failed"
+                
+                html += f"""
+                <div class="test-case">
+                    <h3>{result.get("category", "Uncategorized")} - {result.get("title", "Untitled")}</h3>
+                    <p class="{status_class}">Status: {status}</p>
+                    <p>Response Time: {result.get("response_time", 0):.2f}s</p>
+                    <p>Query: {result.get("query", "N/A")}</p>
+                """
+                
+                if result.get("errors"):
+                    html += "<p>Errors:</p><ul>"
+                    for error in result["errors"]:
+                        html += f"<li>{error}</li>"
+                    html += "</ul>"
+                
+                html += "</div>"
 
-        with open(HTML_REPORT_FILE, "w") as f:
-            f.write(html)
-        logger.info(f"HTML report generated: {HTML_REPORT_FILE}")
+            html += """
+            </body>
+            </html>
+            """
+
+            # Write report with UTF-8 encoding
+            with open(HTML_REPORT_FILE, "w", encoding="utf-8") as f:
+                f.write(html)
+            logger.info(f"\nHTML report saved to {HTML_REPORT_FILE}")
+        except Exception as e:
+            logger.error(f"Error generating HTML report: {e}")
+            logger.error(traceback.format_exc())
 
 def main():
     try:
@@ -323,15 +389,6 @@ def main():
         # Run tests
         tester = APITester()
         tester.run_all_tests()
-        
-        # Print summary
-        passed = sum(1 for r in tester.results if r["passed"])
-        total = len(tester.results)
-        logger.info(f"\nTest Summary:")
-        logger.info(f"Total Tests: {total}")
-        logger.info(f"Passed: {passed}")
-        logger.info(f"Failed: {total - passed}")
-        logger.info(f"Success Rate: {(passed/total)*100:.1f}%")
         
     except Exception as e:
         logger.error(f"Test script failed: {str(e)}")
