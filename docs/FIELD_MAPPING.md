@@ -6,77 +6,95 @@ The Infrastructure Transparency Chatbot uses a single SQLite database:
 
 - Database: `malawi_projects1.db`
 - Location: Project root directory
-- Primary Table: `proj_dashboard` (198 unique records)
+- Primary Table: `proj_dashboard` (196 unique records)
 - Status: Production database
 - Note: Single source of truth for all infrastructure project data
 
 ## Database Schema
 
-### Core Fields (General Queries)
-These fields are displayed for all project queries:
+### Core Fields
+These fields represent the complete structure of the `proj_dashboard` table:
 
 | Field Name | Data Type | Example Value | Description |
 |------------|-----------|---------------|-------------|
-| PROJECTNAME | varchar(255) | "School Construction" | Project title |
-| FISCALYEAR | varchar(10) | "2024-25" | Financial year |
-| REGION | varchar(100) | "Central" | Geographic region |
-| DISTRICT | varchar(100) | "Lilongwe" | District location |
-| TOTALBUDGET | decimal(15,2) | 1500000.00 | Total project budget |
-| PROJECTSTATUS | varchar(50) | "In Progress" | Current status |
-| PROJECTSECTOR | varchar(100) | "Education" | Project category |
+| projectname | TEXT | "Lilongwe Road Development Phase 1" | Project title |
+| district | TEXT | "Lilongwe" | District location |
+| projectsector | TEXT | "Infrastructure" | Project category |
+| projectstatus | TEXT | "Active" | Current status |
+| budget | NUMERIC | 500000.00 | Project budget in MWK |
+| completionpercentage | NUMERIC | 45 | Completion percentage (0-100) |
+| startdate | NUMERIC | 20230101 | Start date in YYYYMMDD format |
+| completiondata | NUMERIC | 20240101 | Expected completion date in YYYYMMDD format |
 
-### Extended Fields (Specific Project Queries)
-Additional fields displayed for single project queries:
+### Valid Values
 
-| Field Name | Data Type | Example Value | Description |
-|------------|-----------|---------------|-------------|
-| CONTRACTORNAME | varchar(255) | "ABC Construction" | Primary contractor |
-| CONTRACTSTARTDATE | date | "2024-01-01" | Project start date |
-| TOTALEXPENDITURETODATE | decimal(15,2) | 450000.00 | Amount spent |
-| FUNDINGSOURCE | varchar(100) | "DDF" | Funding source |
-| PROJECTCODE | varchar(100) | "MW-CR-DO" | Project identifier |
-| LASTVISIT | date | "2024-01-20" | Last monitoring visit |
+1. **Districts**
+   - Lilongwe
+   - Blantyre
+   - Mzuzu
+   - Zomba
+   - Kasungu
+   - Mangochi
+   - Salima
+   - Nkhata Bay
+   - Karonga
+   - Dedza
 
-### Implementation Notes
+2. **Project Sectors**
+   - Infrastructure
+   - Water
+   - Energy
+   - Education
+   - Healthcare
+   - Agriculture
+   - Transport
 
-1. **Query Filters**
-   - All queries include `ISLATEST = 1` to ensure current data
-   - Results are ordered by `PROJECTNAME ASC` for consistency
+3. **Project Status**
+   - Active
+   - Planning
+   - Completed
+   - On Hold
 
-2. **Data Formatting**
-   - Budget values: Displayed with MWK currency prefix and thousands separators
-   - Dates: Formatted according to locale settings
-   - Status: Original case preserved for consistency
+### Data Formatting
 
-3. **Data Validation**
-   - Null values are displayed as "N/A"
-   - Empty strings are treated as null
-   - Zero budgets are displayed as "MWK 0.00"
+1. **Budget Values**
+   - Stored as NUMERIC
+   - Displayed with "MWK" prefix and thousands separators
+   - Example: MWK 500,000.00
 
-4. **Query Performance**
-   - Primary key: PROJECTCODE
-   - Index on ISLATEST for efficient filtering
-   - Index on PROJECTNAME for sorting
+2. **Dates**
+   - Stored as NUMERIC in YYYYMMDD format
+   - Example: 20230101 represents January 1, 2023
+
+3. **Completion Percentage**
+   - Stored as NUMERIC
+   - Range: 0 to 100
+   - Displayed with % symbol
+   - Example: 45%
 
 ## Usage Examples
 
-1. **General Query**
+1. **Total Budget Query**
    ```sql
-   SELECT 
-       PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+   SELECT SUM(budget) as total_budget 
    FROM proj_dashboard 
-   WHERE ISLATEST = 1
-   ORDER BY PROJECTNAME ASC;
+   WHERE LOWER(projectsector) = 'infrastructure';
    ```
 
-2. **Specific Project Query**
+2. **District Projects Query**
    ```sql
-   SELECT 
-       PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
-       CONTRACTORNAME, CONTRACTSTARTDATE, TOTALEXPENDITURETODATE,
-       FUNDINGSOURCE, PROJECTCODE, LASTVISIT
+   SELECT projectname, district, projectsector, projectstatus, 
+          budget, completionpercentage
    FROM proj_dashboard 
-   WHERE PROJECTCODE = ? AND ISLATEST = 1;
+   WHERE LOWER(district) = 'zomba';
    ```
+
+3. **Status-based Query**
+   ```sql
+   SELECT projectname, district, projectsector, projectstatus, 
+          budget, completionpercentage
+   FROM proj_dashboard 
+   WHERE LOWER(projectstatus) = 'completed';
+   ```
+
+Note: This is the complete and accurate representation of the database structure as generated by `scripts/init_db.py`.
