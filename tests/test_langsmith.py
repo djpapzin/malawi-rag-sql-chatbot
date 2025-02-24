@@ -5,6 +5,7 @@ from unittest.mock import patch
 from src.llm_chain import ProjectQueryChain
 from app.core.langsmith_config import langsmith_config
 from langsmith.client import Client
+from langchain_core.tracers.context import tracing_v2_enabled
 
 @pytest.fixture
 def langsmith_client():
@@ -84,3 +85,15 @@ async def test_chain_performance_monitoring(chain, langsmith_client):
     run = next(runs)
     assert run.end_time > run.start_time
     assert run.latency > 0
+
+def test_api_connection():
+    # Set tracing environment variables
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_PROJECT"] = "rag-sql-chatbot"
+    
+    # Use context manager for explicit tracing control
+    with tracing_v2_enabled():
+        chain = ProjectQueryChain(api_key="your_api_key")
+        result = chain.ainvoke("Test prompt")
+        assert result is not None
+

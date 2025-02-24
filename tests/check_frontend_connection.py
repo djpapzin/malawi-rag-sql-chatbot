@@ -3,7 +3,7 @@ import requests
 import json
 from typing import Dict, Any
 
-BASE_URL = "http://localhost:8001"
+BASE_URL = "http://localhost:8000"
 
 # def test_status_endpoint():
 #     """Test the status endpoint"""

@@ -4,7 +4,7 @@ import requests
 import json
 
 # Server Testing Configuration
-BACKEND_URL = "http://154.0.164.254:8001"    # Backend service on server
+BACKEND_URL = "http://154.0.164.254:8000"    # Backend service on server
 FRONTEND_URL = "http://154.0.164.254:3000"    # Frontend on server
 API_PREFIX = "/api/rag-sql-chatbot"
 

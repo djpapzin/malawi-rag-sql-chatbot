@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from langchain.memory import ConversationBufferMemory
 from langchain_community.chains.sql_database import SQLDatabaseChain
 from langchain_community.utilities import SQLDatabase
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain_together import Together
 
 load_dotenv()

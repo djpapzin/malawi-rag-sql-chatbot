@@ -42,7 +42,7 @@ def get_database_projects():
 
 def get_api_projects():
     """Retrieve education projects from the API."""
-    url = "http://localhost:8001/query"
+    url = "http://localhost:8000/query"
     query = {
         "message": "Show me education sector projects"
     }
@@ -385,7 +385,7 @@ ORDER BY PROJECTNAME ASC""",
         print("-"*50)
         
         # Get API response
-        url = "http://localhost:8001/query"
+        url = "http://localhost:8000/query"
         try:
             response = requests.post(url, json={"message": query})
             result = response.json()

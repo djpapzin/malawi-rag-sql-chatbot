@@ -5,7 +5,7 @@ echo Testing RAG SQL Chatbot API
 echo ===========================
 
 :: Set base URL
-set "BASE_URL=http://localhost:8001"
+set "BASE_URL=http://localhost:8000"
 
 echo.
 echo Test 1: Multiple Projects Query

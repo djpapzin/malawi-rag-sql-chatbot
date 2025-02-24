@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class QueryTester:
     """Comprehensive query testing framework"""
     
-    def __init__(self, api_url: str = "http://localhost:8001"):
+    def __init__(self, api_url: str = "http://localhost:8000"):
         self.api_url = api_url
         self.db_conn = sqlite3.connect('malawi_projects1.db')
         self.results = []
