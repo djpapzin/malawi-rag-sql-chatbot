@@ -1,0 +1,86 @@
+
+            <html>
+            <head>
+                <title>API Test Results</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .passed { color: green; }
+                    .failed { color: red; }
+                    .summary { background-color: #f0f0f0; padding: 10px; margin: 10px 0; }
+                    .test-case { border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <h1>API Test Results</h1>
+                <div class="summary">
+                    <h2>Summary</h2>
+                    <p>Total Tests: 10</p>
+                    <p>Passed: 1</p>
+                    <p>Failed: 9</p>
+                    <p>Success Rate: 10.0%</p>
+                    <p>Average Response Time: 6.88s</p>
+                </div>
+            
+                <div class="test-case">
+                    <h3>Budget Queries - Total Infrastructure Budget</h3>
+                    <p class="failed">Status: FAILED</p>
+                    <p>Response Time: 2.04s</p>
+                    <p>Query: What is the total budget for infrastructure projects?</p>
+                <p>Errors:</p><ul><li>Missing expected content: MWK</li></ul></div>
+                <div class="test-case">
+                    <h3>Budget Queries - Average Project Budget</h3>
+                    <p class="failed">Status: FAILED</p>
+                    <p>Response Time: 6.32s</p>
+                    <p>Query: What is the average budget for all projects?</p>
+                <p>Errors:</p><ul><li>Unexpected status code: 500</li></ul></div>
+                <div class="test-case">
+                    <h3>Location Queries - Zomba Projects</h3>
+                    <p class="passed">Status: PASSED</p>
+                    <p>Response Time: 5.84s</p>
+                    <p>Query: Show me all projects in Zomba district</p>
+                </div>
+                <div class="test-case">
+                    <h3>Location Queries - Lilongwe Projects Count</h3>
+                    <p class="failed">Status: FAILED</p>
+                    <p>Response Time: 3.85s</p>
+                    <p>Query: How many projects are there in Lilongwe?</p>
+                <p>Errors:</p><ul><li>Missing expected content: COUNT</li><li>Missing SQL component: COUNT</li><li>Missing SQL component: lilongwe</li></ul></div>
+                <div class="test-case">
+                    <h3>Status Queries - Completed Projects</h3>
+                    <p class="failed">Status: FAILED</p>
+                    <p>Response Time: 4.43s</p>
+                    <p>Query: List all completed projects</p>
+                <p>Errors:</p><ul><li>Unexpected status code: 500</li></ul></div>
+                <div class="test-case">
+                    <h3>Status Queries - Active Projects Count</h3>
+                    <p class="failed">Status: FAILED</p>
+                    <p>Response Time: 4.30s</p>
+                    <p>Query: How many active projects are there?</p>
+                <p>Errors:</p><ul><li>Unexpected status code: 500</li></ul></div>
+                <div class="test-case">
+                    <h3>Sector Queries - Education Projects</h3>
+                    <p class="failed">Status: FAILED</p>
+                    <p>Response Time: 4.98s</p>
+                    <p>Query: Show all education sector projects</p>
+                <p>Errors:</p><ul><li>Missing SQL component: education</li></ul></div>
+                <div class="test-case">
+                    <h3>Sector Queries - Water Projects Budget</h3>
+                    <p class="failed">Status: FAILED</p>
+                    <p>Response Time: 2.39s</p>
+                    <p>Query: What is the total budget for water projects?</p>
+                <p>Errors:</p><ul><li>Missing expected content: Water</li><li>Missing SQL component: projectsector</li><li>Missing SQL component: water</li></ul></div>
+                <div class="test-case">
+                    <h3>Completion Queries - High Completion Projects</h3>
+                    <p class="failed">Status: FAILED</p>
+                    <p>Response Time: 30.00s</p>
+                    <p>Query: Show projects with completion percentage above 75%</p>
+                <p>Errors:</p><ul><li>Request timed out</li></ul></div>
+                <div class="test-case">
+                    <h3>Completion Queries - Low Completion Projects</h3>
+                    <p class="failed">Status: FAILED</p>
+                    <p>Response Time: 4.69s</p>
+                    <p>Query: List projects with less than 25% completion</p>
+                <p>Errors:</p><ul><li>Unexpected status code: 500</li></ul></div>
+            </body>
+            </html>
+            
