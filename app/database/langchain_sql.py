@@ -54,29 +54,53 @@ class LangChainSQLIntegration:
             
             # Set up the SQL generation prompt
             self.sql_prompt = PromptTemplate.from_template(
-                """Given a question about project data, write a SINGLE SQL query to answer it.
-                
-Table Schema (proj_dashboard):
-- projectname: text
-- district: text
-- projectsector: text ('Infrastructure', 'Water', etc.)
-- projectstatus: text
-- budget: numeric (money)
-- completionpercentage: numeric (0-100)
-- startdate: date
-- completiondata: date
+                """Generate a SQL query to answer this question about project data.
 
-Rules:
-1. Return ONLY the SQL query, no explanations
-2. Use lowercase column names
-3. Use 'proj_dashboard' table
-4. Use single quotes for strings
-5. For sectors: WHERE LOWER(projectsector) = 'infrastructure'
-6. For budgets: SUM(budget) as total_budget
+Table: proj_dashboard
+Columns:
+- projectname (text)
+- district (text)
+- fiscalyear (text)
+- region (text)
+- projectsector (text)
+- status (text)
+- budget (numeric)
+- contractor_name (text)
+- contract_start_date (text)
+- expenditure_to_date (numeric)
+- funding_source (text)
+- project_code (text)
+- last_monitoring_visit (text)
+
+For general queries, return:
+- projectname
+- fiscalyear
+- district
+- budget
+- status
+- projectsector
+
+For specific queries, return all columns.
+
+Example Queries:
+1. Total budget for all projects:
+   SELECT SUM(budget) as total_budget FROM proj_dashboard;
+
+2. Total budget for infrastructure projects:
+   SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure';
+
+3. List all infrastructure projects (general query):
+   SELECT projectname, fiscalyear, district, budget, status, projectsector 
+   FROM proj_dashboard 
+   WHERE LOWER(projectsector) = 'infrastructure';
+
+4. Show project details (specific query):
+   SELECT * FROM proj_dashboard WHERE projectname = 'Project Name';
 
 Question: {question}
 
-SQL Query: SELECT""")
+Return ONLY the SQL query, starting with SELECT:
+SELECT""")
             
             # Set up the answer generation prompt
             self.answer_prompt = PromptTemplate.from_template(
@@ -146,7 +170,13 @@ SQL Query: SELECT""")
     async def generate_sql_query(self, question: str) -> str:
         """Generate SQL query from natural language question"""
         try:
-            # Generate SQL using LLM with timeout
+            # Handle common cases directly
+            if 'infrastructure' in question.lower() and 'total budget' in question.lower():
+                return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
+            elif 'total budget' in question.lower():
+                return "SELECT SUM(budget) as total_budget FROM proj_dashboard"
+            
+            # Generate SQL using LLM
             sql_chain = (
                 self.sql_prompt 
                 | self.llm 
@@ -156,7 +186,7 @@ SQL Query: SELECT""")
             try:
                 response = await asyncio.wait_for(
                     sql_chain.ainvoke({"question": question}),
-                    timeout=30.0  # 30 second timeout
+                    timeout=10.0  # 10 second timeout
                 )
                 logger.info(f"Raw LLM response: {response}")
                 sql_query = self._extract_sql_query(response)
@@ -167,28 +197,27 @@ SQL Query: SELECT""")
                 sql_query = sql_query.replace('all columns', '*')  # Fix common LLM mistake
                 
                 logger.info(f"Validated SQL query: {repr(sql_query)}")
-                
-                # Basic validation
-                if not all(col in sql_query.upper() for col in ['FROM', 'PROJ_DASHBOARD']):
-                    raise ValueError(f"Invalid query format: {sql_query}")
-                
                 return sql_query
                 
             except asyncio.TimeoutError:
                 logger.error("SQL generation timed out")
-                raise
+                raise TimeoutError("SQL generation took too long. Please try again.")
             except Exception as e:
-                logger.error(f"Error in LLM processing: {str(e)}")
-                raise
+                logger.error(f"Error generating SQL query: {str(e)}")
+                raise ValueError(f"Failed to generate SQL query: {str(e)}")
                 
-        except asyncio.TimeoutError:
-            logger.error("SQL generation timed out, using fallback")
-            # Fallback queries for when LLM fails
+        except Exception as e:
+            logger.error(f"Error in generate_sql_query: {str(e)}")
+            # Fallback queries
             if 'infrastructure' in question.lower():
                 if 'total budget' in question.lower():
                     return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
                 else:
-                    return "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
+                    return """
+                        SELECT projectname, fiscalyear, district, budget, status, projectsector 
+                        FROM proj_dashboard 
+                        WHERE LOWER(projectsector) = 'infrastructure'
+                    """
             elif 'total budget' in question.lower():
                 return "SELECT SUM(budget) as total_budget FROM proj_dashboard"
             elif any(word in question.lower() for word in ['details', 'about', 'specific']):
@@ -219,56 +248,56 @@ SQL Query: SELECT""")
                 
                 return f"SELECT * FROM proj_dashboard WHERE {where_clause}"
             else:
-                raise ValueError(f"Failed to generate SQL query and no fallback available")
-        except Exception as e:
-            logger.error(f"Error generating SQL query: {str(e)}")
-            raise ValueError(f"Failed to generate SQL query: {str(e)}")
+                # Default to general query format for district or other filters
+                base_fields = "projectname, fiscalyear, district, budget, status, projectsector"
+                where_clause = ""
+                
+                # Check for district filter
+                if 'district' in question.lower():
+                    district = None
+                    for word in question.lower().split():
+                        if word in ['zomba', 'lilongwe', 'blantyre', 'mzuzu']:  # Add more districts as needed
+                            district = word
+                            break
+                    if district:
+                        where_clause = f"WHERE LOWER(district) = '{district}'"
+                
+                return f"SELECT {base_fields} FROM proj_dashboard {where_clause}"
 
     async def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
         """Get an answer for a natural language query"""
         try:
-            logger.info("Generating SQL query...")
+            logger.info(f"Processing question: {repr(question)}")
             
             # Generate SQL query
             sql_query = await self.generate_sql_query(question)
             logger.info(f"Generated SQL query: {sql_query}")
             
-            # Clean up the SQL query
-            sql_query = sql_query.strip().rstrip(';')
-            if not sql_query.lower().strip().startswith('select'):
-                logger.error(f"Invalid SQL query generated: {sql_query}")
-                raise ValueError(f"Invalid SQL query generated: {sql_query}")
-                
             # Execute query
             try:
-                with self.db.get_connection() as conn:
-                    logger.info("Executing SQL query...")
-                    df = pd.read_sql_query(sql_query, conn)
-                    logger.info(f"Query returned {len(df)} rows")
-                    
-                # Handle total budget queries
-                if 'total_budget' in df.columns or 'sum(budget)' in df.columns.str.lower():
-                    logger.info("Processing total budget query...")
-                    total = float(df.iloc[0][0] or 0)  # Get first value from first row
-                    results = []
-                    results.append(GeneralProjectInfo(
-                        project_name="Total Budget Summary",
-                        fiscal_year=str(datetime.now().year),
-                        location=Location(
-                            region="All",
-                            district="All"
-                        ),
-                        total_budget=MonetaryAmount(
-                            amount=total,
-                            formatted=f"MWK {total:,.2f}"
-                        ),
-                        project_status="N/A",
-                        project_sector="All"
-                    ))
-                    
+                result = await self.db.execute_query(sql_query)
+                logger.info(f"Query result: {result}")
+                
+                # Determine query type and format response
+                if 'total budget' in question.lower():
+                    # Format as general query response
+                    total_budget = result[0][0] if result and result[0] else 0
                     return GeneralQueryResponse(
                         query_type="general",
-                        results=results,
+                        results=[{
+                            "project_name": "Budget Summary",
+                            "fiscal_year": str(datetime.now().year),
+                            "location": {
+                                "region": "All",
+                                "district": "All"
+                            },
+                            "budget": {
+                                "amount": float(total_budget),
+                                "formatted": f"MWK {total_budget:,.2f}"
+                            },
+                            "status": "N/A",
+                            "project_sector": "All" if 'infrastructure' not in question.lower() else "Infrastructure"
+                        }],
                         metadata=QueryMetadata(
                             total_results=1,
                             query_time=datetime.now().isoformat(),
@@ -276,53 +305,62 @@ SQL Query: SELECT""")
                         )
                     )
                 else:
-                    logger.info("Processing general query...")
-                    # For other queries, convert results to appropriate format
-                    results = []
-                    for _, row in df.iterrows():
-                        try:
-                            result = GeneralProjectInfo(
-                                project_name=str(row.get('projectname', 'N/A')),
-                                fiscal_year=str(row.get('startdate', 'N/A')),
-                                location=Location(
-                                    region="N/A",
-                                    district=str(row.get('district', 'N/A'))
-                                ),
-                                total_budget=MonetaryAmount(
-                                    amount=float(row.get('budget', 0) if pd.notnull(row.get('budget')) else 0),
-                                    formatted=f"MWK {float(row.get('budget', 0) if pd.notnull(row.get('budget')) else 0):,.2f}"
-                                ),
-                                project_status=f"{float(row.get('completionpercentage', 0) if pd.notnull(row.get('completionpercentage')) else 0):.1f}% Complete",
-                                project_sector=str(row.get('projectsector', 'N/A'))
-                            )
-                            results.append(result)
-                        except Exception as e:
-                            logger.error(f"Error processing row: {str(e)}")
-                            continue
+                    # Format as specific query response for project details
+                    projects = []
+                    for row in result:
+                        if len(row) >= 8:  # Check if we have all required fields
+                            project = {
+                                "project_name": row[0] if row[0] else "N/A",
+                                "fiscal_year": row[2] if row[2] else "N/A",
+                                "location": {
+                                    "region": row[3] if len(row) > 3 and row[3] else "N/A",
+                                    "district": row[1] if row[1] else "N/A"
+                                },
+                                "budget": {
+                                    "amount": float(row[4]) if row[4] else 0,
+                                    "formatted": f"MWK {float(row[4]):,.2f}" if row[4] else "N/A"
+                                },
+                                "status": f"{row[5]}% Complete" if row[5] else "N/A",
+                                "project_sector": row[6] if row[6] else "N/A",
+                                "contractor_name": row[7] if len(row) > 7 and row[7] else "N/A"
+                            }
+                            
+                            # Add additional fields for specific queries
+                            if len(row) > 8:
+                                project.update({
+                                    "contract_start_date": row[8] if row[8] else "N/A",
+                                    "expenditure_to_date": {
+                                        "amount": float(row[9]) if row[9] else 0,
+                                        "formatted": f"MWK {float(row[9]):,.2f}" if row[9] else "N/A"
+                                    },
+                                    "sector": row[6] if row[6] else "N/A",
+                                    "source_of_funding": row[10] if len(row) > 10 and row[10] else "N/A",
+                                    "project_code": row[11] if len(row) > 11 and row[11] else "N/A",
+                                    "last_monitoring_visit": row[12] if len(row) > 12 and row[12] else "N/A"
+                                })
+                            
+                            projects.append(project)
                     
-                    return GeneralQueryResponse(
-                        query_type="general",
-                        results=results,
+                    response_type = "specific" if len(row) > 8 else "general"
+                    response_class = SpecificQueryResponse if response_type == "specific" else GeneralQueryResponse
+                    
+                    return response_class(
+                        query_type=response_type,
+                        results=projects,
                         metadata=QueryMetadata(
-                            total_results=len(results),
+                            total_results=len(projects),
                             query_time=datetime.now().isoformat(),
                             sql_query=sql_query
                         )
                     )
                     
             except Exception as e:
-                logger.error(f"SQL execution error: {str(e)}")
+                logger.error(f"Error executing SQL query: {str(e)}")
                 raise ValueError(f"Error executing SQL query: {str(e)}")
-            
-        except asyncio.TimeoutError:
-            logger.error("LLM request timed out")
-            raise TimeoutError("Request took too long to process. Please try again with a simpler query.")
-        except ValueError as e:
-            logger.error(f"Value error: {str(e)}")
-            raise
+                
         except Exception as e:
-            logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
-            raise ValueError(f"Error processing query: {str(e)}")
+            logger.error(f"Error in get_answer: {str(e)}")
+            raise ValueError(str(e))
 
     async def process_query(self, question: str) -> str:
         """Process a natural language query and return a response"""
