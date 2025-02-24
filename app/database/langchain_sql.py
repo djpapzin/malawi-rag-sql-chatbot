@@ -59,63 +59,74 @@ class LangChainSQLIntegration:
             
             # Set up the SQL generation prompt
             self.sql_prompt = PromptTemplate.from_template(
-                """Generate a SQL query to answer this question about project data.
+                """You are an expert SQL query generator. Generate a SQL query to answer questions about project data.
 
 Table: proj_dashboard
 Columns:
-- projectname (text)
-- district (text)
-- projectsector (text)
-- projectstatus (text)
-- budget (numeric)
-- completionpercentage (numeric)
-- startdate (numeric)
-- completiondata (numeric)
+- projectname (text): Name of the project
+- district (text): District where project is located
+- projectsector (text): Sector (Infrastructure, Water, Education, Healthcare, Energy)
+- projectstatus (text): Status (Active, Planning, Completed, On Hold)
+- budget (numeric): Project budget in MWK
+- completionpercentage (numeric): Percentage of completion
+- startdate (numeric): Project start date (YYYYMMDD)
+- completiondata (numeric): Expected completion date (YYYYMMDD)
 
-For general queries, return:
-- projectname
-- district
-- projectsector
-- projectstatus
-- budget
-- completionpercentage
-
-For specific queries, return all columns.
+IMPORTANT RULES:
+1. ALWAYS include 'FROM proj_dashboard'
+2. For counting queries, use 'COUNT(*) as count'
+3. For budget sums, use 'SUM(budget) as total_budget'
+4. For filtering text fields, ALWAYS use LOWER() on both sides
+5. Return these columns for listing queries:
+   projectname, district, projectsector, projectstatus, budget, completionpercentage
 
 Example Queries:
-1. Total budget for all projects:
-   SELECT SUM(budget) as total_budget FROM proj_dashboard;
+1. "What is the total budget for water projects?"
+   SELECT SUM(budget) as total_budget 
+   FROM proj_dashboard 
+   WHERE LOWER(projectsector) = 'water';
 
-2. Total budget for infrastructure projects:
-   SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure';
+2. "How many projects are in Lilongwe?"
+   SELECT COUNT(*) as count 
+   FROM proj_dashboard 
+   WHERE LOWER(district) = 'lilongwe';
 
-3. List all infrastructure projects (general query):
+3. "Show all completed projects"
    SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage
    FROM proj_dashboard 
-   WHERE LOWER(projectsector) = 'infrastructure';
+   WHERE LOWER(projectstatus) = 'completed';
 
-4. Show project details (specific query):
-   SELECT * FROM proj_dashboard WHERE projectname = 'Project Name';
-
-5. Show projects in a district:
+4. "List projects with completion above 75%"
    SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage
-   FROM proj_dashboard
-   WHERE LOWER(district) = 'zomba';
+   FROM proj_dashboard 
+   WHERE completionpercentage > 75;
 
 Question: {question}
-""")
+
+Return ONLY the SQL query, no explanations.""")
 
             # Set up the answer generation prompt
             self.answer_prompt = PromptTemplate.from_template(
-                """Given the following SQL query and its results, provide a clear and concise answer to the question.
-                Format any monetary amounts as "MWK X,XXX.XX".
-                
-                Question: {question}
-                SQL Query: {query}
-                Query Results: {results}
-                
-                Answer:"""
-            )
+                """Given the SQL query results, format a clear response.
+
+Question: {question}
+SQL Query: {query}
+Results: {results}
+
+Formatting Rules:
+1. Format monetary amounts as "MWK X,XXX.XX"
+2. Format percentages as "X.X%"
+3. For project listings, include:
+   - Project Name: [name]
+   - Location: [district]
+   - Sector: [sector]
+   - Status: [status]
+   - Budget: [formatted_budget]
+   - Completion: [formatted_percentage]
+4. For counts, respond with "Total Count: X projects"
+5. For sums, respond with "Total Budget: MWK X,XXX.XX"
+
+Response:""")
             
             logger.info("Initialized LangChainSQLIntegration")
 
@@ -170,13 +181,168 @@ Question: {question}
         logger.error(f"No valid SQL query found in text: {repr(text)}")
         raise ValueError("No valid SQL query found in response")
 
+    def validate_sql_query(self, query: str) -> tuple[bool, str]:
+        """Validate SQL query before execution"""
+        try:
+            # Basic SQL injection prevention
+            dangerous_patterns = [
+                r';\s*DROP',
+                r';\s*DELETE',
+                r';\s*UPDATE',
+                r';\s*INSERT',
+                r'UNION\s+ALL',
+                r'UNION\s+SELECT'
+            ]
+            
+            for pattern in dangerous_patterns:
+                if re.search(pattern, query, re.IGNORECASE):
+                    return False, "Invalid SQL pattern detected"
+
+            # Required components
+            if 'FROM proj_dashboard' not in query.upper():
+                return False, "Must include FROM proj_dashboard"
+
+            if not query.strip().upper().startswith('SELECT'):
+                return False, "Invalid SELECT statement"
+
+            # Validate column names
+            valid_columns = {
+                'projectname', 'district', 'projectsector', 'projectstatus',
+                'budget', 'completionpercentage', 'startdate', 'completiondata'
+            }
+            
+            # Extract column names from query
+            columns_match = re.search(r'SELECT\s+(.*?)\s+FROM', query, re.IGNORECASE)
+            if not columns_match:
+                return False, "Invalid SELECT clause"
+
+            columns = columns_match.group(1).lower()
+            
+            # Allow COUNT(*), SUM(budget), and other aggregates
+            if any(x in columns.lower() for x in ['count(*)', 'sum(', 'avg(', 'min(', 'max(']):
+                return True, ""
+
+            # For non-aggregate queries, validate individual columns
+            if '*' not in columns:
+                query_columns = {c.strip().split('.')[-1] for c in columns.split(',') 
+                               if not any(agg in c.lower() for agg in ['as', 'count', 'sum', 'avg', 'min', 'max'])}
+                invalid_columns = query_columns - valid_columns
+                if invalid_columns:
+                    return False, f"Invalid columns: {', '.join(invalid_columns)}"
+
+            return True, ""
+            
+        except Exception as e:
+            logger.error(f"Error validating SQL query: {str(e)}")
+            return False, str(e)
+
     async def generate_sql_query(self, question: str) -> str:
         """Generate SQL query from natural language question"""
         try:
             # Handle common cases directly
-            if 'infrastructure' in question.lower() and 'total budget' in question.lower():
+            question_lower = question.lower()
+            
+            # District projects query
+            if 'district' in question_lower:
+                for district in ['zomba', 'lilongwe', 'blantyre', 'mzuzu', 'karonga', 'kasungu', 'mangochi', 'salima', 'dedza']:
+                    if district in question_lower:
+                        return f"SELECT * FROM proj_dashboard WHERE LOWER(district) = '{district}'"
+            
+            # Sector projects query
+            if 'infrastructure' in question_lower and not any(x in question_lower for x in ['total budget', 'active']):
+                return "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
+                
+            # Status based query
+            if 'status' in question_lower and 'active' in question_lower:
+                return "SELECT * FROM proj_dashboard WHERE LOWER(projectstatus) = 'active'"
+                
+            # Combined criteria query
+            if 'infrastructure' in question_lower and 'lilongwe' in question_lower and 'active' in question_lower:
+                return """
+                    SELECT * FROM proj_dashboard 
+                    WHERE LOWER(projectsector) = 'infrastructure' 
+                    AND LOWER(district) = 'lilongwe' 
+                    AND LOWER(projectstatus) = 'active'
+                """
+                
+            # Project count by district
+            if 'count' in question_lower and 'district' in question_lower:
+                return """
+                    SELECT district, COUNT(*) as project_count 
+                    FROM proj_dashboard 
+                    GROUP BY district 
+                    ORDER BY district
+                """
+                
+            # Average budget by sector
+            if ('average' in question_lower or 'avg' in question_lower or 'calculate' in question_lower) and 'budget' in question_lower and 'sector' in question_lower:
+                return """
+                    SELECT 
+                        projectsector as sector,
+                        ROUND(AVG(budget), 2) as average_budget,
+                        COUNT(*) as total_projects,
+                        ROUND(MIN(budget), 2) as min_budget,
+                        ROUND(MAX(budget), 2) as max_budget,
+                        ROUND(SUM(budget), 2) as total_budget
+                    FROM proj_dashboard 
+                    GROUP BY projectsector 
+                    ORDER BY projectsector
+                """
+                
+            # Budget range query
+            if 'budget' in question_lower and any(x in question_lower for x in ['over', 'above', 'more than']):
+                amount = None
+                for word in question_lower.split():
+                    word = word.replace(',', '').replace('k', '000').replace('m', '000000')
+                    try:
+                        amount = float(word)
+                        break
+                    except ValueError:
+                        continue
+                if amount:
+                    return f"""
+                        SELECT * FROM proj_dashboard 
+                        WHERE budget > {amount}
+                        ORDER BY budget DESC
+                    """
+                    
+            # Completion percentage query
+            if 'complete' in question_lower or 'completion' in question_lower:
+                percentage = None
+                for word in question_lower.split():
+                    word = word.replace('%', '')
+                    try:
+                        percentage = float(word)
+                        break
+                    except ValueError:
+                        continue
+                if percentage:
+                    return f"""
+                        SELECT * FROM proj_dashboard 
+                        WHERE completionpercentage > {percentage}
+                        ORDER BY completionpercentage DESC
+                    """
+                    
+            # Date based query
+            if any(word in question_lower for word in ['start', 'starting', 'began', 'begun']):
+                year = None
+                for word in question_lower.split():
+                    if word.isdigit() and len(word) == 4:
+                        year = int(word)
+                        break
+                if year:
+                    return f"""
+                        SELECT * FROM proj_dashboard 
+                        WHERE strftime('%Y', startdate) = '{year}'
+                        ORDER BY startdate
+                    """
+                
+            # Infrastructure total budget
+            if 'infrastructure' in question_lower and 'total budget' in question_lower:
                 return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
-            elif 'total budget' in question.lower():
+                
+            # Total budget
+            if 'total budget' in question_lower:
                 return "SELECT SUM(budget) as total_budget FROM proj_dashboard"
             
             # Generate SQL using LLM
@@ -211,61 +377,7 @@ Question: {question}
             
         except Exception as e:
             logger.error(f"Error in generate_sql_query: {str(e)}")
-            # Fallback queries
-            if 'infrastructure' in question.lower():
-                if 'total budget' in question.lower():
-                    return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
-                else:
-                    return """
-                        SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage 
-                        FROM proj_dashboard 
-                        WHERE LOWER(projectsector) = 'infrastructure'
-                    """
-            elif 'total budget' in question.lower():
-                return "SELECT SUM(budget) as total_budget FROM proj_dashboard"
-            elif any(word in question.lower() for word in ['details', 'about', 'specific']):
-                # Extract the project name from the question
-                search_terms = []
-                if 'about' in question.lower():
-                    search_terms = question.lower().split('about')[-1].strip().split()
-                elif 'for' in question.lower():
-                    search_terms = question.lower().split('for')[-1].strip().split()
-                elif 'on' in question.lower():
-                    search_terms = question.lower().split('on')[-1].strip().split()
-                
-                # Remove common words and create search pattern
-                stop_words = {'the', 'a', 'an', 'in', 'at', 'of', 'to', 'for', 'by', 'with', 'project', 'details', 'rehabilitation'}
-                search_terms = [term for term in search_terms if term not in stop_words]
-                
-                # Create individual LIKE conditions for each search term
-                conditions = []
-                for term in search_terms:
-                    conditions.append(f"LOWER(projectname) LIKE '%{term}%'")
-                
-                # Combine conditions with OR for more flexible matching
-                where_clause = ' OR '.join(conditions)
-                
-                # Add projectsector condition if infrastructure is mentioned
-                if 'infrastructure' in question.lower():
-                    where_clause = f"({where_clause}) AND LOWER(projectsector) = 'infrastructure'"
-                
-                return f"SELECT * FROM proj_dashboard WHERE {where_clause}"
-            else:
-                # Default to general query format for district or other filters
-                base_fields = "projectname, district, projectsector, projectstatus, budget, completionpercentage"
-                where_clause = ""
-                
-                # Check for district filter
-                if 'district' in question.lower():
-                    district = None
-                    for word in question.lower().split():
-                        if word in ['zomba', 'lilongwe', 'blantyre', 'mzuzu']:  # Add more districts as needed
-                            district = word
-                            break
-                    if district:
-                        where_clause = f"WHERE LOWER(district) = '{district}'"
-                
-                return f"SELECT {base_fields} FROM proj_dashboard {where_clause}"
+            raise
 
     async def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
         """Get an answer for a natural language query"""
@@ -296,49 +408,81 @@ Question: {question}
             logger.error(f"Error getting answer: {str(e)}\n{traceback.format_exc()}")
             raise
 
-    def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
-        """Format the query results into a standardized response"""
+    def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float) -> Dict[str, Any]:
+        """Format query results into a standardized response"""
         try:
-            # Format monetary amounts
-            for result in query_results:
-                if 'budget' in result:
-                    result['total_budget'] = {
-                        'amount': float(result['budget']),
-                        'formatted': f"MWK {float(result['budget']):,.2f}"
+            def format_currency(value: float) -> str:
+                if value is None or not isinstance(value, (int, float)):
+                    return "MWK 0.00"
+                return f"MWK {float(value):,.2f}"
+
+            def format_percentage(value: float) -> str:
+                if value is None or not isinstance(value, (int, float)):
+                    return "0.0%"
+                return f"{float(value):.1f}%"
+
+            formatted_results = []
+            
+            # Handle different query types
+            if not query_results:
+                return {
+                    "status": "success",
+                    "data": [],
+                    "metadata": {
+                        "query_time": query_time,
+                        "sql_query": sql_query
                     }
-                if 'completionpercentage' in result:
-                    result['completion_percentage'] = float(result['completionpercentage'])
-                if 'projectname' in result:
-                    result['project_name'] = result['projectname']
-                if 'projectsector' in result:
-                    result['project_sector'] = result['projectsector']
-                if 'projectstatus' in result:
-                    result['project_status'] = result['projectstatus']
+                }
 
-            # Create metadata
-            metadata = QueryMetadata(
-                total_results=len(query_results),
-                query_time=f"{query_time:.2f}s",
-                sql_query=sql_query
-            )
+            # Single result queries (COUNT, SUM)
+            if len(query_results) == 1 and any(key in query_results[0] for key in ['count', 'total_budget']):
+                result = query_results[0]
+                if 'count' in result:
+                    value = {"count": result['count']}
+                else:
+                    value = {"total_budget": format_currency(result['total_budget'])}
+                
+                return {
+                    "status": "success",
+                    "data": value,
+                    "metadata": {
+                        "query_time": query_time,
+                        "sql_query": sql_query
+                    }
+                }
 
-            # Determine if this is a general or specific query
-            is_specific = any(key in sql_query.lower() for key in ['count', 'sum', 'avg', 'min', 'max'])
+            # Multiple results (project listings)
+            for row in query_results:
+                formatted_row = {
+                    "project_name": row.get('projectname', ''),
+                    "district": row.get('district', ''),
+                    "sector": row.get('projectsector', ''),
+                    "status": row.get('projectstatus', ''),
+                    "budget": format_currency(row.get('budget')),
+                    "completion": format_percentage(row.get('completionpercentage'))
+                }
+                formatted_results.append(formatted_row)
 
-            if is_specific:
-                return SpecificQueryResponse(
-                    results=query_results,
-                    metadata=metadata
-                )
-            else:
-                return GeneralQueryResponse(
-                    results=query_results,
-                    metadata=metadata
-                )
+            return {
+                "status": "success",
+                "data": formatted_results,
+                "metadata": {
+                    "query_time": query_time,
+                    "row_count": len(formatted_results),
+                    "sql_query": sql_query
+                }
+            }
+
         except Exception as e:
-            logger.error(f"Error formatting response: {e}")
-            logger.error(traceback.format_exc())
-            raise
+            logger.error(f"Error formatting response: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "metadata": {
+                    "query_time": query_time,
+                    "sql_query": sql_query
+                }
+            }
 
     def get_table_info(self) -> Dict[str, Any]:
         """
@@ -366,56 +510,34 @@ Question: {question}
             logger.error(f"Error getting schema info: {str(e)}")
             raise
 
-    def validate_sql_query(self, query: str) -> bool:
-        """
-        Validate the SQL query for proper structure and syntax.
-        Args:
-            query (str): SQL query to validate
-        Returns:
-            bool: True if valid, raises ValueError if invalid
-        """
-        query = query.lower()  # Convert to lowercase for validation
+    async def process_query(self, question: str) -> Dict[str, Any]:
+        """Process a natural language query"""
+        start_time = time.time()
         
-        validation_checks = {
-            'invalid_select': not re.search(r'select\s+.+?\s+from', query),
-            'missing_from': 'from proj_dashboard' not in query,
-            'unbalanced_quotes': query.count("'") % 2 != 0,
-            'missing_group_by': (
-                any(f in query for f in ['avg(', 'sum(']) and
-                re.search(r',', query.split('from')[0]) and
-                not re.search(r'count\(\*\)', query) and
-                'group by' not in query
-            ),
-            'invalid_syntax': bool(re.search(r'\b(and|or)\s+(?:another|one|lets|try)\b', query))
-        }
-        
-        failed = next((k for k, v in validation_checks.items() if v), None)
-        if failed:
-            raise ValueError({
-                'invalid_select': 'Invalid SELECT statement',
-                'missing_from': 'Must include FROM proj_dashboard',
-                'unbalanced_quotes': 'Unbalanced single quotes',
-                'missing_group_by': 'Aggregate functions require GROUP BY when selecting multiple columns',
-                'invalid_syntax': 'Invalid SQL syntax'
-            }[failed])
-        
-        return True
-
-    async def process_query(self, query: str) -> Dict[str, Any]:
-        """Process a natural language query and return formatted results"""
         try:
             # Generate SQL query
-            sql_query = await self.generate_sql_query(query)
-            if not sql_query:
-                raise ValueError("Failed to generate SQL query")
-
-            # Execute query
-            results, query_time = self.db.execute_query(sql_query)
+            sql_query = await self.generate_sql_query(question)
+            logger.info(f"Generated SQL query: {sql_query}")
+            
+            # Execute query with timeout
+            try:
+                async with asyncio.timeout(10.0):  # 10 second timeout
+                    results = await self.db.execute_query(sql_query)
+            except asyncio.TimeoutError:
+                raise TimeoutError("Query execution timed out")
             
             # Format response
-            response = self.format_response(results, sql_query, query_time)
+            query_time = time.time() - start_time
+            return self.format_response(results, sql_query, query_time)
             
-            return {"response": response}
         except Exception as e:
-            logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
-            raise ValueError(f"Error processing query: {str(e)}")
+            query_time = time.time() - start_time
+            logger.error(f"Error processing query: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "metadata": {
+                    "query_time": query_time,
+                    "question": question
+                }
+            }
