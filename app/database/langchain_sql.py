@@ -1,8 +1,8 @@
-from typing import Dict, Any
+from typing import Dict, Any, Union
 from langchain_community.utilities import SQLDatabase
 from langchain_together import Together
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
-from langchain.prompts import ChatPromptTemplate
+from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from dotenv import load_dotenv
@@ -11,6 +11,19 @@ from sqlalchemy import text
 import re
 import logging
 import traceback
+import pandas as pd
+from datetime import datetime
+from ..models import (
+    GeneralQueryResponse, 
+    SpecificQueryResponse, 
+    GeneralProjectInfo,
+    DetailedProjectInfo,
+    Location,
+    MonetaryAmount,
+    Contractor,
+    QueryMetadata,
+    DatabaseManager
+)
 
 # Load environment variables
 load_dotenv()
@@ -19,210 +32,200 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+TOGETHER_API_KEY = os.getenv('TOGETHER_API_KEY')
+if not TOGETHER_API_KEY:
+    raise ValueError("TOGETHER_API_KEY environment variable not set")
+
 class LangChainSQLIntegration:
     def __init__(self):
-        """Initialize the LangChain SQL Integration"""
+        """Initialize the SQL integration with LangChain"""
         try:
-            # Load environment variables
-            load_dotenv()
-            
-            # Initialize logger
-            logging.basicConfig(level=logging.INFO)
-            
-            # Setup database connection
-            db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'malawi_projects1.db')
-            logger.info(f"Looking for database at: {db_path}")
-            
-            if not os.path.exists(db_path):
-                logger.error(f"Database file not found at {db_path}")
-                raise ValueError(f"Database file not found at {db_path}")
-                
-            logger.info(f"Found database at {db_path}")
-            
-            # Create database instance with direct SQLite connection
-            try:
-                logger.info("Attempting to create SQLDatabase instance...")
-                self.db = SQLDatabase.from_uri(
-                    f"sqlite:///{db_path}",
-                    include_tables=['proj_dashboard'],
-                    sample_rows_in_table_info=2,
-                    view_support=True
-                )
-                logger.info("Successfully created SQLDatabase instance")
-            except Exception as e:
-                logger.error(f"Failed to create SQLDatabase instance: {str(e)}")
-                logger.error(f"Full trace: {traceback.format_exc()}")
-                raise
-            
-            # Test database connection
-            try:
-                logger.info("Testing database connection...")
-                test_query = "SELECT COUNT(*) FROM proj_dashboard;"
-                result = self.db.run(test_query)
-                logger.info(f"Database connection test successful. Row count: {result}")
-            except Exception as e:
-                logger.error(f"Database connection test failed: {str(e)}")
-                logger.error(f"Full trace: {traceback.format_exc()}")
-                raise ValueError(f"Failed to connect to database: {str(e)}")
+            # Initialize database connection
+            self.db = DatabaseManager()
             
             # Initialize LLM
             self.llm = Together(
                 model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K",
-                api_key=os.getenv("TOGETHER_API_KEY"),
+                api_key=TOGETHER_API_KEY,
                 temperature=0.1,  # Lower temperature for more deterministic output
                 max_tokens=128  # Limit tokens to prevent long explanations
             )
             
-            # Initialize the SQL toolkit
-            self.toolkit = SQLDatabaseToolkit(
-                db=self.db,
-                llm=self.llm
+            # Set up the SQL generation prompt
+            self.sql_prompt = PromptTemplate.from_template(
+                """Given the following question about a database, write a SQL query that would answer the question.
+                The database has a table called 'proj_dashboard' with the following columns in UPPERCASE:
+                
+                - PROJECTNAME: Project name
+                - FISCALYEAR: Fiscal year
+                - REGION: Region
+                - DISTRICT: District
+                - TOTALBUDGET: Total budget
+                - PROJECTSTATUS: Project status
+                - PROJECTSECTOR: Project sector
+                - CONTRACTORNAME: Contractor name
+                - CONTRACTSTARTDATE: Contract start date
+                - EXPENDITURETODATE: Expenditure to date
+                - SOURCEOFFUNDING: Source of funding
+                - PROJECTCODE: Project code
+                - LASTMONITORINGVISIT: Last monitoring visit
+                
+                EXAMPLES:
+                Q: Show me all infrastructure projects
+                A: SELECT * FROM proj_dashboard WHERE UPPER(PROJECTSECTOR) = 'INFRASTRUCTURE';
+                
+                Q: Give me details about the Mangochi Road project
+                A: SELECT * FROM proj_dashboard WHERE PROJECTNAME LIKE '%Mangochi Road%';
+                
+                Question: {question}
+                
+                SQL Query:"""
             )
             
-            # Get the tools
-            self.tools = self.toolkit.get_tools()
+            # Set up the answer generation prompt
+            self.answer_prompt = PromptTemplate.from_template(
+                """Given the following SQL query and its results, provide a clear and concise answer to the question.
+                
+                Question: {question}
+                SQL Query: {query}
+                Query Results: {results}
+                
+                Answer:"""
+            )
             
-            # Create prompts
-            self.sql_prompt = ChatPromptTemplate.from_messages([
-                ("system", """Generate SQL queries for Malawi infrastructure projects database.
-
-IMPORTANT RULES:
-1. Use ONLY lowercase column names
-2. Always query from the 'proj_dashboard' table
-3. Use single quotes for string values
-4. Include semicolon at the end of queries
-5. Keep queries simple and direct
-
-SCHEMA:
-TABLE: proj_dashboard
-- projectname (TEXT)
-- district (TEXT)
-- projectsector (TEXT)
-- projectstatus (TEXT)
-- budget (NUMERIC)
-- completionpercentage (NUMERIC)
-- startdate (NUMERIC)
-- completiondata (NUMERIC)
-
-EXAMPLES:
-Q: How many projects in Lilongwe?
-SELECT COUNT(*) FROM proj_dashboard WHERE district = 'lilongwe';
-
-Q: Total budget for all projects?
-SELECT SUM(budget) FROM proj_dashboard;
-
-Q: Projects in Infrastructure sector?
-SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure';
-
-Q: Projects over 50% complete?
-SELECT * FROM proj_dashboard WHERE completionpercentage > 50;
-
-Q: Average budget by district?
-SELECT district, AVG(budget) FROM proj_dashboard GROUP BY district;
-"""),
-                ("human", "{question}")
-            ])
+            logger.info("Initialized LangChainSQLIntegration")
             
-            self.answer_prompt = ChatPromptTemplate.from_messages([
-                ("system", "Given the SQL query and its results, provide a natural language answer.\n\nSQL Query: {query}\nQuery Results: {results}\nQuestion: {question}"),
-                ("human", "Please provide a clear and concise answer.")
-            ])
-
         except Exception as e:
-            logger.error(f"Database connection error: {str(e)}")
+            logger.error(f"Error initializing LangChainSQLIntegration: {str(e)}")
             raise
-        
-    def extract_sql_query(self, text: str) -> str:
-        """Extract and clean SQL query from text"""
-        # Remove markdown code blocks
-        text = re.sub(r'```(?:sql)?(.*?)```', r'\1', text, flags=re.DOTALL)
-        
-        # Find SQL query
-        match = re.search(r'select\s+.*?;', text.lower(), re.DOTALL | re.IGNORECASE)
-        if not match:
-            raise ValueError("No SQL query found in text")
-            
-        query = match.group(0).strip()
-        
-        # Clean up the query
-        query = ' '.join(query.split())  # Normalize whitespace
-        query = query.rstrip(';') + ';'  # Ensure single semicolon at end
-        
-        return query
 
     def generate_sql_query(self, question: str) -> str:
         """Generate SQL query from natural language question"""
         try:
+            # Generate SQL using LLM
             chain = (
                 self.sql_prompt 
                 | self.llm 
                 | StrOutputParser()
             )
             
-            # Generate SQL query
             text = chain.invoke({"question": question})
-            logger.info(f"LLM response: {text}")
             
-            # Extract SQL query
-            query = self.extract_sql_query(text)
-            if not query:
-                raise ValueError("Failed to extract SQL query from LLM response")
+            # Extract SQL query from response
+            sql_lines = [line for line in text.split('\n') if line.strip().upper().startswith('SELECT')]
+            if not sql_lines:
+                raise ValueError(f"No SQL query found in response: {text}")
                 
+            query = sql_lines[0].strip().rstrip(';')
             logger.info(f"Extracted query: {query}")
+            
             return query
             
         except Exception as e:
-            logger.error(f"Error generating SQL query: {str(e)}\nFull trace: {traceback.format_exc()}")
+            logger.error(f"Error generating SQL query: {str(e)}")
             raise ValueError(f"Failed to generate SQL query: {str(e)}")
 
-    def get_answer(self, question: str) -> Dict[str, Any]:
-        """
-        Get a complete answer to a question about the database.
-        
-        Args:
-            question (str): Natural language question about the database
-            
-        Returns:
-            Dict[str, Any]: Dictionary containing the answer and intermediate steps
-        """
+    def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
+        """Get answer for a question using SQL"""
         try:
             # Generate SQL query
+            logger.info("Generating SQL query...")
             query = self.generate_sql_query(question)
-            logger.info(f"Generated SQL query: {query}")
+            logger.info(f"Generated query: {query}")
             
-            # Validate query
-            self.validate_sql_query(query)
-            logger.info("Query validation passed")
+            # Execute query and get results
+            logger.info("Executing query...")
+            with self.db.get_connection() as conn:
+                df = pd.read_sql_query(query, conn)
+            logger.info(f"Query returned {len(df)} rows")
+            logger.info(f"DataFrame columns: {df.columns.tolist()}")
             
-            # Execute query with error handling
-            logger.info(f"Executing query: {query}")
-            try:
-                result = self.db.run(query)
-                logger.info(f"Query result: {result}")
-            except Exception as exec_error:
-                logger.error(f"Query execution failed: {str(exec_error)}\nQuery: {query}")
-                raise ValueError(f"Query execution failed: {str(exec_error)}")
+            # Determine if this is a general or specific query
+            is_specific = any(word in question.lower() for word in ["details", "specific", "about"])
+            logger.info(f"Query type: {'specific' if is_specific else 'general'}")
             
-            # Generate natural language answer
-            chain = (
-                self.answer_prompt 
-                | self.llm 
-                | StrOutputParser()
-            )
-            
-            answer = chain.invoke({
-                "query": query,
-                "results": str(result),
-                "question": question
-            })
-            
-            return {
-                "response": answer,
-                "sql": query
-            }
+            # Format results according to query type
+            if is_specific:
+                logger.info("Processing specific query results...")
+                results = []
+                for _, row in df.iterrows():
+                    try:
+                        result = DetailedProjectInfo(
+                            project_name=str(row['PROJECTNAME']),
+                            fiscal_year=str(row['FISCALYEAR']),
+                            location=Location(
+                                region=str(row['REGION']),
+                                district=str(row['DISTRICT'])
+                            ),
+                            total_budget=MonetaryAmount(
+                                amount=float(row['TOTALBUDGET'] if pd.notnull(row['TOTALBUDGET']) else 0),
+                                formatted=f"MWK {float(row['TOTALBUDGET'] if pd.notnull(row['TOTALBUDGET']) else 0):,.2f}"
+                            ),
+                            project_status=str(row['PROJECTSTATUS']),
+                            project_sector=str(row['PROJECTSECTOR']),
+                            contractor=Contractor(
+                                name=str(row['CONTRACTORNAME'] if pd.notnull(row['CONTRACTORNAME']) else 'N/A'),
+                                contract_start_date=str(row['CONTRACTSTARTDATE'] if pd.notnull(row['CONTRACTSTARTDATE']) else 'N/A')
+                            ),
+                            expenditure_to_date=MonetaryAmount(
+                                amount=float(row['EXPENDITURETODATE'] if pd.notnull(row['EXPENDITURETODATE']) else 0),
+                                formatted=f"MWK {float(row['EXPENDITURETODATE'] if pd.notnull(row['EXPENDITURETODATE']) else 0):,.2f}"
+                            ),
+                            source_of_funding=str(row['SOURCEOFFUNDING'] if pd.notnull(row['SOURCEOFFUNDING']) else 'N/A'),
+                            project_code=str(row['PROJECTCODE'] if pd.notnull(row['PROJECTCODE']) else 'N/A'),
+                            last_monitoring_visit=str(row['LASTMONITORINGVISIT'] if pd.notnull(row['LASTMONITORINGVISIT']) else 'N/A')
+                        )
+                        results.append(result)
+                    except Exception as e:
+                        logger.error(f"Error processing row: {row}")
+                        logger.error(f"Error details: {str(e)}")
+                        continue
+                
+                return SpecificQueryResponse(
+                    results=results,
+                    metadata=QueryMetadata(
+                        total_results=len(results),
+                        query_time=datetime.now().isoformat(),
+                        sql_query=query
+                    )
+                )
+            else:
+                logger.info("Processing general query results...")
+                results = []
+                for _, row in df.iterrows():
+                    try:
+                        result = GeneralProjectInfo(
+                            project_name=str(row['PROJECTNAME']),
+                            fiscal_year=str(row['FISCALYEAR']),
+                            location=Location(
+                                region=str(row['REGION']),
+                                district=str(row['DISTRICT'])
+                            ),
+                            total_budget=MonetaryAmount(
+                                amount=float(row['TOTALBUDGET'] if pd.notnull(row['TOTALBUDGET']) else 0),
+                                formatted=f"MWK {float(row['TOTALBUDGET'] if pd.notnull(row['TOTALBUDGET']) else 0):,.2f}"
+                            ),
+                            project_status=str(row['PROJECTSTATUS']),
+                            project_sector=str(row['PROJECTSECTOR'])
+                        )
+                        results.append(result)
+                    except Exception as e:
+                        logger.error(f"Error processing row: {row}")
+                        logger.error(f"Error details: {str(e)}")
+                        continue
+                
+                return GeneralQueryResponse(
+                    results=results,
+                    metadata=QueryMetadata(
+                        total_results=len(results),
+                        query_time=datetime.now().isoformat(),
+                        sql_query=query
+                    )
+                )
             
         except Exception as e:
-            logger.error(f"Error getting answer: {str(e)}\nFull trace: {traceback.format_exc()}")
+            logger.error(f"Error getting answer: {str(e)}")
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             raise ValueError(f"Failed to get answer: {str(e)}")
 
     def get_table_info(self) -> Dict[str, Any]:
