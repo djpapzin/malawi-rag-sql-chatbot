@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
             
-            const response = await fetch('/query', {
+            const response = await fetch('http://localhost:5000/query', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -66,10 +66,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (data && data.response) {
-                addMessageToChat('bot', data.response);
+                // Format the response for display
+                let formattedResponse = '';
+                if (data.response.results && data.response.results.length > 0) {
+                    // Check if it's a total budget query
+                    if (data.response.results.length === 1 && data.response.results[0].project_name === "Total Budget Summary") {
+                        formattedResponse = `The total budget for all projects is ${data.response.results[0].total_budget.formatted}`;
+                    } else {
+                        formattedResponse = data.response.results.map(project => {
+                            return `Project: ${project.project_name}\n` +
+                                   `Location: ${project.location.district}\n` +
+                                   `Budget: ${project.total_budget.formatted}\n` +
+                                   `Status: ${project.project_status}\n` +
+                                   `Sector: ${project.project_sector}`;
+                        }).join('\n\n');
+                        
+                        formattedResponse += `\n\nTotal Results: ${data.response.metadata.total_results}`;
+                    }
+                } else {
+                    formattedResponse = 'No results found for your query.';
+                }
+                appendMessage(formattedResponse);
             } else {
                 console.error('Invalid response format:', data);
-                addMessageToChat('bot', 'Sorry, I received an invalid response format. Please try again.');
+                appendMessage('Sorry, I received an invalid response format. Please try again.');
             }
         } catch (error) {
             console.error('Error:', error);
@@ -107,10 +127,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Scroll to bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    function addMessageToChat(username, message) {
-        appendMessage(message);
     }
 
     // Handle send button click

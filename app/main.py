@@ -101,7 +101,7 @@ async def process_query(query: ChatQuery) -> ChatResponse:
         
         try:
             # Get answer from SQL integration
-            result = await sql_integration.process_query(query.message)
+            result = await sql_integration.get_answer(query.message)
             
             # Return response in new format
             return ChatResponse(response=result)

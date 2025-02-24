@@ -46,47 +46,37 @@ class LangChainSQLIntegration:
             
             # Initialize LLM
             self.llm = Together(
-                model="mistralai/Mixtral-8x7B-Instruct-v0.1",
+                model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K",
                 api_key=TOGETHER_API_KEY,
                 temperature=0.1,  # Lower temperature for more deterministic output
-                max_tokens=512,  # Limit response length
-                timeout=30  # 30 second timeout
+                max_tokens=512  # Increased token limit
             )
             
             # Set up the SQL generation prompt
             self.sql_prompt = PromptTemplate.from_template(
-                """Given the following question about a database, write a SQL query that would answer the question.
-                The database has a table called 'proj_dashboard' with the following columns in lowercase:
+                """Given a question about project data, write a SINGLE SQL query to answer it.
                 
-                - projectname: Project name
-                - district: District
-                - projectsector: Project sector (values include: 'Infrastructure', 'Water', etc.)
-                - budget: Total budget (numeric)
-                - completionpercentage: Completion percentage
-                - startdate: Start date
-                - completiondata: Completion data
+Table Schema (proj_dashboard):
+- projectname: text
+- district: text
+- projectsector: text ('Infrastructure', 'Water', etc.)
+- projectstatus: text
+- budget: numeric (money)
+- completionpercentage: numeric (0-100)
+- startdate: date
+- completiondata: date
 
-IMPORTANT RULES:
-                1. Use ONLY the exact column names shown above (in lowercase)
-                2. Always query from the 'proj_dashboard' table
-                3. Use single quotes for string values
-                4. For sector queries, use projectsector column
-                5. For budget queries, use SUM(budget) and format as currency
+Rules:
+1. Return ONLY the SQL query, no explanations
+2. Use lowercase column names
+3. Use 'proj_dashboard' table
+4. Use single quotes for strings
+5. For sectors: WHERE LOWER(projectsector) = 'infrastructure'
+6. For budgets: SUM(budget) as total_budget
 
-EXAMPLES:
-                Q: Show me all infrastructure projects
-                A: SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure';
-                
-                Q: What is the total budget for all projects?
-                A: SELECT SUM(budget) as total_budget FROM proj_dashboard;
-                
-                Q: Give me details about the Mangochi Road project
-                A: SELECT * FROM proj_dashboard WHERE LOWER(projectname) LIKE '%mangochi road%';
-                
-                Question: {question}
-                
-                SQL Query:"""
-            )
+Question: {question}
+
+SQL Query: SELECT""")
             
             # Set up the answer generation prompt
             self.answer_prompt = PromptTemplate.from_template(
@@ -106,6 +96,20 @@ EXAMPLES:
             logger.error(f"Error initializing LangChainSQLIntegration: {str(e)}")
             raise
         
+    def _extract_sql_query(self, text: str) -> str:
+        """Extract the SQL query from the LLM response"""
+        # Remove any markdown code block markers
+        text = text.replace('```sql', '').replace('```', '')
+        
+        # Find the first SELECT statement
+        matches = re.finditer(r'SELECT.*?;', text, re.IGNORECASE | re.DOTALL)
+        for match in matches:
+            query = match.group(0)
+            if query.strip():
+                return query.strip()
+                
+        raise ValueError("No valid SQL query found in response")
+
     async def generate_sql_query(self, question: str) -> str:
         """Generate SQL query from natural language question"""
         try:
@@ -116,22 +120,16 @@ EXAMPLES:
                 | StrOutputParser()
             )
             
-            text = await sql_chain.ainvoke({"question": question})
-            logger.info(f"LLM response: {text}")
-            
-            # Extract SQL query from response
-            sql_lines = [line for line in text.split('\n') if line.strip().upper().startswith('SELECT')]
-            if not sql_lines:
-                raise ValueError(f"No SQL query found in response: {text}")
-                
-            query = sql_lines[0].strip().rstrip(';')
-            logger.info(f"Extracted query: {query}")
+            response = await sql_chain.ainvoke({"question": question})
+            logger.info(f"Raw LLM response: {response}")
+            sql_query = self._extract_sql_query(response)
+            logger.info(f"Extracted SQL query: {sql_query}")
             
             # Basic validation
-            if not all(col in query.upper() for col in ['FROM', 'PROJ_DASHBOARD']):
-                raise ValueError(f"Invalid query format: {query}")
+            if not all(col in sql_query.upper() for col in ['FROM', 'PROJ_DASHBOARD']):
+                raise ValueError(f"Invalid query format: {sql_query}")
             
-            return query
+            return sql_query
             
         except Exception as e:
             logger.error(f"Error generating SQL query: {str(e)}")
@@ -169,96 +167,111 @@ EXAMPLES:
                 raise ValueError(f"Failed to generate SQL query and no fallback available: {str(e)}")
 
     async def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
-        """Get answer for a question using SQL"""
+        """Get an answer for a natural language query"""
         try:
-            # Generate SQL query
             logger.info("Generating SQL query...")
-            query = await self.generate_sql_query(question)
-            logger.info(f"Generated query: {query}")
             
-            # Execute query and get results
-            logger.info("Executing query...")
-            with self.db.get_connection() as conn:
-                df = pd.read_sql_query(query, conn)
-            logger.info(f"Query returned {len(df)} rows")
+            # Generate SQL query
+            sql_chain = self.sql_prompt | self.llm | StrOutputParser()
+            try:
+                response = await sql_chain.ainvoke({"question": question})
+                logger.info(f"Raw LLM response: {response}")
+                sql_query = self._extract_sql_query(response)
+                logger.info(f"Extracted SQL query: {sql_query}")
+            except Exception as e:
+                logger.error(f"Error generating SQL query: {str(e)}")
+                raise ValueError(f"Failed to generate SQL query: {str(e)}")
             
-            # Determine if this is a general or specific query
-            is_specific = any(word in question.lower() for word in ["details", "specific", "about"])
-            logger.info(f"Query type: {'specific' if is_specific else 'general'}")
-            
-            # Format results according to query type
-            if is_specific:
-                results = []
-                for _, row in df.iterrows():
-                    result = DetailedProjectInfo(
-                        project_name=str(row['projectname']),
-                        fiscal_year=str(row['startdate']),  # Using startdate as fiscal year
+            # Clean up the SQL query
+            sql_query = sql_query.strip().rstrip(';')
+            if not sql_query.lower().strip().startswith('select'):
+                logger.error(f"Invalid SQL query generated: {sql_query}")
+                raise ValueError(f"Invalid SQL query generated: {sql_query}")
+                
+            # Execute query
+            try:
+                with self.db.get_connection() as conn:
+                    logger.info("Executing SQL query...")
+                    df = pd.read_sql_query(sql_query, conn)
+                    logger.info(f"Query returned {len(df)} rows")
+                    
+                # Handle total budget queries
+                if 'total_budget' in df.columns or 'sum(budget)' in df.columns.str.lower():
+                    logger.info("Processing total budget query...")
+                    total = float(df.iloc[0][0] or 0)  # Get first value from first row
+                    results = []
+                    results.append(GeneralProjectInfo(
+                        project_name="Total Budget Summary",
+                        fiscal_year=str(datetime.now().year),
                         location=Location(
-                            region="N/A",  # Region not in schema
-                            district=str(row['district'])
+                            region="All",
+                            district="All"
                         ),
                         total_budget=MonetaryAmount(
-                            amount=float(row['budget'] if pd.notnull(row['budget']) else 0),
-                            formatted=f"MWK {float(row['budget'] if pd.notnull(row['budget']) else 0):,.2f}"
+                            amount=total,
+                            formatted=f"MWK {total:,.2f}"
                         ),
-                        project_status=f"{float(row['completionpercentage'] if pd.notnull(row['completionpercentage']) else 0):.1f}% Complete",
-                        project_sector=str(row['projectsector']),
-                        contractor=Contractor(
-                            name="N/A",  # Not in schema
-                            contract_start_date=str(row['startdate'])
-                        ),
-                        expenditure_to_date=MonetaryAmount(
-                            amount=0,  # Not in schema
-                            formatted="MWK 0.00"
-                        ),
-                        source_of_funding="N/A",  # Not in schema
-                        project_code="N/A",  # Not in schema
-                        last_monitoring_visit="N/A"  # Not in schema
+                        project_status="N/A",
+                        project_sector="All"
+                    ))
+                    
+                    return GeneralQueryResponse(
+                        query_type="general",
+                        results=results,
+                        metadata=QueryMetadata(
+                            total_results=1,
+                            query_time=datetime.now().isoformat(),
+                            sql_query=sql_query
+                        )
                     )
-                    results.append(result)
-                
-                return SpecificQueryResponse(
-                    query_type="specific",
-                    results=results,
-                    metadata=QueryMetadata(
-                        total_results=len(results),
-                        query_time=datetime.now().isoformat(),
-                        sql_query=query
+                else:
+                    logger.info("Processing general query...")
+                    # For other queries, convert results to appropriate format
+                    results = []
+                    for _, row in df.iterrows():
+                        try:
+                            result = GeneralProjectInfo(
+                                project_name=str(row.get('projectname', 'N/A')),
+                                fiscal_year=str(row.get('startdate', 'N/A')),
+                                location=Location(
+                                    region="N/A",
+                                    district=str(row.get('district', 'N/A'))
+                                ),
+                                total_budget=MonetaryAmount(
+                                    amount=float(row.get('budget', 0) if pd.notnull(row.get('budget')) else 0),
+                                    formatted=f"MWK {float(row.get('budget', 0) if pd.notnull(row.get('budget')) else 0):,.2f}"
+                                ),
+                                project_status=f"{float(row.get('completionpercentage', 0) if pd.notnull(row.get('completionpercentage')) else 0):.1f}% Complete",
+                                project_sector=str(row.get('projectsector', 'N/A'))
+                            )
+                            results.append(result)
+                        except Exception as e:
+                            logger.error(f"Error processing row: {str(e)}")
+                            continue
+                    
+                    return GeneralQueryResponse(
+                        query_type="general",
+                        results=results,
+                        metadata=QueryMetadata(
+                            total_results=len(results),
+                            query_time=datetime.now().isoformat(),
+                            sql_query=sql_query
+                        )
                     )
-                )
-            else:
-                results = []
-                for _, row in df.iterrows():
-                    result = GeneralProjectInfo(
-                        project_name=str(row['projectname']),
-                        fiscal_year=str(row['startdate']),  # Using startdate as fiscal year
-                        location=Location(
-                            region="N/A",  # Region not in schema
-                            district=str(row['district'])
-                        ),
-                        total_budget=MonetaryAmount(
-                            amount=float(row['budget'] if pd.notnull(row['budget']) else 0),
-                            formatted=f"MWK {float(row['budget'] if pd.notnull(row['budget']) else 0):,.2f}"
-                        ),
-                        project_status=f"{float(row['completionpercentage'] if pd.notnull(row['completionpercentage']) else 0):.1f}% Complete",
-                        project_sector=str(row['projectsector'])
-                    )
-                    results.append(result)
-                
-                return GeneralQueryResponse(
-                    query_type="general",
-                    results=results,
-                    metadata=QueryMetadata(
-                        total_results=len(results),
-                        query_time=datetime.now().isoformat(),
-                        sql_query=query
-                    )
-                )
+                    
+            except Exception as e:
+                logger.error(f"SQL execution error: {str(e)}")
+                raise ValueError(f"Error executing SQL query: {str(e)}")
             
+        except asyncio.TimeoutError:
+            logger.error("LLM request timed out")
+            raise TimeoutError("Request took too long to process. Please try again with a simpler query.")
+        except ValueError as e:
+            logger.error(f"Value error: {str(e)}")
+            raise
         except Exception as e:
-            logger.error(f"Error getting answer: {str(e)}")
-            logger.error(f"Full traceback: {traceback.format_exc()}")
-            raise ValueError(f"Failed to get answer: {str(e)}")
+            logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
+            raise ValueError(f"Error processing query: {str(e)}")
 
     async def process_query(self, question: str) -> str:
         """Process a natural language query and return a response"""
@@ -267,53 +280,87 @@ EXAMPLES:
             
             # Generate SQL query with timeout
             sql_chain = self.sql_prompt | self.llm | StrOutputParser()
-            sql_query = await asyncio.wait_for(
-                sql_chain.ainvoke({"question": question}),
-                timeout=15  # 15 second timeout for SQL generation
-            )
-            
-            logger.info(f"Generated SQL query: {sql_query}")
+            response = await sql_chain.ainvoke({"question": question})
+            logger.info(f"Raw LLM response: {response}")
+            sql_query = self._extract_sql_query(response)
+            logger.info(f"Extracted SQL query: {sql_query}")
             
             # Clean up the SQL query
             sql_query = sql_query.strip().rstrip(';')
-            if not sql_query.lower().startswith('select'):
-                raise ValueError("Invalid SQL query generated")
+            if not sql_query.lower().strip().startswith('select'):
+                logger.error(f"Invalid SQL query generated: {sql_query}")
+                raise ValueError(f"Invalid SQL query generated: {sql_query}")
                 
             # Execute query
             try:
                 with self.db.get_connection() as conn:
                     df = pd.read_sql_query(sql_query, conn)
                     
-                # Convert results to string format
-                if df.empty:
-                    return "No results found for your query."
+                # Handle total budget queries
+                if 'total_budget' in df.columns or 'sum(budget)' in df.columns.str.lower():
+                    total = float(df.iloc[0][0] or 0)  # Get first value from first row
+                    results = []
+                    results.append(GeneralProjectInfo(
+                        project_name="Total Budget Summary",
+                        fiscal_year=str(datetime.now().year),
+                        location=Location(
+                            region="All",
+                            district="All"
+                        ),
+                        total_budget=MonetaryAmount(
+                            amount=total,
+                            formatted=f"MWK {total:,.2f}"
+                        ),
+                        project_status="N/A",
+                        project_sector="All"
+                    ))
                     
-                if 'total_budget' in df.columns:
-                    total = float(df['total_budget'].iloc[0] or 0)
-                    results = f"MWK {total:,.2f}"
+                    return GeneralQueryResponse(
+                        query_type="general",
+                        results=results,
+                        metadata=QueryMetadata(
+                            total_results=1,
+                            query_time=datetime.now().isoformat(),
+                            sql_query=sql_query
+                        )
+                    )
                 else:
-                    results = df.to_string()
+                    # For other queries, convert results to appropriate format
+                    results = []
+                    for _, row in df.iterrows():
+                        result = GeneralProjectInfo(
+                            project_name=str(row['projectname']),
+                            fiscal_year=str(row['startdate']),
+                            location=Location(
+                                region="N/A",
+                                district=str(row['district'])
+                            ),
+                            total_budget=MonetaryAmount(
+                                amount=float(row['budget'] if pd.notnull(row['budget']) else 0),
+                                formatted=f"MWK {float(row['budget'] if pd.notnull(row['budget']) else 0):,.2f}"
+                            ),
+                            project_status=f"{float(row['completionpercentage'] if pd.notnull(row['completionpercentage']) else 0):.1f}% Complete",
+                            project_sector=str(row['projectsector'])
+                        )
+                        results.append(result)
+                    
+                    return GeneralQueryResponse(
+                        query_type="general",
+                        results=results,
+                        metadata=QueryMetadata(
+                            total_results=len(results),
+                            query_time=datetime.now().isoformat(),
+                            sql_query=sql_query
+                        )
+                    )
                     
             except Exception as e:
                 logger.error(f"SQL execution error: {str(e)}")
                 raise ValueError(f"Error executing SQL query: {str(e)}")
             
-            # Generate natural language answer with timeout
-            answer_chain = self.answer_prompt | self.llm | StrOutputParser()
-            answer = await asyncio.wait_for(
-                answer_chain.ainvoke({
-                    "question": question,
-                    "query": sql_query,
-                    "results": results
-                }),
-                timeout=15  # 15 second timeout for answer generation
-            )
-            
-            return answer
-            
         except asyncio.TimeoutError:
             logger.error("LLM request timed out")
-            raise TimeoutError("Request took too long to process. Please try again.")
+            raise TimeoutError("Request took too long to process. Please try again with a simpler query.")
         except ValueError as e:
             logger.error(f"Value error: {str(e)}")
             raise
