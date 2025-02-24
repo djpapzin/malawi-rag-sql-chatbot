@@ -51,34 +51,34 @@ def test_api():
         time.sleep(2)
         
         # Test specific query
-        specific_query = {"message": "Give me details about the Mangochi Road project"}
-        f.write(f"\nTesting specific query: {specific_query['message']}\n")
+        specific_query = {"message": "Show me details about Mangochi infrastructure projects"}
+        print(f"\nTesting specific query: {specific_query['message']}")
         try:
             response = make_request(specific_query)
-            f.write(f"Status Code: {response.status_code}\n")
+            print(f"Status Code: {response.status_code}")
             if response.status_code == 200:
                 result = response.json()
-                f.write("\nResults:\n")
+                print("\nResults:")
                 for project in result["response"]["results"]:
-                    f.write(f"\nProject Details:\n")
-                    f.write(f"Name: {project['project_name']}\n")
-                    f.write(f"Location: {project['location']['region']}, {project['location']['district']}\n")
-                    f.write(f"Budget: {project['total_budget']['formatted']}\n")
-                    f.write(f"Status: {project['project_status']}\n")
-                    f.write(f"Contractor: {project['contractor']['name']}\n")
-                    f.write(f"Contract Start: {project['contractor']['contract_start_date']}\n")
-                    f.write(f"Expenditure: {project['expenditure_to_date']['formatted']}\n")
-                    f.write(f"Sector: {project['project_sector']}\n")
-                    f.write(f"Funding Source: {project['source_of_funding']}\n")
-                    f.write(f"Project Code: {project['project_code']}\n")
-                    f.write(f"Last Monitoring: {project['last_monitoring_visit']}\n")
+                    print(f"\nProject Details:")
+                    print(f"Name: {project['project_name']}")
+                    print(f"Location: {project['location']['region']}, {project['location']['district']}")
+                    print(f"Budget: {project['total_budget']['formatted']}")
+                    print(f"Status: {project['project_status']}")
+                    print(f"Contractor: {project['contractor']['name']}")
+                    print(f"Contract Start: {project['contractor']['contract_start_date']}")
+                    print(f"Expenditure: {project['expenditure_to_date']['formatted']}")
+                    print(f"Sector: {project['project_sector']}")
+                    print(f"Funding Source: {project['source_of_funding']}")
+                    print(f"Project Code: {project['project_code']}")
+                    print(f"Last Monitoring: {project['last_monitoring_visit']}")
                 
-                f.write(f"\nTotal Results: {result['response']['metadata']['total_results']}\n")
-                f.write(f"Query Time: {result['response']['metadata']['query_time']}\n")
+                print(f"\nTotal Results: {result['response']['metadata']['total_results']}")
+                print(f"Query Time: {result['response']['metadata']['query_time']}")
             else:
-                f.write(f"Error response: {response.text}\n")
+                print(f"Error response: {response.text}")
         except Exception as e:
-            f.write(f"Error processing specific query: {str(e)}\n")
+            print(f"Error processing specific query: {str(e)}")
         
         print("Test results have been written to test_results.txt")
 
