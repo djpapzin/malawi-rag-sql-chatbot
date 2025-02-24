@@ -25,6 +25,7 @@ from ..models import (
     DatabaseManager
 )
 import asyncio
+import time
 
 # Load environment variables
 load_dotenv()
@@ -43,6 +44,10 @@ class LangChainSQLIntegration:
         try:
             # Initialize database connection
             self.db = DatabaseManager()
+            
+            # Initialize database connection for LangChain
+            db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'projects.db')
+            self.sql_database = SQLDatabase.from_uri(f"sqlite:///{db_path}")
             
             # Initialize LLM
             self.llm = Together(
@@ -203,7 +208,7 @@ Question: {question}
             except Exception as e:
                 logger.error(f"Error generating SQL query: {str(e)}")
                 raise ValueError(f"Failed to generate SQL query: {str(e)}")
-                
+            
         except Exception as e:
             logger.error(f"Error in generate_sql_query: {str(e)}")
             # Fallback queries
@@ -265,221 +270,74 @@ Question: {question}
     async def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
         """Get an answer for a natural language query"""
         try:
-            logger.info(f"Processing question: '{question}'")
-            
             # Generate SQL query
             sql_query = await self.generate_sql_query(question)
-            logger.info(f"Generated SQL query: {sql_query}")
+            
+            # Validate the query
+            self.validate_sql_query(sql_query)
             
             # Execute query and measure time
-            start_time = datetime.now()
-            raw_results = await self.db.execute_query(sql_query)
-            query_time = (datetime.now() - start_time).total_seconds()
+            start_time = time.time()
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql_query)
+                results = cursor.fetchall()
+                
+                # Convert results to list of dicts
+                columns = [description[0] for description in cursor.description]
+                results = [dict(zip(columns, row)) for row in results]
             
-            logger.info(f"Query result: {raw_results}")
+            query_time = time.time() - start_time
             
-            # Convert raw results to list of dicts
-            if raw_results:
-                if 'total_budget' in sql_query.lower():
-                    # Handle total budget queries
-                    results = [{'total_budget': raw_results[0][0]}]
-                else:
-                    # Get column names from cursor description
-                    with self.db.get_connection() as conn:
-                        cursor = conn.cursor()
-                        cursor.execute(sql_query)
-                        columns = [desc[0] for desc in cursor.description]
-                    
-                    # Convert to list of dicts
-                    results = []
-                    for row in raw_results:
-                        result_dict = {}
-                        for i, value in enumerate(row):
-                            result_dict[columns[i]] = value
-                        results.append(result_dict)
-            else:
-                results = []
-            
-            # Format the results
-            return self.format_query_results(results, query_time, sql_query)
+            # Format response
+            return self.format_response(results, sql_query, query_time)
             
         except Exception as e:
-            logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
-            raise ValueError(f"Error processing query: {str(e)}")
-
-    async def process_query(self, question: str) -> str:
-        """Process a natural language query and return a response"""
-        try:
-            logger.info("Generating SQL query...")
-            
-            # Generate SQL query with timeout
-            sql_chain = self.sql_prompt | self.llm | StrOutputParser()
-            response = await sql_chain.ainvoke({"question": question})
-            logger.info(f"Raw LLM response: {response}")
-            sql_query = self._extract_sql_query(response)
-            logger.info(f"Extracted SQL query: {sql_query}")
-            
-            # Clean up the SQL query
-            sql_query = sql_query.strip().rstrip(';')
-            if not sql_query.lower().strip().startswith('select'):
-                logger.error(f"Invalid SQL query generated: {sql_query}")
-                raise ValueError(f"Invalid SQL query generated: {sql_query}")
-                
-            # Execute query
-            try:
-                with self.db.get_connection() as conn:
-                    df = pd.read_sql_query(sql_query, conn)
-                    
-                # Handle total budget queries
-                if 'total_budget' in df.columns or 'sum(budget)' in df.columns.str.lower():
-                    total = float(df.iloc[0][0] or 0)  # Get first value from first row
-                    results = []
-                    results.append(GeneralProjectInfo(
-                        project_name="Total Budget Summary",
-                        fiscal_year=str(datetime.now().year),
-                        location=Location(
-                            region="All",
-                            district="All"
-                        ),
-                        total_budget=MonetaryAmount(
-                            amount=total,
-                            formatted=f"MWK {total:,.2f}"
-                        ),
-                        project_status="N/A",
-                        project_sector="All"
-                    ))
-                    
-                    return GeneralQueryResponse(
-                        query_type="general",
-                        results=results,
-                        metadata=QueryMetadata(
-                            total_results=1,
-                            query_time=datetime.now().isoformat(),
-                            sql_query=sql_query
-                        )
-                    )
-                else:
-                    # For other queries, convert results to appropriate format
-                    results = []
-                    for _, row in df.iterrows():
-                        result = GeneralProjectInfo(
-                            project_name=str(row['projectname']),
-                            fiscal_year=str(row['startdate']),
-                            location=Location(
-                                region="N/A",
-                                district=str(row['district'])
-                            ),
-                            total_budget=MonetaryAmount(
-                                amount=float(row['budget'] if pd.notnull(row['budget']) else 0),
-                                formatted=f"MWK {float(row['budget'] if pd.notnull(row['budget']) else 0):,.2f}"
-                            ),
-                            project_status=f"{float(row['completionpercentage'] if pd.notnull(row['completionpercentage']) else 0):.1f}% Complete",
-                            project_sector=str(row['projectsector'])
-                        )
-                        results.append(result)
-                    
-                    return GeneralQueryResponse(
-                        query_type="general",
-                        results=results,
-                        metadata=QueryMetadata(
-                            total_results=len(results),
-                            query_time=datetime.now().isoformat(),
-                            sql_query=sql_query
-                        )
-                    )
-                    
-            except Exception as e:
-                logger.error(f"SQL execution error: {str(e)}")
-                raise ValueError(f"Error executing SQL query: {str(e)}")
-            
-        except asyncio.TimeoutError:
-            logger.error("LLM request timed out")
-            raise TimeoutError("Request took too long to process. Please try again with a simpler query.")
-        except ValueError as e:
-            logger.error(f"Value error: {str(e)}")
+            logger.error(f"Error getting answer: {str(e)}\n{traceback.format_exc()}")
             raise
-        except Exception as e:
-            logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
-            raise ValueError(f"Error processing query: {str(e)}")
 
-    def format_query_results(self, results: List[Dict[str, Any]], query_time: float, sql_query: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
-        """Format query results into appropriate response model"""
+    def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
+        """Format the query results into a standardized response"""
         try:
-            # Check if this is a total budget query
-            if len(results) == 1 and 'total_budget' in results[0]:
-                total_budget = results[0]['total_budget'] or 0
-                formatted_results = [{
-                    'project_name': 'Total Budget Summary',
-                    'total_budget': {
-                        'amount': float(total_budget),
-                        'formatted': f'MWK {total_budget:,.2f}'
+            # Format monetary amounts
+            for result in query_results:
+                if 'budget' in result:
+                    result['total_budget'] = {
+                        'amount': float(result['budget']),
+                        'formatted': f"MWK {float(result['budget']):,.2f}"
                     }
-                }]
-                
-                metadata = QueryMetadata(
-                    total_results=1,
-                    query_time=f"{query_time:.2f}s",
-                    sql_query=sql_query
-                )
-                
-                return GeneralQueryResponse(
-                    results=formatted_results,
-                    metadata=metadata
-                )
+                if 'completionpercentage' in result:
+                    result['completion_percentage'] = float(result['completionpercentage'])
+                if 'projectname' in result:
+                    result['project_name'] = result['projectname']
+                if 'projectsector' in result:
+                    result['project_sector'] = result['projectsector']
+                if 'projectstatus' in result:
+                    result['project_status'] = result['projectstatus']
 
-            # For regular project queries
-            formatted_results = []
-            for row in results:
-                budget = row.get('budget', 0) or 0
-                completion = row.get('completionpercentage', 0) or 0
-                
-                budget_amount = MonetaryAmount(
-                    amount=float(budget),
-                    formatted=f'MWK {float(budget):,.2f}'
-                )
-                
-                # Basic project info
-                project_info = {
-                    'project_name': row.get('projectname', 'Unknown'),
-                    'district': row.get('district', 'Unknown'),
-                    'project_sector': row.get('projectsector', 'Unknown'),
-                    'project_status': row.get('projectstatus', 'Unknown'),
-                    'total_budget': budget_amount.dict(),
-                    'completion_percentage': float(completion)
-                }
-                
-                # Add detailed info if available
-                if 'startdate' in row:
-                    project_info.update({
-                        'start_date': str(row.get('startdate', 'Unknown')),
-                        'completion_date': str(row.get('completiondata', 'Unknown'))
-                    })
-                
-                formatted_results.append(project_info)
-            
+            # Create metadata
             metadata = QueryMetadata(
-                total_results=len(results),
+                total_results=len(query_results),
                 query_time=f"{query_time:.2f}s",
                 sql_query=sql_query
             )
-            
-            # Determine if this is a detailed query based on the fields present
-            is_detailed = any('startdate' in row for row in results)
-            
-            if is_detailed:
+
+            # Determine if this is a general or specific query
+            is_specific = any(key in sql_query.lower() for key in ['count', 'sum', 'avg', 'min', 'max'])
+
+            if is_specific:
                 return SpecificQueryResponse(
-                    results=formatted_results,
+                    results=query_results,
                     metadata=metadata
                 )
             else:
                 return GeneralQueryResponse(
-                    results=formatted_results,
+                    results=query_results,
                     metadata=metadata
                 )
-                
         except Exception as e:
-            logger.error(f"Error formatting query results: {str(e)}")
-            logger.error(f"Results that caused error: {results}")
+            logger.error(f"Error formatting response: {e}")
+            logger.error(traceback.format_exc())
             raise
 
     def get_table_info(self) -> Dict[str, Any]:
@@ -542,3 +400,22 @@ Question: {question}
             }[failed])
         
         return True
+
+    async def process_query(self, query: str) -> Dict[str, Any]:
+        """Process a natural language query and return formatted results"""
+        try:
+            # Generate SQL query
+            sql_query = await self.generate_sql_query(query)
+            if not sql_query:
+                raise ValueError("Failed to generate SQL query")
+
+            # Execute query
+            results, query_time = self.db.execute_query(sql_query)
+            
+            # Format response
+            response = self.format_response(results, sql_query, query_time)
+            
+            return {"response": response}
+        except Exception as e:
+            logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
+            raise ValueError(f"Error processing query: {str(e)}")
