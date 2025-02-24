@@ -242,142 +242,34 @@ Response:""")
             # Handle common cases directly
             question_lower = question.lower()
             
-            # District projects query
-            if 'district' in question_lower:
-                for district in ['zomba', 'lilongwe', 'blantyre', 'mzuzu', 'karonga', 'kasungu', 'mangochi', 'salima', 'dedza']:
-                    if district in question_lower:
-                        return f"SELECT * FROM proj_dashboard WHERE LOWER(district) = '{district}'"
-            
-            # Sector projects query
-            if 'infrastructure' in question_lower and not any(x in question_lower for x in ['total budget', 'active']):
-                return "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
-                
-            # Status based query
-            if 'status' in question_lower and 'active' in question_lower:
-                return "SELECT * FROM proj_dashboard WHERE LOWER(projectstatus) = 'active'"
-                
-            # Combined criteria query
-            if 'infrastructure' in question_lower and 'lilongwe' in question_lower and 'active' in question_lower:
-                return """
-                    SELECT * FROM proj_dashboard 
-                    WHERE LOWER(projectsector) = 'infrastructure' 
-                    AND LOWER(district) = 'lilongwe' 
-                    AND LOWER(projectstatus) = 'active'
-                """
-                
-            # Project count by district
-            if 'count' in question_lower and 'district' in question_lower:
-                return """
-                    SELECT district, COUNT(*) as project_count 
-                    FROM proj_dashboard 
-                    GROUP BY district 
-                    ORDER BY district
-                """
-                
-            # Average budget by sector
-            if ('average' in question_lower or 'avg' in question_lower or 'calculate' in question_lower) and 'budget' in question_lower and 'sector' in question_lower:
-                return """
-                    SELECT 
-                        projectsector as sector,
-                        ROUND(AVG(budget), 2) as average_budget,
-                        COUNT(*) as total_projects,
-                        ROUND(MIN(budget), 2) as min_budget,
-                        ROUND(MAX(budget), 2) as max_budget,
-                        ROUND(SUM(budget), 2) as total_budget
-                    FROM proj_dashboard 
-                    GROUP BY projectsector 
-                    ORDER BY projectsector
-                """
-                
-            # Budget range query
-            if 'budget' in question_lower and any(x in question_lower for x in ['over', 'above', 'more than']):
-                amount = None
-                for word in question_lower.split():
-                    word = word.replace(',', '').replace('k', '000').replace('m', '000000')
-                    try:
-                        amount = float(word)
-                        break
-                    except ValueError:
-                        continue
-                if amount:
-                    return f"""
-                        SELECT * FROM proj_dashboard 
-                        WHERE budget > {amount}
-                        ORDER BY budget DESC
-                    """
-                    
-            # Completion percentage query
-            if 'complete' in question_lower or 'completion' in question_lower:
-                percentage = None
-                for word in question_lower.split():
-                    word = word.replace('%', '')
-                    try:
-                        percentage = float(word)
-                        break
-                    except ValueError:
-                        continue
-                if percentage:
-                    return f"""
-                        SELECT * FROM proj_dashboard 
-                        WHERE completionpercentage > {percentage}
-                        ORDER BY completionpercentage DESC
-                    """
-                    
-            # Date based query
-            if any(word in question_lower for word in ['start', 'starting', 'began', 'begun']):
-                year = None
-                for word in question_lower.split():
-                    if word.isdigit() and len(word) == 4:
-                        year = int(word)
-                        break
-                if year:
-                    return f"""
-                        SELECT * FROM proj_dashboard 
-                        WHERE strftime('%Y', startdate) = '{year}'
-                        ORDER BY startdate
-                    """
-                
-            # Infrastructure total budget
-            if 'infrastructure' in question_lower and 'total budget' in question_lower:
+            if 'budget' in question_lower and 'infrastructure' in question_lower:
                 return "SELECT SUM(budget) as total_budget FROM proj_dashboard WHERE LOWER(projectsector) = 'infrastructure'"
-                
-            # Total budget
-            if 'total budget' in question_lower:
-                return "SELECT SUM(budget) as total_budget FROM proj_dashboard"
             
-            # Generate SQL using LLM
-            sql_chain = (
-                self.sql_prompt 
-                | self.llm 
-                | StrOutputParser()
-            )
+            if 'projects' in question_lower and any(district in question_lower for district in ['zomba', 'lilongwe']):
+                district = 'zomba' if 'zomba' in question_lower else 'lilongwe'
+                return f"""SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage 
+                         FROM proj_dashboard WHERE LOWER(district) = '{district}'"""
             
-            try:
-                response = await asyncio.wait_for(
-                    sql_chain.ainvoke({"question": question}),
-                    timeout=30.0  # 30 second timeout
-                )
-                logger.info(f"Raw LLM response: {response}")
-                sql_query = self._extract_sql_query(response)
-                
-                # Additional validation for common issues
-                sql_query = sql_query.replace('`', '"')  # Replace backticks with double quotes
-                sql_query = sql_query.replace('are all columns (*)', '*')  # Fix common LLM mistake
-                sql_query = sql_query.replace('all columns', '*')  # Fix common LLM mistake
-                
-                logger.info(f"Validated SQL query: {repr(sql_query)}")
-                return sql_query
-                
-            except asyncio.TimeoutError:
-                logger.error("SQL generation timed out")
-                raise TimeoutError("SQL generation took too long. Please try again.")
-            except Exception as e:
-                logger.error(f"Error generating SQL query: {str(e)}")
-                raise ValueError(f"Failed to generate SQL query: {str(e)}")
+            if 'completed' in question_lower and 'projects' in question_lower:
+                return """SELECT projectname, district, projectsector, projectstatus, budget, completionpercentage
+                         FROM proj_dashboard WHERE LOWER(projectstatus) = 'completed'"""
+            
+            # Use LLM for other cases
+            sql_chain = self.sql_prompt | self.llm | StrOutputParser()
+            
+            response = await sql_chain.ainvoke({"question": question})
+            sql_query = self._extract_sql_query(response)
+            
+            if not sql_query.upper().startswith('SELECT'):
+                raise ValueError("Invalid SELECT statement")
+            if 'FROM proj_dashboard' not in sql_query.upper():
+                raise ValueError("Must include FROM proj_dashboard")
+            
+            return sql_query
             
         except Exception as e:
-            logger.error(f"Error in generate_sql_query: {str(e)}")
-            raise
+            logger.error(f"Error generating SQL query: {str(e)}")
+            raise ValueError(f"Failed to generate SQL query: {str(e)}")
 
     async def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
         """Get an answer for a natural language query"""
@@ -421,20 +313,18 @@ Response:""")
                     return "0.0%"
                 return f"{float(value):.1f}%"
 
-            formatted_results = []
-            
-            # Handle different query types
+            # Handle empty results
             if not query_results:
                 return {
                     "status": "success",
                     "data": [],
                     "metadata": {
-                        "query_time": query_time,
+                        "query_time": f"{query_time:.2f}s",
                         "sql_query": sql_query
                     }
                 }
 
-            # Single result queries (COUNT, SUM)
+            # Handle aggregate queries (COUNT, SUM, etc.)
             if len(query_results) == 1 and any(key in query_results[0] for key in ['count', 'total_budget']):
                 result = query_results[0]
                 if 'count' in result:
@@ -446,16 +336,17 @@ Response:""")
                     "status": "success",
                     "data": value,
                     "metadata": {
-                        "query_time": query_time,
+                        "query_time": f"{query_time:.2f}s",
                         "sql_query": sql_query
                     }
                 }
 
-            # Multiple results (project listings)
+            # Handle project listings
+            formatted_results = []
             for row in query_results:
                 formatted_row = {
                     "project_name": row.get('projectname', ''),
-                    "district": row.get('district', ''),
+                    "location": row.get('district', ''),
                     "sector": row.get('projectsector', ''),
                     "status": row.get('projectstatus', ''),
                     "budget": format_currency(row.get('budget')),
@@ -467,7 +358,7 @@ Response:""")
                 "status": "success",
                 "data": formatted_results,
                 "metadata": {
-                    "query_time": query_time,
+                    "query_time": f"{query_time:.2f}s",
                     "row_count": len(formatted_results),
                     "sql_query": sql_query
                 }
@@ -479,7 +370,7 @@ Response:""")
                 "status": "error",
                 "error": str(e),
                 "metadata": {
-                    "query_time": query_time,
+                    "query_time": f"{query_time:.2f}s",
                     "sql_query": sql_query
                 }
             }
