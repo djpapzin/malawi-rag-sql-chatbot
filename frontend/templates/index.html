@@ -11,40 +11,79 @@
         <header>
             <h1 class="text-3xl font-bold text-center mb-8">Welcome to Dwizani!</h1>
             <p class="text-center text-gray-600 mb-8 max-w-2xl mx-auto intro">
-                👋 Moni! I'm Dwizani, your friendly AI guide to Malawi's infrastructure projects! My name means 'what you should know' in Chichewa, and I'm here to help you explore and understand the exciting developments happening across Malawi. From roads and bridges to schools and hospitals, I have detailed insights about projects that are shaping our nation's future. What would you like to discover today? 🌟
+                I am Dwizani, a prototype AI chatbot that can answer questions about infrastructure projects. My name means 'what you should know' in Chichewa. For now I have access to data on projects being constructed in Malawi.
             </p>
         </header>
 
-        <div class="guidance-tiles grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            <div class="tile bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer">
-                <h3 class="text-xl font-semibold mb-2">Project Details</h3>
-                <p class="text-gray-600">Get information about specific projects, including budgets and status.</p>
-                <div class="example-query">Example: "What is the total budget for infrastructure projects?"</div>
+        <div id="initial-view" class="space-y-8">
+            <div class="guidance-tiles grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="tile bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                    <div class="icon-container mb-3">
+                        <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Find projects by sector</h3>
+                    <p class="text-gray-600 mb-2 text-sm">Ask about health, education or roads.</p>
+                    <div class="example-query">Example: "What is the total budget for infrastructure projects?"</div>
+                </div>
+
+                <div class="tile bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                    <div class="icon-container mb-3">
+                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Find project by location</h3>
+                    <p class="text-gray-600 mb-2 text-sm">Ask about a specific district or region in Malawi.</p>
+                    <div class="example-query">Example: "Show me all projects in Zomba district"</div>
+                </div>
+
+                <div class="tile bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                    <div class="icon-container mb-3">
+                        <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Find a specific project</h3>
+                    <p class="text-gray-600 mb-2 text-sm">Ask about a specific project to learn about the contractor and expenditure to date.</p>
+                    <div class="example-query">Example: "List all completed projects in the Southern Region"</div>
+                </div>
             </div>
 
-            <div class="tile bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer">
-                <h3 class="text-xl font-semibold mb-2">Location Analysis</h3>
-                <p class="text-gray-600">Find projects by region, district, or specific locations.</p>
-                <div class="example-query">Example: "Show me all projects in Zomba district"</div>
-            </div>
-
-            <div class="tile bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer">
-                <h3 class="text-xl font-semibold mb-2">Status Updates</h3>
-                <p class="text-gray-600">Check project progress and completion status.</p>
-                <div class="example-query">Example: "List all completed projects in the Southern Region"</div>
+            <div class="chat-input-container mt-6">
+                <div class="bg-white p-4 rounded-lg shadow-sm flex items-center gap-4">
+                    <input type="text" 
+                           id="user-input" 
+                           class="flex-1 border border-gray-200 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                           placeholder="Ask me about infrastructure projects in Malawi...">
+                    <button id="sendButton" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors flex items-center gap-2">
+                        <span>Send</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="chat-container bg-white rounded-lg shadow-md p-4">
-            <div id="chat-messages" class="chat-messages mb-4 min-h-[200px] max-h-[400px] overflow-y-auto"></div>
+        <div id="chat-view" class="mt-8 hidden">
+            <div id="chat-messages" class="space-y-4 min-h-[300px] max-h-[500px] overflow-y-auto bg-white rounded-lg shadow-sm p-4 mb-4"></div>
             
-            <div class="chat-input-container flex items-center gap-2 mt-4">
-                <input type="text" id="user-input" class="chat-input flex-1 p-2 border rounded" placeholder="Ask me about infrastructure projects in Malawi...">
-                <button id="sendButton" class="send-button bg-blue-500 text-white p-2 rounded">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                    </svg>
-                </button>
+            <div class="chat-input-container">
+                <div class="bg-white p-4 rounded-lg shadow-sm flex items-center gap-4">
+                    <input type="text" 
+                           class="flex-1 border border-gray-200 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                           placeholder="Type your message...">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors flex items-center gap-2">
+                        <span>Send</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

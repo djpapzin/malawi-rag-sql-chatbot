@@ -98,11 +98,23 @@ async def process_query(query: ChatQuery) -> ChatResponse:
         # Log incoming query
         logger.info(f"Processing query: {query.message}")
         
-        # Get answer from SQL integration
-        result = sql_integration.get_answer(query.message)
+        # Get answer from SQL integration with timeout
+        from asyncio import TimeoutError
+        from asyncio import wait_for
         
-        # Return response in new format
-        return ChatResponse(response=result)
+        try:
+            # Set a 45-second timeout for the entire operation
+            result = await wait_for(
+                sql_integration.process_query(query.message),
+                timeout=45
+            )
+            return result
+        except TimeoutError:
+            logger.error("Query processing timed out")
+            raise HTTPException(
+                status_code=504,
+                detail="Query processing timed out. Please try again with a simpler query."
+            )
         
     except Exception as e:
         # Log error

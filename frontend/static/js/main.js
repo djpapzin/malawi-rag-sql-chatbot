@@ -4,22 +4,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('sendButton');
     const guidanceTiles = document.querySelector('.guidance-tiles');
     const chatMessages = document.getElementById('chat-messages');
+    const initialView = document.getElementById('initial-view');
+    const chatView = document.getElementById('chat-view');
 
     if (!chatInput || !sendButton || !guidanceTiles || !chatMessages) {
         console.error('Required DOM elements not found');
         return;
     }
 
+    // Initially hide the chat view
+    chatView.style.display = 'none';
+
     // State
     let isLoading = false;
-
-    // Hide guidance tiles when chat starts
-    chatInput.addEventListener('focus', () => {
-        guidanceTiles.style.opacity = '0';
-        setTimeout(() => {
-            guidanceTiles.style.display = 'none';
-        }, 300);
-    });
 
     async function sendMessage() {
         const message = chatInput.value.trim();
@@ -28,67 +25,92 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clear input
         chatInput.value = '';
+
+        // Show chat view and hide initial view
+        initialView.style.display = 'none';
+        chatView.style.display = 'block';
         
         // Add user message
         appendMessage(message, true);
         
         try {
-            const response = await fetch('/api/rag-sql-chatbot/query', {
+            console.log('Sending request:', message);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+            
+            const response = await fetch('/query', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     message: message,
                     source_lang: 'english',
                     page: 1,
                     page_size: 30,
                     continue_previous: false
                 }),
+                signal: controller.signal
             });
             
+            clearTimeout(timeoutId);
+            
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to get response');
             }
             
             const data = await response.json();
-            appendMessage(data.response);
+            console.log('Received response:', data);
+            
+            if (data && data.response) {
+                appendMessage(data.response);
+            } else {
+                console.error('Invalid response format:', data);
+                appendMessage('Sorry, I received an invalid response format. Please try again.');
+            }
         } catch (error) {
             console.error('Error:', error);
-            appendMessage('Sorry, I encountered an error processing your request. Please try again.');
+            if (error.name === 'AbortError') {
+                appendMessage('Sorry, the request took too long. Please try again with a simpler question.');
+            } else {
+                appendMessage(`Sorry, I encountered an error: ${error.message}`);
+            }
         }
     }
 
     function appendMessage(message, isUser = false) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message flex items-start gap-2 mb-4 ${isUser ? 'justify-end' : ''}`;
+        messageDiv.className = `message p-4 ${isUser ? 'bg-[#2e2e2e]' : 'bg-[#1e1e1e]'} rounded-lg`;
+
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'flex items-start gap-4';
 
         const avatar = document.createElement('div');
-        avatar.className = `avatar ${isUser ? 'bg-blue-500' : 'bg-green-500'} text-white rounded-full w-8 h-8 flex items-center justify-center`;
-        avatar.textContent = isUser ? 'U' : 'D';
+        avatar.className = `avatar ${isUser ? 'bg-blue-500/20 text-blue-500' : 'bg-green-500/20 text-green-500'} p-2 rounded-lg`;
+        avatar.innerHTML = isUser ? 
+            '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>' :
+            '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>';
 
         const messageContent = document.createElement('div');
-        messageContent.className = `message-content max-w-[80%] p-3 rounded-lg ${isUser ? 'bg-blue-100' : 'bg-gray-100'}`;
+        messageContent.className = 'flex-1 text-gray-300';
         
         // Format the message content
         let formattedContent = message;
         if (!isUser) {
             formattedContent = message.replace(/###\s*Step\s*\d+:/g, match => {
-                return `<strong class="block mb-2">${match}</strong>`;
+                return `<strong class="block text-white mb-2">${match}</strong>`;
             });
         }
         
         messageContent.innerHTML = formattedContent;
         
-        if (isUser) {
-            messageDiv.appendChild(messageContent);
-            messageDiv.appendChild(avatar);
-        } else {
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(messageContent);
-        }
-        
+        contentWrapper.appendChild(avatar);
+        contentWrapper.appendChild(messageContent);
+        messageDiv.appendChild(contentWrapper);
         chatMessages.appendChild(messageDiv);
+        
+        // Scroll to bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
@@ -127,4 +149,12 @@ document.addEventListener('DOMContentLoaded', function() {
             guidanceTiles.style.display = 'none';
         }, 300);
     }
+
+    // Hide guidance tiles when chat starts
+    chatInput.addEventListener('focus', () => {
+        guidanceTiles.style.opacity = '0';
+        setTimeout(() => {
+            guidanceTiles.style.display = 'none';
+        }, 300);
+    });
 });

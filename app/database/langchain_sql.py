@@ -48,7 +48,8 @@ class LangChainSQLIntegration:
                 model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K",
                 api_key=TOGETHER_API_KEY,
                 temperature=0.1,  # Lower temperature for more deterministic output
-                max_tokens=128  # Limit tokens to prevent long explanations
+                max_tokens=512,  # Increased token limit
+                request_timeout=30  # Add 30 second timeout
             )
             
             # Set up the SQL generation prompt
@@ -99,17 +100,17 @@ EXAMPLES:
             logger.error(f"Error initializing LangChainSQLIntegration: {str(e)}")
             raise
 
-    def generate_sql_query(self, question: str) -> str:
+    async def generate_sql_query(self, question: str) -> str:
         """Generate SQL query from natural language question"""
         try:
             # Generate SQL using LLM
-            chain = (
+            sql_chain = (
                 self.sql_prompt 
                 | self.llm 
                 | StrOutputParser()
             )
             
-            text = chain.invoke({"question": question})
+            text = await sql_chain.ainvoke({"question": question})
             logger.info(f"LLM response: {text}")
             
             # Extract SQL query from response
@@ -161,12 +162,12 @@ EXAMPLES:
             else:
                 raise ValueError(f"Failed to generate SQL query and no fallback available: {str(e)}")
 
-    def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
+    async def get_answer(self, question: str) -> Union[GeneralQueryResponse, SpecificQueryResponse]:
         """Get answer for a question using SQL"""
         try:
             # Generate SQL query
             logger.info("Generating SQL query...")
-            query = self.generate_sql_query(question)
+            query = await self.generate_sql_query(question)
             logger.info(f"Generated query: {query}")
             
             # Execute query and get results
@@ -252,6 +253,38 @@ EXAMPLES:
             logger.error(f"Error getting answer: {str(e)}")
             logger.error(f"Full traceback: {traceback.format_exc()}")
             raise ValueError(f"Failed to get answer: {str(e)}")
+
+    async def process_query(self, question: str) -> str:
+        """Process a natural language query and return a response"""
+        try:
+            logger.info("Generating SQL query...")
+            
+            # Generate SQL query
+            sql_chain = self.sql_prompt | self.llm | StrOutputParser()
+            sql_query = await sql_chain.ainvoke({"question": question})
+            
+            logger.info(f"Generated SQL query: {sql_query}")
+            
+            # Execute query
+            with self.db.get_connection() as conn:
+                df = pd.read_sql_query(sql_query, conn)
+            
+            # Convert results to string format
+            results = df.to_string() if not df.empty else "No results found"
+            
+            # Generate natural language answer
+            answer_chain = self.answer_prompt | self.llm | StrOutputParser()
+            answer = await answer_chain.ainvoke({
+                "question": question,
+                "query": sql_query,
+                "results": results
+            })
+            
+            return answer
+            
+        except Exception as e:
+            logger.error(f"Error processing query: {str(e)}\n{traceback.format_exc()}")
+            raise ValueError(f"Error processing query: {str(e)}")
 
     def get_table_info(self) -> Dict[str, Any]:
         """
