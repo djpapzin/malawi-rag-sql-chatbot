@@ -2,17 +2,20 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-import pandas as pd
-from datetime import datetime
-import uuid
-from typing import Dict, Any, List
 import logging
-import importlib
-import re
-from dotenv import load_dotenv
-import os
 import traceback
-import time
+from datetime import datetime
+from typing import Union
+from .models import (
+    ChatQuery,
+    ChatResponse,
+    GeneralQueryResponse,
+    SpecificQueryResponse,
+    DatabaseManager
+)
+from .database.langchain_sql import LangChainSQLIntegration
+import os
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -23,23 +26,12 @@ HOST = os.getenv('HOST', '0.0.0.0')
 API_PREFIX = os.getenv('API_PREFIX', '')
 CORS_ORIGINS = eval(os.getenv('CORS_ORIGINS', '["*"]'))
 
-# Import our custom modules
-from .models import ChatQuery, ChatResponse, QueryMetadata, QuerySource
-from .query_parser import QueryParser
-from .response_generator import ResponseGenerator
-from .sql_tracker import SQLTracker
-from .database.langchain_sql import LangChainSQLIntegration
-
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# Force reload modules
-importlib.reload(importlib.import_module('app.query_parser'))
-importlib.reload(importlib.import_module('app.models'))
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -78,12 +70,9 @@ for current_app in [app, api_app]:
     )
 
 # Initialize components
-sql_tracker = SQLTracker()
-response_generator = ResponseGenerator()
-query_parser = QueryParser()
-langchain_sql = LangChainSQLIntegration()
+db_manager = DatabaseManager()
+sql_integration = LangChainSQLIntegration()
 logger.info("Initialized components")
-logger.info(f"Using QueryParser from module: {QueryParser.__module__}")
 
 @app.get("/")
 async def root(request: Request):
@@ -101,40 +90,11 @@ async def process_query(query: ChatQuery) -> ChatResponse:
         # Log incoming query
         logger.info(f"Processing query: {query.message}")
         
-        # Get current timestamp
-        timestamp = datetime.now().isoformat()
-        
-        # Generate unique query ID
-        query_id = str(uuid.uuid4())
-        
-        # Start timer
-        start_time = time.time()
-        
         # Get answer from SQL integration
-        sql_integration = LangChainSQLIntegration()
         result = sql_integration.get_answer(query.message)
         
-        # Calculate processing time
-        processing_time = time.time() - start_time
-        
-        # Create response
-        response = ChatResponse(
-            response=result["response"],
-            metadata=QueryMetadata(
-                timestamp=timestamp,
-                query_id=query_id,
-                processing_time=processing_time
-            ),
-            source=QuerySource(
-                sql=result["sql"],
-                database="malawi_projects1.db"
-            )
-        )
-        
-        # Log success
-        logger.info(f"Query processed successfully. Query ID: {query_id}")
-        
-        return response
+        # Return response in new format
+        return ChatResponse(response=result)
         
     except Exception as e:
         # Log error
@@ -146,48 +106,24 @@ async def process_query(query: ChatQuery) -> ChatResponse:
             detail=f"Error processing query: {str(e)}"
         )
 
-@api_app.get("/schema")
-async def get_database_schema():
-    """Get database schema information"""
-    try:
-        schema_info = langchain_sql.get_table_info()
-        return {"schema": schema_info}
-    except Exception as e:
-        logger.error(f"Error getting schema: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error getting schema: {str(e)}"
-        )
-
-@api_app.post("/generate-sql")
-async def generate_sql(query: ChatQuery):
-    """Generate SQL query from natural language without executing it"""
-    try:
-        sql_query = langchain_sql.generate_sql_query(query.message)
-        return {
-            "sql_query": sql_query,
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error generating SQL: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating SQL: {str(e)}"
-        )
-
 @api_app.get("/health")
 async def health_check():
     """Health check endpoint"""
     try:
         # Test database connection
-        sql_tracker._connect()
-        sql_tracker._disconnect()
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM proj_dashboard")
+            count = cursor.fetchone()[0]
         
         return {
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
             "components": {
-                "database": "connected",
+                "database": {
+                    "status": "connected",
+                    "row_count": count
+                },
                 "api": "running"
             }
         }
