@@ -1,86 +1,131 @@
 import requests
 import json
-from requests.exceptions import Timeout, RequestException
-import time
+from datetime import datetime
+import os
 
-def test_api():
-    url = "http://localhost:5000/query"
-    headers = {"Content-Type": "application/json"}
-    timeout = 30  # 30 seconds timeout
+BASE_URL = "http://localhost:5000"
+TEST_RESULTS_DIR = "test_results"
+
+def ensure_results_dir():
+    """Create test results directory if it doesn't exist"""
+    if not os.path.exists(TEST_RESULTS_DIR):
+        os.makedirs(TEST_RESULTS_DIR)
+
+def save_test_results(results):
+    """Save test results to a markdown file"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{TEST_RESULTS_DIR}/api_test_results_{timestamp}.md"
     
-    def make_request(query_data, max_retries=3):
-        for attempt in range(max_retries):
-            try:
-                response = requests.post(url, headers=headers, json=query_data, timeout=timeout)
-                return response
-            except Timeout:
-                print(f"Request timed out (attempt {attempt + 1}/{max_retries})")
-                if attempt < max_retries - 1:
-                    time.sleep(2)  # Wait 2 seconds before retrying
-                else:
-                    raise
-            except RequestException as e:
-                print(f"Request failed: {str(e)}")
-                raise
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write("# API Test Results\n\n")
+        f.write(f"Test Run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        
+        for test in results:
+            f.write(f"## Test Case: {test['name']}\n")
+            f.write(f"Query: {test['query']}\n\n")
+            
+            if test['success']:
+                f.write("Test Passed\n\n")
+            else:
+                f.write("Test Failed\n\n")
+            
+            f.write("### Response\n")
+            f.write("```json\n")
+            f.write(json.dumps(test['response'], indent=2))
+            f.write("\n```\n\n")
+            
+            if test.get('error'):
+                f.write("### Error\n")
+                f.write(f"```\n{test['error']}\n```\n\n")
+            
+            f.write("---\n\n")
     
-    with open('test_results.txt', 'w') as f:
-        # Test general query
-        general_query = {"message": "Show me all infrastructure projects"}
-        f.write(f"\nTesting general query: {general_query['message']}\n")
-        try:
-            response = make_request(general_query)
-            f.write(f"Status Code: {response.status_code}\n")
-            if response.status_code == 200:
-                result = response.json()
-                f.write("\nResults:\n")
-                for project in result["response"]["results"]:
-                    f.write(f"\nProject: {project['project_name']}\n")
-                    f.write(f"Location: {project['location']['region']}, {project['location']['district']}\n")
-                    f.write(f"Budget: {project['total_budget']['formatted']}\n")
-                    f.write(f"Status: {project['project_status']}\n")
-                    f.write(f"Sector: {project['project_sector']}\n")
-                
-                f.write(f"\nTotal Results: {result['response']['metadata']['total_results']}\n")
-                f.write(f"Query Time: {result['response']['metadata']['query_time']}\n")
-            else:
-                f.write(f"Error response: {response.text}\n")
-        except Exception as e:
-            f.write(f"Error processing general query: {str(e)}\n")
+    print(f"Results saved to {filename}")
+
+def test_query(query, name):
+    """Test a specific query and return the results"""
+    try:
+        response = requests.post(
+            f"{BASE_URL}/query",
+            json={"message": query}
+        )
         
-        # Wait a bit before the next request
-        time.sleep(2)
-        
-        # Test specific query
-        specific_query = {"message": "Show me details about Mangochi infrastructure projects"}
-        print(f"\nTesting specific query: {specific_query['message']}")
-        try:
-            response = make_request(specific_query)
-            print(f"Status Code: {response.status_code}")
-            if response.status_code == 200:
-                result = response.json()
-                print("\nResults:")
-                for project in result["response"]["results"]:
-                    print(f"\nProject Details:")
-                    print(f"Name: {project['project_name']}")
-                    print(f"Location: {project['location']['region']}, {project['location']['district']}")
-                    print(f"Budget: {project['total_budget']['formatted']}")
-                    print(f"Status: {project['project_status']}")
-                    print(f"Contractor: {project['contractor']['name']}")
-                    print(f"Contract Start: {project['contractor']['contract_start_date']}")
-                    print(f"Expenditure: {project['expenditure_to_date']['formatted']}")
-                    print(f"Sector: {project['project_sector']}")
-                    print(f"Funding Source: {project['source_of_funding']}")
-                    print(f"Project Code: {project['project_code']}")
-                    print(f"Last Monitoring: {project['last_monitoring_visit']}")
-                
-                print(f"\nTotal Results: {result['response']['metadata']['total_results']}")
-                print(f"Query Time: {result['response']['metadata']['query_time']}")
-            else:
-                print(f"Error response: {response.text}")
-        except Exception as e:
-            print(f"Error processing specific query: {str(e)}")
-        
-        print("Test results have been written to test_results.txt")
+        return {
+            "name": name,
+            "query": query,
+            "success": response.status_code == 200,
+            "response": response.json() if response.status_code == 200 else None,
+            "error": response.text if response.status_code != 200 else None
+        }
+    except Exception as e:
+        return {
+            "name": name,
+            "query": query,
+            "success": False,
+            "response": None,
+            "error": str(e)
+        }
+
+def run_tests():
+    """Run all test cases"""
+    test_cases = [
+        {
+            "name": "Total Budget Query",
+            "query": "What is the total budget for all projects?"
+        },
+        {
+            "name": "District Projects Query",
+            "query": "List all projects in Zomba district"
+        },
+        {
+            "name": "Sector Projects Query",
+            "query": "List all infrastructure projects"
+        },
+        {
+            "name": "Status Based Query",
+            "query": "List all projects with Active status"
+        },
+        {
+            "name": "Budget Range Query",
+            "query": "What projects have a budget over 5 million?"
+        },
+        {
+            "name": "Completion Percentage Query",
+            "query": "Show projects that are more than 75% complete"
+        },
+        {
+            "name": "Combined Criteria Query",
+            "query": "List infrastructure projects in Lilongwe that are Active"
+        },
+        {
+            "name": "Date Based Query",
+            "query": "List projects starting in 2023"
+        },
+        {
+            "name": "Project Count Query",
+            "query": "Count the number of projects in each district"
+        },
+        {
+            "name": "Average Budget Query",
+            "query": "Calculate the average project budget for each sector"
+        }
+    ]
+    
+    results = []
+    for test_case in test_cases:
+        print(f"Running test: {test_case['name']}")
+        result = test_query(test_case['query'], test_case['name'])
+        results.append(result)
+        if not result['success']:
+            print(f"[FAIL] Test failed: {test_case['name']}")
+        else:
+            print(f"[PASS] Test passed: {test_case['name']}")
+    
+    return results
 
 if __name__ == "__main__":
-    test_api() 
+    print("Starting API tests...")
+    ensure_results_dir()
+    results = run_tests()
+    save_test_results(results)
+    print("Testing completed!")
