@@ -1,12 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
-    const chatInput = document.getElementById('chatInput');
+    const chatInput = document.getElementById('user-input');
     const sendButton = document.getElementById('sendButton');
     const guidanceTiles = document.querySelector('.guidance-tiles');
-    const chatContainer = document.createElement('div');
-    chatContainer.id = 'chat-container';
-    chatContainer.className = 'chat-container mt-4 w-full max-w-2xl space-y-4';
-    chatInput.parentElement.insertBefore(chatContainer, chatInput.parentElement.firstChild);
+    const chatMessages = document.getElementById('chat-messages');
+
+    if (!chatInput || !sendButton || !guidanceTiles || !chatMessages) {
+        console.error('Required DOM elements not found');
+        return;
+    }
 
     // State
     let isLoading = false;
@@ -18,36 +20,6 @@ document.addEventListener('DOMContentLoaded', function() {
             guidanceTiles.style.display = 'none';
         }, 300);
     });
-
-    function appendMessage(message, isUser = false) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
-
-        const avatar = document.createElement('div');
-        avatar.className = 'avatar';
-        avatar.textContent = isUser ? 'U' : 'D';
-
-        const messageContent = document.createElement('div');
-        messageContent.className = 'message-content';
-        
-        // Format the message content
-        let formattedContent = message;
-        if (!isUser) {
-            // Replace ### Step X: with formatted steps
-            formattedContent = message.replace(/###\s*Step\s*\d+:/g, match => {
-                return `<pre>${match}</pre>`;
-            });
-        }
-        
-        messageContent.innerHTML = formattedContent;
-        
-        messageDiv.appendChild(avatar);
-        messageDiv.appendChild(messageContent);
-        chatContainer.appendChild(messageDiv);
-        
-        // Scroll to bottom
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
 
     async function sendMessage() {
         const message = chatInput.value.trim();
@@ -87,6 +59,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function appendMessage(message, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message flex items-start gap-2 mb-4 ${isUser ? 'justify-end' : ''}`;
+
+        const avatar = document.createElement('div');
+        avatar.className = `avatar ${isUser ? 'bg-blue-500' : 'bg-green-500'} text-white rounded-full w-8 h-8 flex items-center justify-center`;
+        avatar.textContent = isUser ? 'U' : 'D';
+
+        const messageContent = document.createElement('div');
+        messageContent.className = `message-content max-w-[80%] p-3 rounded-lg ${isUser ? 'bg-blue-100' : 'bg-gray-100'}`;
+        
+        // Format the message content
+        let formattedContent = message;
+        if (!isUser) {
+            formattedContent = message.replace(/###\s*Step\s*\d+:/g, match => {
+                return `<strong class="block mb-2">${match}</strong>`;
+            });
+        }
+        
+        messageContent.innerHTML = formattedContent;
+        
+        if (isUser) {
+            messageDiv.appendChild(messageContent);
+            messageDiv.appendChild(avatar);
+        } else {
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+        }
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
     // Handle send button click
     sendButton.addEventListener('click', sendMessage);
 
@@ -104,6 +109,8 @@ document.addEventListener('DOMContentLoaded', function() {
             chatInput.value = exampleQuery;
             chatInput.focus();
             sendMessage();
+            
+            // Fade out guidance tiles
             guidanceTiles.style.opacity = '0';
             setTimeout(() => {
                 guidanceTiles.style.display = 'none';
