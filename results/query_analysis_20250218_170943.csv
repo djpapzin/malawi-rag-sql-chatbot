@@ -1,0 +1,110 @@
+Query #,Category,Input Query,SQL Query,API Results,DB Matches,Total Projects,Match %,Response Time,Error
+1,Project Code Queries,Show me project MW-CR-DO,"
+            SELECT 
+                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
+                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
+                STAGE, STARTDATE, COMPLETIONESTIDATE
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+         AND UPPER(PROJECTCODE) = 'MW-CR-DO' LIMIT 1",0,0,198,0.0%,2.45s,
+2,Project Code Queries,What is the status of project MW-CR-DO?,"
+            SELECT 
+                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
+                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
+                STAGE, STARTDATE, COMPLETIONESTIDATE
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+         AND UPPER(PROJECTCODE) = 'MW-CR-DO' LIMIT 1",0,0,198,0.0%,2.27s,
+3,Project Code Queries,Tell me about projects in MW-CR,"
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+             AND (LOWER(REGION) LIKE LOWER('%mw%') OR LOWER(DISTRICT) LIKE LOWER('%mw%')) ORDER BY PROJECTNAME ASC",2,2,198,1.0%,2.37s,
+4,Project Code Queries,Show all CR-DO projects,"
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+             ORDER BY PROJECTNAME ASC",100,198,198,100.0%,2.47s,
+5,Project Code Queries,List projects with code CR,"
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+             ORDER BY PROJECTNAME ASC",100,198,198,100.0%,2.48s,
+6,General Queries,Show all education projects in Zomba,"
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+             AND (LOWER(REGION) LIKE LOWER('%zomba%') OR LOWER(DISTRICT) LIKE LOWER('%zomba%')) AND LOWER(PROJECTSECTOR) LIKE LOWER('%education%') ORDER BY PROJECTNAME ASC",2,2,198,1.0%,2.27s,
+7,General Queries,List the top health projects,"
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+             AND LOWER(PROJECTSECTOR) LIKE LOWER('%health%') ORDER BY PROJECTNAME ASC",39,39,198,19.7%,2.32s,
+8,General Queries,What are the biggest projects in Central Region?,"
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+             AND (LOWER(REGION) LIKE LOWER('%central region%') OR LOWER(DISTRICT) LIKE LOWER('%central region%')) ORDER BY PROJECTNAME ASC",76,76,198,38.4%,2.29s,
+9,General Queries,Show me ongoing road construction projects,"
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+             ORDER BY PROJECTNAME ASC",100,198,198,100.0%,2.39s,
+10,General Queries,List completed school projects,"
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+             AND LOWER(PROJECTSTATUS) LIKE LOWER('%completed%') ORDER BY PROJECTNAME ASC",0,0,198,0.0%,2.39s,
+11,Specific Project Queries,Tell me about 'Nachuma Market Shed phase 3',"
+            SELECT 
+                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
+                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
+                STAGE, STARTDATE, COMPLETIONESTIDATE
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+         AND LOWER(PROJECTNAME) LIKE LOWER('%Nachuma Market Shed phase 3%') LIMIT 1",1,2,198,1.0%,2.39s,
+12,Specific Project Queries,What is the status of 'Chilingani School Block Construction'?,"
+                SELECT PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                       TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
+                FROM proj_dashboard
+                WHERE ISLATEST = 1
+             ORDER BY PROJECTNAME ASC",100,198,198,100.0%,2.39s,
+13,Specific Project Queries,Show details for 'Boma Stadium Phase 3',"
+            SELECT 
+                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
+                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
+                STAGE, STARTDATE, COMPLETIONESTIDATE
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+         AND LOWER(PROJECTNAME) LIKE LOWER('%Boma Stadium Phase 3%') LIMIT 1",1,1,198,0.5%,2.18s,
+14,Specific Project Queries,Give me information about project MW-CR-DO,"
+            SELECT 
+                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
+                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
+                STAGE, STARTDATE, COMPLETIONESTIDATE
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
+         AND UPPER(PROJECTCODE) = 'MW-CR-DO' LIMIT 1",0,0,198,0.0%,2.42s,

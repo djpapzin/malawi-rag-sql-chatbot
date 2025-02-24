@@ -1,0 +1,79 @@
+{
+  "project": "CHILIPA CDSS GIRLS HOSTEL",
+  "queries_tested": 7,
+  "fields_found": [
+    "Location",
+    "Sector",
+    "Budget",
+    "Project",
+    "Status"
+  ],
+  "query_results": [
+    {
+      "query": "Tell me everything about 'CHILIPA CDSS GIRLS HOSTEL'",
+      "sql": "\n            SELECT \n                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,\n                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,\n                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,\n                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,\n                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,\n                STAGE, STARTDATE, COMPLETIONESTIDATE\n            FROM proj_dashboard\n            WHERE ISLATEST = 1\n            \nAND (\n            LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') OR LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') OR LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %')\n        )\nORDER BY\n            CASE \n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') THEN 1\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') THEN 2\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') THEN 3\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') THEN 4\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %') THEN 5\n                ELSE 6\n            END,\n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                ELSE 3\n            END\nLIMIT 1",
+      "fields": {
+        "Project": "CHILIPA CDSS GIRLS HOSTEL",
+        "Sector": "Education",
+        "Location": "Southern Region, Mangochi",
+        "Status": "Not available",
+        "Budget": "Not available"
+      }
+    },
+    {
+      "query": "What is the current status of 'CHILIPA CDSS GIRLS HOSTEL'",
+      "sql": "\n            SELECT \n                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,\n                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,\n                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,\n                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,\n                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,\n                STAGE, STARTDATE, COMPLETIONESTIDATE\n            FROM proj_dashboard\n            WHERE ISLATEST = 1\n            \nAND (\n            LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') OR LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') OR LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %')\n        )\nORDER BY\n            CASE \n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') THEN 1\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') THEN 2\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') THEN 3\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') THEN 4\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %') THEN 5\n                ELSE 6\n            END,\n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                ELSE 3\n            END\nLIMIT 1",
+      "fields": {
+        "Project": "CHILIPA CDSS GIRLS HOSTEL",
+        "Sector": "Education",
+        "Location": "Southern Region, Mangochi",
+        "Status": "Not available",
+        "Budget": "Not available"
+      }
+    },
+    {
+      "query": "Show me the budget details for 'CHILIPA CDSS GIRLS HOSTEL'",
+      "sql": "\n            SELECT \n                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,\n                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,\n                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,\n                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,\n                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,\n                STAGE, STARTDATE, COMPLETIONESTIDATE\n            FROM proj_dashboard\n            WHERE ISLATEST = 1\n            \nAND (\n            LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') OR LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') OR LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %')\n        )\nORDER BY\n            CASE \n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') THEN 1\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') THEN 2\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') THEN 3\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') THEN 4\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %') THEN 5\n                ELSE 6\n            END,\n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                ELSE 3\n            END\nLIMIT 1",
+      "fields": {
+        "Project": "CHILIPA CDSS GIRLS HOSTEL",
+        "Sector": "Education",
+        "Location": "Southern Region, Mangochi",
+        "Status": "Not available",
+        "Budget": "Not available"
+      }
+    },
+    {
+      "query": "Who is the contractor for 'CHILIPA CDSS GIRLS HOSTEL'",
+      "sql": "\n            SELECT \n                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,\n                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,\n                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,\n                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,\n                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,\n                STAGE, STARTDATE, COMPLETIONESTIDATE\n            FROM proj_dashboard\n            WHERE ISLATEST = 1\n            \nAND (\n            LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') OR LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') OR LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %')\n        )\nORDER BY\n            CASE \n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') THEN 1\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') THEN 2\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') THEN 3\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') THEN 4\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %') THEN 5\n                ELSE 6\n            END,\n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                ELSE 3\n            END\nLIMIT 1",
+      "fields": {
+        "Project": "CHILIPA CDSS GIRLS HOSTEL",
+        "Sector": "Education",
+        "Location": "Southern Region, Mangochi",
+        "Status": "Not available",
+        "Budget": "Not available"
+      }
+    },
+    {
+      "query": "What is the completion percentage of 'CHILIPA CDSS GIRLS HOSTEL'",
+      "sql": "\n            SELECT \n                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,\n                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,\n                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,\n                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,\n                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,\n                STAGE, STARTDATE, COMPLETIONESTIDATE\n            FROM proj_dashboard\n            WHERE ISLATEST = 1\n            \nAND (\n            LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') OR LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') OR LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %')\n        )\nORDER BY\n            CASE \n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') THEN 1\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') THEN 2\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') THEN 3\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') THEN 4\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %') THEN 5\n                ELSE 6\n            END,\n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                ELSE 3\n            END\nLIMIT 1",
+      "fields": {
+        "Project": "CHILIPA CDSS GIRLS HOSTEL",
+        "Sector": "Education",
+        "Location": "Southern Region, Mangochi",
+        "Status": "Not available",
+        "Budget": "Not available"
+      }
+    },
+    {
+      "query": "Show me monitoring details for 'CHILIPA CDSS GIRLS HOSTEL'",
+      "sql": "\n            SELECT \n                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,\n                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,\n                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,\n                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,\n                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,\n                STAGE, STARTDATE, COMPLETIONESTIDATE\n            FROM proj_dashboard\n            WHERE ISLATEST = 1\n            \nAND (\n            LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') OR LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') OR LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') OR LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %')\n        )\nORDER BY\n            CASE \n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL') THEN 1\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL project') THEN 2\n                WHEN LOWER(PROJECTNAME) = LOWER('CHILIPA CDSS GIRLS HOSTEL construction') THEN 3\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('CHILIPA CDSS GIRLS HOSTEL%') THEN 4\n                WHEN LOWER(PROJECTNAME) LIKE LOWER('% CHILIPA CDSS GIRLS HOSTEL %') THEN 5\n                ELSE 6\n            END,\n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                ELSE 3\n            END\nLIMIT 1",
+      "fields": {
+        "Project": "CHILIPA CDSS GIRLS HOSTEL",
+        "Sector": "Education",
+        "Location": "Southern Region, Mangochi",
+        "Status": "Not available",
+        "Budget": "Not available"
+      }
+    }
+  ]
+}

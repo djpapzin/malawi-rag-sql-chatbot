@@ -1,0 +1,9 @@
+{
+  "question": "Show me projects in Lilongwe",
+  "sql_query": "SELECT PROJECTNAME, PROJECTCODE, FISCALYEAR, REGION, DISTRICT, TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR \nFROM proj_dashboard \nWHERE REGION = 'Lilongwe';",
+  "results": "",
+  "answer": "Error processing results",
+  "metadata": {
+    "generated_at": "2025-02-19 22:20:47"
+  }
+}

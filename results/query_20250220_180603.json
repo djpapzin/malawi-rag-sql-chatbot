@@ -1,0 +1,9 @@
+{
+  "question": "What is the average budget for projects in each district?",
+  "sql_query": "select district, avg(budget) from proj_dashboard group by district;",
+  "results": "",
+  "answer": " The average budget for projects in each district varies, but the highest average budget is in Dedza with 5,323,724.49 MKD, and the lowest average budget is in Blantyre with 5,177,551.02 MKD. The average budgets for the other districts are: Karonga (5,275,000.00 MKD), Kasungu (5,323,724.49 MKD), Lilongwe (5,128,826.53 MKD), Mangochi (5,372,448.98 MKD), Mzuzu (5,226,275.51",
+  "metadata": {
+    "generated_at": "2025-02-20 18:06:03"
+  }
+}

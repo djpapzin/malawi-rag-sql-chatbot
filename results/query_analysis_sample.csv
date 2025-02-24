@@ -1,0 +1,13 @@
+query,match_rate,response_time
+"Tell me about Nachuma Market Shed phase 3",100,2.5
+"What is the status of Nachuma Market project",90,2.2
+"Show me the Boma Bus Depot project",85,2.5
+"What is the status of Boma Bus Depot and Market Toilets",100,2.3
+"Show details about project MW-CR-DO",80,2.1
+"What is the status of project code MW-CR-DO",70,2.3
+"Show education projects in Zomba district",95,2.4
+"Show me completed education projects",90,2.2
+"Show me classroom block projects",85,2.3
+"List ongoing school construction in Mchinji",92,2.4
+"Show me education projects with budget information",88,2.5
+"Tell me about school construction projects",87,2.4

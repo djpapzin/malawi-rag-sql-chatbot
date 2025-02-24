@@ -1,0 +1,9 @@
+{
+  "question": "Show projects in Blantyre",
+  "sql_query": "SELECT PROJECTNAME, PROJECTCODE, FISCALYEAR, REGION, DISTRICT, TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR \nFROM proj_dashboard \nWHERE REGION = 'Blantyre';",
+  "results": "",
+  "answer": "Error processing results",
+  "metadata": {
+    "generated_at": "2025-02-19 22:21:11"
+  }
+}

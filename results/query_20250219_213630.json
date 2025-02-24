@@ -1,0 +1,186 @@
+{
+  "question": "What is the total budget for all projects in Lilongwe District?",
+  "sql_query": "SELECT PROJECTNAME, PROJECTCODE, FISCALYEAR, REGION, DISTRICT, TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR \nFROM proj_dashboard \nWHERE DISTRICT = 'Lilongwe';",
+  "results": {
+    "type": "general_query",
+    "data": {
+      "total_projects": 17,
+      "projects": [
+        {
+          "projectname": "Construction of Classroom block at Katete Junior primary school in T/A Malili",
+          "projectcode": "257c9568",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of Community multipurpose hall at Mtunthumala HQ",
+          "projectcode": "ba9f759e",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Commercial services"
+        },
+        {
+          "projectname": "Construction of Mapembe bridge",
+          "projectcode": "500a694c",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Roads and bridges"
+        },
+        {
+          "projectname": "Construction of a 30 tonne concrete deck bridge at Mtete river on Makala to Jimu",
+          "projectcode": "9a29d77f",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Roads and bridges"
+        },
+        {
+          "projectname": "Construction of a 30 tonne deck bridge at Marichi Village",
+          "projectcode": "df1979df",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Roads and bridges"
+        },
+        {
+          "projectname": "Construction of a Health post at Kaphiri in T/A Chitekwere",
+          "projectcode": "efb50b7e",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Health"
+        },
+        {
+          "projectname": "Construction of a Vendors market shed at Majiga Market",
+          "projectcode": "89e90934",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Commercial services"
+        },
+        {
+          "projectname": "Construction of a Warehouse at Kacheta in T/A Chadza",
+          "projectcode": "d02fa6a3",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Agriculture and environment"
+        },
+        {
+          "projectname": "Construction of a classroom block and toilets at Chikuli Primary School",
+          "projectcode": "1d649299",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of a classroom block at Chimsolo Primary school",
+          "projectcode": "b4e2c1b6",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of a classroom block at Mchokera primary school",
+          "projectcode": "a8c95dc0",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of a classroom block at Mdabwi primary school",
+          "projectcode": "98f14b8b",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of a classroom block at Mpemba primary school",
+          "projectcode": "f3236d2e",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of a concrete deck bridge at Ndomba river",
+          "projectcode": "f29e15bc",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Roads and bridges"
+        },
+        {
+          "projectname": "Construction of a maternity block at Phirilanjuzi Health Post",
+          "projectcode": "158c8ee3",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Health"
+        },
+        {
+          "projectname": "Construction of a primary school at Songwe primary school in T/A Chitukula",
+          "projectcode": "9f61828e",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of staff houses at Chidalanda Police Unit",
+          "projectcode": "fb9bab07",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Central Region",
+          "district": "Lilongwe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Community security initiatives"
+        }
+      ]
+    }
+  },
+  "answer": "* **Total Projects**: 17\n\n* **Total Budget**: Not available\n\n* **District Breakdown**:\n  - Lilongwe: 17 projects\n\n* **Fiscal Year Breakdown**:\n  - April 2024 / March 2025: 17 projects\n\n* **Sector Breakdown**:\n  - Agriculture and environment: 1 project\n  - Commercial services: 2 projects\n  - Community security initiatives: 1 project\n  - Education: 7 projects\n  - Health: 2 projects\n  - Roads and bridges: 4 projects\n\n* **Status Breakdown**:\n  - Not specified: 17 projects\n",
+  "metadata": {
+    "generated_at": "2025-02-19 21:36:30"
+  }
+}

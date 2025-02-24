@@ -1,0 +1,9 @@
+{
+  "question": "Show transport projects",
+  "sql_query": "SELECT PROJECTNAME, PROJECTCODE, FISCALYEAR, REGION, DISTRICT, TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR \nFROM proj_dashboard \nWHERE PROJECTSECTOR = 'Transport';",
+  "results": "",
+  "answer": "Error processing results",
+  "metadata": {
+    "generated_at": "2025-02-19 22:47:17"
+  }
+}

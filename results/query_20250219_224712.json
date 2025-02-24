@@ -1,0 +1,9 @@
+{
+  "question": "Show details about CHILIPA CDSS GIRLS HOSTEL",
+  "sql_query": "SELECT PROJECTNAME, PROJECTCODE, FISCALYEAR, REGION, DISTRICT, TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR, CONTRACTORNAME, STARTDATE, TOTALEXPENDITURETODATE, FUNDINGSOURCE, LASTVISIT\nFROM proj_dashboard\nWHERE PROJECTNAME = 'CHILIPA CDSS GIRLS HOSTEL';",
+  "results": "[('CHILIPA CDSS GIRLS HOSTEL', '5f0c07a5', 'April 2024 / March 2025', 'Southern Region', 'Mangochi', None, None, 'Education', None, None, None, 'PBG', None)]",
+  "answer": "* **Project Name**: CHILIPA CDSS GIRLS HOSTEL\n* **Fiscal Year**: April 2024 / March 2025\n* **Location**: Southern Region, Mangochi\n* **Total Budget**: Not available\n* **Project Status**: Not available\n* **Project Sector**: Education\n* **Contractor**: Not available\n* **Start Date**: Not available\n* **Total Expenditure**: Not available\n* **Funding Source**: PBG\n* **Project Code**: 5f0c07a5\n* **Last Visit**: Not available\n",
+  "metadata": {
+    "generated_at": "2025-02-19 22:47:12"
+  }
+}

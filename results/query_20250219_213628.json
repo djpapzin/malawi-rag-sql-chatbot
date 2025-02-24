@@ -1,0 +1,248 @@
+{
+  "question": "How many education projects are there in the Southern Region?",
+  "sql_query": "SELECT PROJECTNAME, PROJECTCODE, FISCALYEAR, REGION, DISTRICT, TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR \nFROM proj_dashboard \nWHERE PROJECTSECTOR = 'Education' AND REGION = 'Southern Region';",
+  "results": {
+    "type": "general_query",
+    "data": {
+      "total_projects": 23,
+      "projects": [
+        {
+          "projectname": "CHILAWE CLASSROOM BLOCK",
+          "projectcode": "b2ad9722",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Mangochi",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "CHILIPA CDSS GIRLS HOSTEL",
+          "projectcode": "5f0c07a5",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Mangochi",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "CHIMWALIRE SCHOOL BLOCK",
+          "projectcode": "9ee9314b",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Mangochi",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "CONSTRUCTION OF  STAFF HOUSE AT ST JOHNS PRIMARY SCHOOL",
+          "projectcode": "54882c81",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Blantyre",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Chilingani School Block Construction",
+          "projectcode": "7af76c15",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Blantyre",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of  Mwanambweri Primary School Structures",
+          "projectcode": "e8493948",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Nsanje",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of Gambula Primary School Fence",
+          "projectcode": "d628978f",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Mulanje",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of Minyenje CDSS ",
+          "projectcode": "9011b8f9",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Phalombe",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of Nyumba ya mmwamba Junior Primary School",
+          "projectcode": "57fbf3ab",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Thyolo",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Construction of Thetula CDSS Staff House",
+          "projectcode": "d98df228",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Mwanza",
+          "totalbudget": 117568824,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Gola CDSS Classroom Block Phase 2",
+          "projectcode": "7a1d1dcd",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Chikwawa",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "MAKOLI SCHOOL STAFF HOUSE",
+          "projectcode": "e0ea4160",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Mangochi",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "MPALE PRIMARY SCHOOL BLOCK",
+          "projectcode": "92ee6ed2",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Mangochi",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Mchengawedi TDC",
+          "projectcode": "a30930b3",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Zomba",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Mwambo Youth Center Phase 2",
+          "projectcode": "aa1c930d",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Zomba",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "NTONDA CDSS STAFF HOUSE",
+          "projectcode": "086ba5ab",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Mangochi",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Namatapa School Block",
+          "projectcode": "bb53a9b0",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Phalombe",
+          "totalbudget": 40562552,
+          "projectstatus": "Implementation: On track",
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Nsenga Primary School teachers house",
+          "projectcode": "9ac00495",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Thyolo",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Nyakamba Teacher’s House ",
+          "projectcode": "e64584ad",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Chikwawa",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Phandadzinja Primary School Classroom block ",
+          "projectcode": "dbb211b1",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Chikwawa",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Rehabilitation of Mdulansanje Teacher’s house",
+          "projectcode": "a91a3928",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Chikwawa",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Test 27-9-24",
+          "projectcode": "81a1d62d",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Balaka",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        },
+        {
+          "projectname": "Tomali Youth Centre",
+          "projectcode": "dd66d77d",
+          "fiscalyear": "April 2024 / March 2025",
+          "region": "Southern Region",
+          "district": "Chikwawa",
+          "totalbudget": null,
+          "projectstatus": null,
+          "projectsector": "Education"
+        }
+      ],
+      "total_budget": 158131376.0,
+      "projects_with_budget": 2
+    }
+  },
+  "answer": "* **Total Projects**: 23\n\n* **Total Budget**: MWK 158,131,376\n* **Projects with Budget**: 2 out of 23\n\n* **District Breakdown**:\n  - Balaka: 1 project\n  - Blantyre: 2 projects\n  - Chikwawa: 5 projects\n  - Mangochi: 6 projects\n  - Mulanje: 1 project\n  - Mwanza: 1 project\n  - Nsanje: 1 project\n  - Phalombe: 2 projects\n  - Thyolo: 2 projects\n  - Zomba: 2 projects\n\n* **Fiscal Year Breakdown**:\n  - April 2024 / March 2025: 23 projects\n\n* **Sector Breakdown**:\n  - Education: 23 projects\n\n* **Status Breakdown**:\n  - Implementation: On track: 1 project\n  - Not specified: 22 projects\n",
+  "metadata": {
+    "generated_at": "2025-02-19 21:36:28"
+  }
+}

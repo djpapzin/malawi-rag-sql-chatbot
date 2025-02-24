@@ -1,0 +1,9 @@
+{
+  "question": "List all projects in the Infrastructure sector",
+  "sql_query": "select * from proj_dashboard where lower(projectsector) = 'infrastructure';",
+  "results": "",
+  "answer": " \n\nAnswer: The projects in the Infrastructure sector are:\n- Lilongwe Road Development Phase 1\n- Nkhata Bay Irrigation Improvement Phase 2\n- Kasungu Water Supply Construction Phase 4\n- Blantyre Power Plant Rehabilitation Phase 6\n- Karonga Market Development Phase 8\n- Mangochi Hospital Improvement Phase 9\n- Mzuzu School Construction Phase 11\n- Dedza Bridge Rehabilitation Phase 13\n- Salima Road Development Phase 15\n- Zomba Irrigation Improvement Phase 16\n- Lilongwe Water Supply Construction Phase 18\n- Nkhata Bay",
+  "metadata": {
+    "generated_at": "2025-02-20 18:05:51"
+  }
+}

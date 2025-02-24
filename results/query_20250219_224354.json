@@ -1,0 +1,9 @@
+{
+  "question": "Which of these projects has the highest budget?",
+  "sql_query": "SELECT PROJECTNAME, PROJECTCODE, FISCALYEAR, REGION, DISTRICT, TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR \nFROM proj_dashboard \nORDER BY TOTALBUDGET DESC \nLIMIT 1;",
+  "results": "[('Construction of Malambo police unit', '4f22fe37', 'April 2024 / March 2025', 'Central Region', 'Ntchisi', 449177950, 'Implementation: On track or Implementation: Delayed', 'Community security initiatives')]",
+  "answer": "* **Project Name**: Construction of Malambo police unit\n* **Fiscal Year**: April 2024 / March 2025\n* **Location**: Central Region, Ntchisi\n* **Total Budget**: MWK 449,177,950\n* **Project Status**: Implementation: On track or Implementation: Delayed\n* **Project Sector**: Community security initiatives\n* **Project Code**: 4f22fe37\n",
+  "metadata": {
+    "generated_at": "2025-02-19 22:43:54"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "question": "How many education projects are there in Central Region?",
+  "sql_query": "select count(*) from proj_dashboard where lower(projectsector) = 'education' and lower(district) = 'central region';",
+  "results": "",
+  "answer": " There are no education projects in Central Region. \n\nExplanation: The SQL query is designed to count the number of projects in the 'education' sector within the 'Central Region' district. The results indicate that there are no projects that match this criteria, as the count is 0. Therefore, the natural language answer is that there are no education projects in Central Region. \n\nNote: The SQL query uses the `lower()` function to ensure the comparison is case-insensitive, and the `count(*)` function to count the number of rows that match the conditions. The results are presented as a single row with a count of 0,",
+  "metadata": {
+    "generated_at": "2025-02-20 18:03:16"
+  }
+}

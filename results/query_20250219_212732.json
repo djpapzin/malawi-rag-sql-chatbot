@@ -1,0 +1,13 @@
+{
+  "question": "What is the total budget for all projects in Lilongwe District?",
+  "sql_query": "SELECT SUM(TOTALBUDGET) FROM proj_dashboard WHERE DISTRICT = 'Lilongwe'",
+  "results": [
+    [
+      null
+    ]
+  ],
+  "answer": "* **Total Projects**: 1\n\n",
+  "metadata": {
+    "generated_at": "2025-02-19 21:27:32"
+  }
+}

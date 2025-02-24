@@ -1,0 +1,9 @@
+{
+  "question": "Show me details about education projects in Lilongwe District",
+  "sql_query": "SELECT PROJECTNAME, PROJECTCODE, FISCALYEAR, REGION, DISTRICT, TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR \nFROM proj_dashboard \nWHERE PROJECTSECTOR = 'Education' AND DISTRICT = 'Lilongwe';",
+  "results": "[('Construction of Classroom block at Katete Junior primary school in T/A Malili', '257c9568', 'April 2024 / March 2025', 'Central Region', 'Lilongwe', None, None, 'Education'), ('Construction of a classroom block and toilets at Chikuli Primary School', '1d649299', 'April 2024 / March 2025', 'Central Region', 'Lilongwe', None, None, 'Education'), ('Construction of a classroom block at Chimsolo Primary school', 'b4e2c1b6', 'April 2024 / March 2025', 'Central Region', 'Lilongwe', None, None, 'Education'), ('Construction of a classroom block at Mchokera primary school', 'a8c95dc0', 'April 2024 / March 2025', 'Central Region', 'Lilongwe', None, None, 'Education'), ('Construction of a classroom block at Mdabwi primary school', '98f14b8b', 'April 2024 / March 2025', 'Central Region', 'Lilongwe', None, None, 'Education'), ('Construction of a classroom block at Mpemba primary school', 'f3236d2e', 'April 2024 / March 2025', 'Central Region', 'Lilongwe', None, None, 'Education'), ('Construction of a primary school at Songwe primary school in T/A Chitukula', '9f61828e', 'April 2024 / March 2025', 'Central Region', 'Lilongwe', None, None, 'Education')]",
+  "answer": "* **Total Projects**: 7\n* **Total Budget**: Not available\n\n* **District Breakdown**:\n  - Lilongwe: 7 projects\n\n* **Fiscal Year Breakdown**:\n  - April 2024 / March 2025: 7 projects\n\n* **Sector Breakdown**:\n  - Education: 7 projects\n\n* **Status Breakdown**:\n  - Not specified: 7 projects\n",
+  "metadata": {
+    "generated_at": "2025-02-19 22:47:30"
+  }
+}

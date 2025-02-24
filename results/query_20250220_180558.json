@@ -1,0 +1,9 @@
+{
+  "question": "Show me projects with completion percentage greater than 50%",
+  "sql_query": "select * from proj_dashboard where completionpercentage > 50 and budget > 100000;",
+  "results": "",
+  "answer": " \nAnswer: The projects with a completion percentage greater than 50% are: Blantyre Hospital Improvement Phase 13, Mzuzu Market Development Phase 14, Zomba Power Plant Rehabilitation Phase 14, Kasungu Water Supply Construction Phase 14, Mangochi Irrigation Improvement Phase 14, Salima Road Development Phase 15, Nkhata Bay Bridge Rehabilitation Phase 15, Karonga School Construction Phase 15, Dedza Hospital Improvement Phase 15, Lilongwe Market Development Phase 16, Blantyre Power Plant Rehabilitation Phase 16, Mzuzu Water Supply Construction Phase 16, Zomba",
+  "metadata": {
+    "generated_at": "2025-02-20 18:05:58"
+  }
+}

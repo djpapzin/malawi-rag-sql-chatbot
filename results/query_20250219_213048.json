@@ -1,0 +1,19 @@
+{
+  "question": "How many education projects are there in the Southern Region?",
+  "sql_query": "SELECT COUNT(*) \nFROM proj_dashboard \nWHERE REGION = 'Southern' AND PROJECTSECTOR = 'Education';",
+  "results": {
+    "type": "general_query",
+    "data": {
+      "total_projects": 1,
+      "projects": [
+        {
+          "result": 0
+        }
+      ]
+    }
+  },
+  "answer": "* **Total Projects**: 1\n\n",
+  "metadata": {
+    "generated_at": "2025-02-19 21:30:48"
+  }
+}
