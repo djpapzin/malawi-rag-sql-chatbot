@@ -20,7 +20,7 @@
         Passed: 0<br>
         Failed: 10<br>
         Success Rate: 0.0%<br>
-        Average Response Time: 3.24s</p>
+        Average Response Time: 8.55s</p>
     </div>
     
         <div class="test failed">
@@ -31,8 +31,8 @@
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
             <p><strong>Response Time:</strong> 2.04s</p>
-            <p><strong>Status Code:</strong> 500</p>
-        <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div>
+            <p><strong>Status Code:</strong> 200</p>
+        <p><strong>Errors:</strong></p><ul><li class='error'>Missing SQL component: SUM(budget)</li><li class='error'>Missing SQL component: infrastructure</li></ul></div>
         <div class="test failed">
             <h3>Average Project Budget</h3>
             <p><strong>Category:</strong> Budget Queries</p>
@@ -40,7 +40,7 @@
             <p><strong>Query:</strong> What is the average budget for all projects?</p>
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
-            <p><strong>Response Time:</strong> 4.40s</p>
+            <p><strong>Response Time:</strong> 4.43s</p>
             <p><strong>Status Code:</strong> 500</p>
         <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div>
         <div class="test failed">
@@ -50,9 +50,9 @@
             <p><strong>Query:</strong> Show me all projects in Zomba district</p>
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
-            <p><strong>Response Time:</strong> 2.04s</p>
-            <p><strong>Status Code:</strong> 500</p>
-        <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div>
+            <p><strong>Response Time:</strong> 2.03s</p>
+            <p><strong>Status Code:</strong> 200</p>
+        <p><strong>Errors:</strong></p><ul><li class='error'>Missing SQL component: district</li><li class='error'>Missing SQL component: zomba</li></ul></div>
         <div class="test failed">
             <h3>Lilongwe Projects Count</h3>
             <p><strong>Category:</strong> Location Queries</p>
@@ -60,9 +60,9 @@
             <p><strong>Query:</strong> How many projects are there in Lilongwe?</p>
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
-            <p><strong>Response Time:</strong> 2.07s</p>
-            <p><strong>Status Code:</strong> 500</p>
-        <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div>
+            <p><strong>Response Time:</strong> 2.04s</p>
+            <p><strong>Status Code:</strong> 200</p>
+        <p><strong>Errors:</strong></p><ul><li class='error'>Missing expected content: count</li><li class='error'>Missing SQL component: COUNT(*)</li><li class='error'>Missing SQL component: lilongwe</li></ul></div>
         <div class="test failed">
             <h3>Completed Projects</h3>
             <p><strong>Category:</strong> Status Queries</p>
@@ -70,9 +70,9 @@
             <p><strong>Query:</strong> List all completed projects</p>
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
-            <p><strong>Response Time:</strong> 2.05s</p>
-            <p><strong>Status Code:</strong> 500</p>
-        <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div>
+            <p><strong>Response Time:</strong> 2.07s</p>
+            <p><strong>Status Code:</strong> 200</p>
+        <p><strong>Errors:</strong></p><ul><li class='error'>Missing SQL component: projectstatus</li><li class='error'>Missing SQL component: completed</li></ul></div>
         <div class="test failed">
             <h3>Active Projects Count</h3>
             <p><strong>Category:</strong> Status Queries</p>
@@ -80,9 +80,9 @@
             <p><strong>Query:</strong> How many active projects are there?</p>
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
-            <p><strong>Response Time:</strong> 3.85s</p>
-            <p><strong>Status Code:</strong> 500</p>
-        <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div>
+            <p><strong>Response Time:</strong> 30.00s</p>
+            <p><strong>Status Code:</strong> 408</p>
+        <p><strong>Errors:</strong></p><ul><li class='error'>Request timed out</li></ul></div>
         <div class="test failed">
             <h3>Education Projects</h3>
             <p><strong>Category:</strong> Sector Queries</p>
@@ -90,9 +90,9 @@
             <p><strong>Query:</strong> Show all education sector projects</p>
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
-            <p><strong>Response Time:</strong> 3.83s</p>
-            <p><strong>Status Code:</strong> 500</p>
-        <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div>
+            <p><strong>Response Time:</strong> 30.00s</p>
+            <p><strong>Status Code:</strong> 408</p>
+        <p><strong>Errors:</strong></p><ul><li class='error'>Request timed out</li></ul></div>
         <div class="test failed">
             <h3>Water Projects Budget</h3>
             <p><strong>Category:</strong> Sector Queries</p>
@@ -100,7 +100,7 @@
             <p><strong>Query:</strong> What is the total budget for water projects?</p>
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
-            <p><strong>Response Time:</strong> 3.86s</p>
+            <p><strong>Response Time:</strong> 4.15s</p>
             <p><strong>Status Code:</strong> 500</p>
         <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div>
         <div class="test failed">
@@ -110,7 +110,7 @@
             <p><strong>Query:</strong> Show projects with completion percentage above 75%</p>
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
-            <p><strong>Response Time:</strong> 4.57s</p>
+            <p><strong>Response Time:</strong> 4.58s</p>
             <p><strong>Status Code:</strong> 500</p>
         <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div>
         <div class="test failed">
@@ -120,6 +120,6 @@
             <p><strong>Query:</strong> List projects with less than 25% completion</p>
             <p><strong>SQL:</strong></p>
             <pre>Not available</pre>
-            <p><strong>Response Time:</strong> 3.66s</p>
+            <p><strong>Response Time:</strong> 4.12s</p>
             <p><strong>Status Code:</strong> 500</p>
         <p><strong>Errors:</strong></p><ul><li class='error'>Unexpected status code: 500</li></ul></div></body></html>
