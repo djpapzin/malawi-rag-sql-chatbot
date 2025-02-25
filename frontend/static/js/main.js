@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
+    const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('user-input');
     const sendButton = document.getElementById('sendButton');
     const guidanceTiles = document.querySelector('.guidance-tiles');
@@ -7,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const initialView = document.getElementById('initial-view');
     const chatView = document.getElementById('chat-view');
 
-    if (!chatInput || !sendButton || !guidanceTiles || !chatMessages) {
+    if (!chatInput || !sendButton || !guidanceTiles || !chatMessages || !chatForm) {
         console.error('Required DOM elements not found');
         return;
     }
@@ -18,7 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // State
     let isLoading = false;
 
-    async function sendMessage() {
+    async function sendMessage(e) {
+        if (e) e.preventDefault();
         if (isLoading) return;
         
         const message = chatInput.value.trim();
@@ -41,17 +43,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
             
-            const response = await fetch('http://localhost:5000/query', {
+            const response = await fetch('http://localhost:8000/query', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: message,
-                    source_lang: 'english',
-                    page: 1,
-                    page_size: 30,
-                    continue_previous: false
+                    message: message
                 }),
                 signal: controller.signal
             });
@@ -68,29 +66,72 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data && data.response) {
                 // Format the response for display
                 let formattedResponse = '';
-                if (data.response.results && data.response.results.length > 0) {
-                    const result = data.response.results[0];
+                
+                // Handle greeting messages
+                if (data.response.query_type === "greeting" && data.response.results[0].message) {
+                    formattedResponse = data.response.results[0].message;
+                }
+                // Handle query results
+                else if (data.response.results && data.response.results.length > 0) {
                     // Check if it's a total budget query
-                    if ('total_budget' in result) {
-                        const budget = parseFloat(result.total_budget.amount);
-                        formattedResponse = `The total budget is MWK ${budget.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                        })}`;
+                    if (data.response.results[0].total_budget && !data.response.results[0].project_name) {
+                        const budget = data.response.results[0].total_budget;
+                        formattedResponse = `The total budget is ${budget.formatted}`;
                     } else {
+                        // Format multiple project results
                         formattedResponse = data.response.results.map(project => {
-                            return `Project: ${project.project_name}\n` +
-                                   `District: ${project.district}\n` +
-                                   `Sector: ${project.project_sector}\n` +
-                                   `Status: ${project.project_status}\n` +
-                                   `Budget: ${project.total_budget.formatted}\n` +
-                                   `Completion: ${project.completion_percentage}%`;
+                            let details = [];
+                            
+                            if (project.project_name) {
+                                details.push(`📋 Project: ${project.project_name}`);
+                            }
+                            
+                            if (project.district) {
+                                details.push(`📍 District: ${project.district}`);
+                            }
+
+                            if (project.region) {
+                                details.push(`🌍 Region: ${project.region}`);
+                            }
+                            
+                            if (project.project_sector) {
+                                details.push(`🏗️ Sector: ${project.project_sector}`);
+                            }
+                            
+                            if (project.project_status) {
+                                details.push(`📊 Status: ${project.project_status}`);
+                            }
+                            
+                            if (project.total_budget && project.total_budget.formatted) {
+                                details.push(`💰 Budget: ${project.total_budget.formatted}`);
+                            }
+                            
+                            if (project.completion_percentage !== undefined) {
+                                details.push(`✅ Completion: ${project.completion_percentage}%`);
+                            }
+
+                            if (project.start_date) {
+                                details.push(`📅 Start Date: ${project.start_date}`);
+                            }
+
+                            if (project.completion_date) {
+                                details.push(`🏁 Completion Date: ${project.completion_date}`);
+                            }
+                            
+                            return details.join('\n');
                         }).join('\n\n');
                         
-                        formattedResponse += `\n\nTotal Results: ${data.response.metadata.total_results}`;
+                        // Add summary if there are multiple results
+                        if (data.response.metadata && data.response.metadata.total_results > 1) {
+                            formattedResponse += `\n\n📈 Found ${data.response.metadata.total_results} projects`;
+                        }
                     }
                 } else {
-                    formattedResponse = 'No results found for your query.';
+                    formattedResponse = 'I couldn\'t find any results matching your query. Try:\n\n' +
+                        '• Being more specific about the location or sector\n' +
+                        '• Checking for spelling mistakes\n' +
+                        '• Using simpler terms\n' +
+                        '• Asking about a different region or project type';
                 }
                 appendMessage(formattedResponse);
             } else {
@@ -102,7 +143,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (error.name === 'AbortError') {
                 appendMessage('Sorry, the request took too long. Please try again with a simpler question.');
             } else {
-                appendMessage(`Sorry, I encountered an error: ${error.message}`);
+                // Provide more helpful error messages
+                let errorMessage = 'I encountered an error. ';
+                if (error.message.includes('Must include FROM')) {
+                    errorMessage += 'Could you please rephrase your question to be more specific about what project information you\'re looking for?';
+                } else if (error.message.includes('500')) {
+                    errorMessage += 'The server encountered an issue. Please try asking a different question about the projects.';
+                } else {
+                    errorMessage += error.message;
+                }
+                appendMessage(errorMessage);
             }
         } finally {
             isLoading = false;
@@ -135,30 +185,35 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Handle send button click
-    sendButton.addEventListener('click', sendMessage);
+    // Handle form submission
+    chatForm.addEventListener('submit', sendMessage);
 
     // Handle enter key press
     chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
             sendMessage();
         }
     });
 
     // Handle tile clicks
-    document.querySelectorAll('.tile').forEach(tile => {
+    const tiles = document.querySelectorAll('.tile');
+    tiles.forEach(tile => {
         tile.addEventListener('click', () => {
-            const exampleQuery = tile.querySelector('.example-query').textContent.replace('Example: ', '').replace(/["]/g, '');
-            chatInput.value = exampleQuery;
-            chatInput.focus();
-            sendMessage();
-            
-            // Fade out guidance tiles
-            guidanceTiles.style.opacity = '0';
-            setTimeout(() => {
-                guidanceTiles.style.display = 'none';
-            }, 300);
+            const exampleQuery = tile.querySelector('.example-query').textContent;
+            if (exampleQuery) {
+                chatInput.value = exampleQuery.replace('Example: ', '').replace(/["]/g, '');
+                sendMessage();
+            }
         });
+    });
+
+    // Hide guidance tiles when chat starts
+    chatInput.addEventListener('focus', () => {
+        guidanceTiles.style.opacity = '0';
+        setTimeout(() => {
+            guidanceTiles.style.display = 'none';
+        }, 300);
     });
 
     // Handle tile clicks
@@ -170,12 +225,4 @@ document.addEventListener('DOMContentLoaded', function() {
             guidanceTiles.style.display = 'none';
         }, 300);
     }
-
-    // Hide guidance tiles when chat starts
-    chatInput.addEventListener('focus', () => {
-        guidanceTiles.style.opacity = '0';
-        setTimeout(() => {
-            guidanceTiles.style.display = 'none';
-        }, 300);
-    });
 });

@@ -41,21 +41,37 @@ def save_test_results(results):
                 f.write(f"```\n{result['response']['error']}\n```\n\n")
             else:
                 f.write("### ✅ SUCCESS:\n")
-                if result['response'].get('query_type') == 'chat':
-                    f.write("**Response Type:** Chat\n\n")
-                    f.write(f"**Message:**\n{result['response']['results'][0]['message']}\n\n")
-                else:
-                    f.write("**Response Type:** SQL\n\n")
-                    f.write("**Results:**\n")
-                    f.write("```json\n")
-                    f.write(json.dumps(result['response']['results'], indent=2))
-                    f.write("\n```\n\n")
+                response_data = result['response']
+                
+                if not isinstance(response_data, dict):
+                    f.write(f"**Raw Response:**\n```\n{json.dumps(response_data, indent=2)}\n```\n\n")
+                    continue
                     
-                    if "metadata" in result['response'] and "sql_query" in result['response']['metadata']:
-                        f.write("**SQL Query:**\n")
-                        f.write("```sql\n")
-                        f.write(result['response']['metadata']['sql_query'])
+                query_type = response_data.get('query_type', 'unknown')
+                f.write(f"**Response Type:** {query_type}\n\n")
+                
+                if 'results' in response_data:
+                    if query_type == 'chat':
+                        message = response_data['results'][0].get('message', '')
+                        f.write(f"**Message:**\n{message}\n\n")
+                    else:
+                        f.write("**Results:**\n")
+                        f.write("```json\n")
+                        f.write(json.dumps(response_data['results'], indent=2))
                         f.write("\n```\n\n")
+                
+                if "metadata" in response_data:
+                    metadata = response_data["metadata"]
+                    if isinstance(metadata, dict):
+                        if "sql_query" in metadata:
+                            f.write("**SQL Query:**\n")
+                            f.write("```sql\n")
+                            f.write(metadata["sql_query"])
+                            f.write("\n```\n\n")
+                        if "total_results" in metadata:
+                            f.write(f"**Total Results:** {metadata['total_results']}\n\n")
+                        if "query_time" in metadata:
+                            f.write(f"**Query Time:** {metadata['query_time']}\n\n")
             
             f.write("---\n\n")
         

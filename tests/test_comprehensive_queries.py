@@ -331,6 +331,84 @@ def test_specific_queries():
         expected_count=0
     )
     
+    # 6. SQL Injection Prevention Tests
+    logger.info("\n6. Testing SQL Injection Prevention...")
+    
+    tester.test_query(
+        "Tell me about 'CHILIPA CDSS GIRLS HOSTEL'; DROP TABLE proj_dashboard;--'",
+        "SQL Injection - DROP TABLE",
+        expected_count=0
+    )
+    
+    tester.test_query(
+        "Show details for project MW-CR-DO' UNION SELECT * FROM proj_dashboard--",
+        "SQL Injection - UNION Attack",
+        expected_count=0
+    )
+    
+    # 7. Special Character Handling
+    logger.info("\n7. Testing Special Character Handling...")
+    
+    tester.test_query(
+        "Tell me about 'Project's Name'",
+        "Special Chars - Single Quote",
+        expected_count=0
+    )
+    
+    tester.test_query(
+        "Show details for 'Project \"Name\"'",
+        "Special Chars - Double Quote",
+        expected_count=0
+    )
+    
+    tester.test_query(
+        "Tell me about 'Project;Name'",
+        "Special Chars - Semicolon",
+        expected_count=0
+    )
+    
+    # 8. Whitespace Handling
+    logger.info("\n8. Testing Whitespace Handling...")
+    
+    tester.test_query(
+        "Tell me about '   CHILIPA CDSS GIRLS HOSTEL   '",
+        "Whitespace - Extra Spaces",
+        expected_count=1
+    )
+    
+    tester.test_query(
+        "Show details for project    MW-CR-DO   ",
+        "Whitespace - Multiple Spaces",
+        expected_count=1
+    )
+    
+    tester.test_query(
+        "Tell me about '\tCHILIPA CDSS GIRLS HOSTEL\n'",
+        "Whitespace - Tabs and Newlines",
+        expected_count=1
+    )
+    
+    # 9. Mixed Query Types
+    logger.info("\n9. Testing Mixed Query Types...")
+    
+    tester.test_query(
+        "Show budget and status for project MW-CR-DO in Lilongwe district",
+        "Mixed - Code and District",
+        expected_count=1
+    )
+    
+    tester.test_query(
+        "List all completed projects like 'CHILIPA CDSS'",
+        "Mixed - Name and Status",
+        expected_count=1
+    )
+    
+    tester.test_query(
+        "What is the total budget for projects in education sector including 'CHILIPA CDSS GIRLS HOSTEL'",
+        "Mixed - Sector and Name",
+        expected_count=1
+    )
+    
     # Generate and save report
     report = tester.generate_report()
     with open('results/specific_project_query_test_results.md', 'w', encoding='utf-8') as f:
