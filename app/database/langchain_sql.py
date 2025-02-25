@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 from together import Together
 from ..models import DatabaseManager
 import os
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -85,22 +86,21 @@ class LangChainSQLIntegration:
     def __init__(self):
         """Initialize the integration"""
         try:
-            # Get API key and model from environment variables
-            api_key = os.getenv("TOGETHER_API_KEY", "f7119711abb83c4ec5e9b2339eb06c66c87d4958f4ce6cc348ed3ad0c6cb7101")
-            model = os.getenv("LLM_MODEL", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K")
+            # Get model from environment variables
+            model = os.getenv("LLM_MODEL", "meta-llama/Meta-Llama-3-8B-Instruct-Turbo")
             temperature = float(os.getenv("LLM_TEMPERATURE", "0.1"))
             
-            # Set Together API key
-            os.environ["TOGETHER_API_KEY"] = api_key
-            
-            # Initialize LLM
-            self.llm = Together()
+            # Initialize Together client without api_key parameter
+            self.client = Together()  # API key is read from TOGETHER_API_KEY env var
+            self.model = model
+            self.temperature = temperature
             
             # Initialize database manager
             self.db_manager = DatabaseManager()
             
-            # Set up logging
-            self.logger = logging.getLogger(__name__)
+            # Test the API connection
+            self.client.models.list()
+            logger.info("Successfully initialized Together API client")
             
         except Exception as e:
             logger.error(f"Error initializing LangChainSQLIntegration: {str(e)}")
@@ -266,196 +266,62 @@ class LangChainSQLIntegration:
             logger.error(f"Error details: {str(e)}")
             raise ValueError(f"Failed to process query result: {str(e)}")
 
+    def _get_llm_response(self, prompt: str) -> str:
+        """Get response from LLM using Together API"""
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1024,
+                temperature=self.temperature
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"Error getting LLM response: {str(e)}")
+            raise SQLQueryError(f"Failed to get answer: {str(e)}")
+
     def _generate_sql_query(self, user_query: str) -> str:
         """Generate SQL query from user query"""
         try:
-            # Check for greetings
-            greetings = ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]
-            if user_query.lower().strip() in greetings:
-                return """
-                    SELECT 'greeting' as type, 
-                           'Welcome! I can help you query information about infrastructure projects. Try asking about:
-- Total budget for all projects
-- Projects in a specific district
-- Projects by sector (e.g., infrastructure, education)
-- Completed or active projects
-- Projects with specific budget ranges' as message
-                    FROM proj_dashboard LIMIT 1
-                """
+            # Get database schema information
+            schema_info = self.get_table_info()
+            
+            # Create prompt with schema context
+            schema_context = f"""You are an SQL expert. Given the following database schema:
+            {json.dumps(schema_info, indent=2)}
+            
+            Generate a SQL query that will answer the user's question. The query should:
+            1. Only use tables and columns that exist in the schema
+            2. Use proper SQL syntax
+            3. Include a WHERE clause if filtering is needed
+            4. Use appropriate JOINs if multiple tables are needed
+            5. Return only the columns needed to answer the question
+            
+            DO NOT include any explanations or notes. Return ONLY the SQL query."""
+            
+            # Get SQL query from LLM using chat completions
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": schema_context},
+                    {"role": "user", "content": f"Generate SQL for: {user_query}"}
+                ],
+                max_tokens=200,
+                temperature=0.1
+            )
+            
+            # Extract just the SQL query if it's wrapped in markdown or other text
+            sql_query = self._extract_sql_query(response.choices[0].message.content)
 
-            # Ensure the query is not empty
-            if not user_query or not user_query.strip():
-                raise SQLQueryError("Query cannot be empty", query=user_query, stage="validation")
-
-            # Handle common queries directly
-            query_lower = user_query.lower()
-
-            # District projects query
-            for district in ["zomba", "lilongwe", "blantyre", "mzuzu"]:
-                if district in query_lower and "projects" in query_lower:
-                    sql = f"""
-                        SELECT 
-                            projectname,
-                            district,
-                            projectsector,
-                            projectstatus,
-                            budget,
-                            completionpercentage,
-                            startdate,
-                            completiondata
-                        FROM proj_dashboard 
-                        WHERE LOWER(district) = '{district}';
-                    """
-                    logger.info(f"Generated district query: {sql}")
-                    return sql.strip()
-                    
-            # Sector projects query
-            for sector in ["infrastructure", "education", "healthcare", "transport"]:
-                if sector in query_lower and "projects" in query_lower:
-                    sql = f"""
-                        SELECT projectname, district, projectsector, projectstatus, 
-                               budget, completionpercentage
-                        FROM proj_dashboard 
-                        WHERE LOWER(projectsector) = '{sector}'
-                    """
-                    logger.info(f"Generated sector query: {sql}")
-                    return sql
-                    
-            # Status based query
-            for status in ["active", "completed", "on hold", "planning"]:
-                if status in query_lower:
-                    sql = f"""
-                        SELECT 
-                            projectname, district, projectsector, projectstatus, 
-                            budget, completionpercentage, startdate, completiondata
-                        FROM proj_dashboard 
-                        WHERE LOWER(projectstatus) = '{status}'
-                    """
-                    logger.info(f"Generated status query: {sql}")
-                    return sql
-                    
-            # Budget range query
-            if "budget" in query_lower and any(x in query_lower for x in ["over", "above", "more than"]):
-                amount = None
-                for word in query_lower.split():
-                    try:
-                        if word.isdigit():
-                            amount = int(word)
-                            break
-                    except Exception as e:
-                        logger.warning(f"Failed to parse amount from word '{word}': {str(e)}")
-                        continue
-                        
-                if amount:
-                    sql = f"""
-                        SELECT 
-                            projectname, district, projectsector, projectstatus, 
-                            budget, completionpercentage, startdate, completiondata
-                        FROM proj_dashboard 
-                        WHERE budget > {amount}
-                    """
-                    logger.info(f"Generated budget range query: {sql}")
-                    return sql.strip()
-                else:
-                    raise SQLQueryError("Could not extract amount from query", 
-                                      query=user_query, 
-                                      stage="amount_extraction")
-                    
-            # Completion percentage query
-            if "complete" in query_lower and any(x in query_lower for x in ["over", "above", "more than"]):
-                percentage = None
-                for word in query_lower.split():
-                    try:
-                        if word.isdigit():
-                            percentage = int(word)
-                            break
-                    except Exception as e:
-                        logger.warning(f"Failed to parse percentage from word '{word}': {str(e)}")
-                        continue
-                        
-                if percentage:
-                    sql = f"""
-                        SELECT 
-                            projectname, district, projectsector, projectstatus, 
-                            budget, completionpercentage, startdate, completiondata
-                        FROM proj_dashboard 
-                        WHERE completionpercentage > {percentage}
-                    """
-                    logger.info(f"Generated completion query: {sql}")
-                    return sql.strip()
-                else:
-                    raise SQLQueryError("Could not extract percentage from query", 
-                                      query=user_query, 
-                                      stage="percentage_extraction")
-                    
-            # Project count query
-            if "count" in query_lower and "projects" in query_lower and "district" in query_lower:
-                sql = """
-                    SELECT 
-                        district, 
-                        COUNT(*) as project_count 
-                    FROM proj_dashboard 
-                    GROUP BY district
-                """
-                logger.info(f"Generated count query: {sql}")
-                return sql
-                
-            # Average budget query
-            if "average" in query_lower and "budget" in query_lower and "sector" in query_lower:
-                sql = """
-                    SELECT 
-                        projectsector as sector,
-                        AVG(budget) as average_budget,
-                        COUNT(*) as total_projects,
-                        MIN(budget) as min_budget,
-                        MAX(budget) as max_budget,
-                        SUM(budget) as total_budget
-                    FROM proj_dashboard 
-                    GROUP BY projectsector
-                """
-                logger.info(f"Generated average budget query: {sql}")
-                return sql
-                
-            # Date based query
-            if "starting" in query_lower or "started" in query_lower:
-                year = None
-                for word in query_lower.split():
-                    try:
-                        if word.isdigit() and len(word) == 4:
-                            year = int(word)
-                            break
-                    except Exception as e:
-                        logger.warning(f"Failed to parse year from word '{word}': {str(e)}")
-                        continue
-                        
-                if year:
-                    sql = f"""
-                        SELECT 
-                            projectname, district, projectsector, projectstatus, 
-                            budget, completionpercentage, startdate, completiondata
-                        FROM proj_dashboard 
-                        WHERE strftime('%Y', startdate) = '{year}'
-                    """
-                    logger.info(f"Generated date query: {sql}")
-                    return sql.strip()
-                else:
-                    raise SQLQueryError("Could not extract year from query", 
-                                      query=user_query, 
-                                      stage="year_extraction")
-
-            # If no pattern matches, generate a default query
-            sql = """
-                SELECT 
-                    projectname, district, projectsector, projectstatus,
-                    budget, completionpercentage, startdate, completiondata
-                FROM proj_dashboard
-            """
-            logger.info(f"Generated default query: {sql}")
-            return sql.strip()
+            # Validate the SQL query
+            self.validate_sql_query(sql_query)
+            
+            return sql_query
 
         except Exception as e:
             logger.error(f"Error generating SQL query: {str(e)}")
-            logger.error(f"Query: {user_query}")
             logger.error(traceback.format_exc())
             raise ValueError(f"Failed to generate SQL query: {str(e)}")
 
@@ -687,10 +553,10 @@ class LangChainSQLIntegration:
             full_prompt = f"{schema_context}\n\nGenerate a SQL query for: {user_query}"
 
             # Get SQL query from LLM
-            sql_query = self.llm.invoke(full_prompt)
+            response = self._get_llm_response(full_prompt)
 
             # Extract just the SQL query if it's wrapped in markdown or other text
-            sql_query = self._extract_sql_query(sql_query)
+            sql_query = self._extract_sql_query(response)
 
             # Validate the query has required components
             if "FROM proj_dashboard" not in sql_query.upper():
@@ -721,16 +587,34 @@ class LangChainSQLIntegration:
     async def get_answer(self, user_query: str) -> Dict[str, Any]:
         """Get answer for user query"""
         try:
-            # Check for greetings or general queries
-            greetings = ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]
-            if user_query.lower().strip() in greetings:
-                response = self.llm.invoke(
-                    "You are a helpful assistant for a Malawi infrastructure projects database. " +
-                    "The user has greeted you. Respond warmly and suggest what kinds of questions they can ask about the projects."
+            # First, detect query intent
+            intent_prompt = """You are an expert at understanding user intent. Given this user query, determine if it is:
+            1. A GREETING (e.g., hello, hi, hey)
+            2. A GENERAL QUESTION about what the system can do
+            3. A SPECIFIC QUESTION about projects that needs SQL
+            4. OTHER (specify what)
+            
+            Respond with just one word: GREETING, GENERAL, SQL, or OTHER.
+            
+            User query: {query}"""
+            
+            intent = self._get_llm_response(intent_prompt.format(query=user_query)).strip().upper()
+            logger.info(f"Detected intent: {intent} for query: {user_query}")
+            
+            # Handle greetings
+            if intent == "GREETING":
+                response = self._get_llm_response(
+                    """You are a helpful assistant for a Malawi infrastructure projects database. Respond warmly and suggest what kinds of questions they can ask about the projects. For example:
+                    - Ask about projects in specific districts (Lilongwe, Blantyre, etc.)
+                    - Query project budgets and completion status
+                    - Find projects by sector (Infrastructure, Education, etc.)
+                    - Get statistics about project completion rates
+                    
+                    The user has greeted you. Respond warmly and provide these suggestions."""
                 )
                 return {
                     "query_type": "chat",
-                    "results": [{"message": response}],
+                    "results": [{"type": "greeting", "message": response}],
                     "metadata": {
                         "total_results": 1,
                         "query_time": "0.1s",
@@ -738,50 +622,103 @@ class LangChainSQLIntegration:
                     }
                 }
             
-            try:
-                # Try to generate SQL query
-                sql_query = self._generate_sql_query(user_query)
-                logger.info(f"Generated SQL query: {sql_query}")
-                
-                # Execute query
-                with self.db_manager.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(sql_query)
-                    results = [dict(row) for row in cursor.fetchall()]
+            # Handle general questions about system capabilities
+            if intent == "GENERAL":
+                response = self._get_llm_response(
+                    """You are a helpful assistant for a Malawi infrastructure projects database. The user wants to know what kind of information they can query. Explain the following capabilities:
                     
-                # Format response
-                return {
-                    "query_type": "sql",
-                    "results": results,
-                    "metadata": {
-                        "total_results": len(results),
-                        "query_time": "0.1s",
-                        "sql_query": sql_query
-                    }
-                }
-            except Exception as e:
-                # If SQL fails, fall back to natural language response
-                logger.info(f"SQL generation failed, falling back to LLM: {str(e)}")
-                prompt = f"""You are a helpful assistant for a Malawi infrastructure projects database. 
-                The user asked: "{user_query}"
-                The database contains information about:
-                - Project names, districts, and regions
-                - Project sectors (e.g., infrastructure, education)
-                - Project status and completion percentages
-                - Project budgets and dates
-                
-                I couldn't generate a valid SQL query for this. Please provide a helpful response explaining what kind of information they can ask for instead."""
-                
-                response = self.llm.invoke(prompt)
+                    1. Project Information:
+                       - Search by project name or district
+                       - View project sectors and status
+                       - Check completion percentages
+                       
+                    2. Financial Data:
+                       - Query project budgets
+                       - Get total budgets by district/sector
+                       - Compare project costs
+                       
+                    3. Status and Progress:
+                       - Find active/completed projects
+                       - Check project timelines
+                       - View completion rates
+                       
+                    4. Analytics:
+                       - Get project counts by district
+                       - Calculate average budgets
+                       - Find largest/smallest projects
+                    
+                    The user asked: {query}
+                    Provide a helpful response about these capabilities.""".format(query=user_query)
+                )
                 return {
                     "query_type": "chat",
-                    "results": [{"message": response}],
+                    "results": [{"type": "help", "message": response}],
                     "metadata": {
                         "total_results": 1,
                         "query_time": "0.1s",
                         "sql_query": ""
                     }
                 }
+            
+            # Handle SQL queries
+            if intent == "SQL":
+                try:
+                    # Generate and execute SQL query
+                    sql_query = self._generate_sql_query(user_query)
+                    logger.info(f"Generated SQL query: {sql_query}")
+                    
+                    with self.db_manager.get_connection() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(sql_query)
+                        results = [dict(row) for row in cursor.fetchall()]
+                        
+                    # Get a natural language explanation of the results
+                    explanation_prompt = f"""You are a helpful assistant for a Malawi infrastructure projects database. 
+                    The user asked: "{user_query}"
+                    The query returned {len(results)} results.
+                    
+                    First result: {str(results[0]) if results else 'No results'}
+                    
+                    Provide a brief, natural language explanation of these results."""
+                    
+                    explanation = self._get_llm_response(explanation_prompt)
+                    
+                    return {
+                        "query_type": "sql",
+                        "results": results,
+                        "explanation": explanation,
+                        "metadata": {
+                            "total_results": len(results),
+                            "query_time": "0.1s",
+                            "sql_query": sql_query
+                        }
+                    }
+                except Exception as e:
+                    logger.error(f"SQL generation/execution failed: {str(e)}")
+                    raise
+            
+            # Handle other types of queries
+            response = self._get_llm_response(
+                f"""You are a helpful assistant for a Malawi infrastructure projects database. 
+                The user asked: "{user_query}"
+                This seems to be an unsupported type of query. Explain what kinds of questions they can ask instead, focusing on:
+                - Project information (names, locations, sectors)
+                - Financial data (budgets, costs)
+                - Status updates (completion %, timelines)
+                - Statistics and analytics
+                
+                Provide a helpful response."""
+            )
+            
+            return {
+                "query_type": "chat",
+                "results": [{"type": "other", "message": response}],
+                "metadata": {
+                    "total_results": 1,
+                    "query_time": "0.1s",
+                    "sql_query": ""
+                }
+            }
                 
         except Exception as e:
             logger.error(f"Error getting answer: {str(e)}")
@@ -975,13 +912,6 @@ class LangChainSQLIntegration:
                     sql_query=sql_query
                 )
             )
-
-        except Exception as e:
-            logger.error(f"Error formatting response: {str(e)}")
-            logger.error(f"Query results: {query_results}")
-            logger.error(f"SQL query: {sql_query}")
-            logger.error(traceback.format_exc())
-            raise ValueError(f"Failed to format response: {str(e)}")
 
         except Exception as e:
             logger.error(f"Error formatting response: {str(e)}")
