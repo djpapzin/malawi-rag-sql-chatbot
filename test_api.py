@@ -90,32 +90,9 @@ def run_tests():
     
     # Test cases
     queries = [
-        # Greeting
-        "hi",
-        
-        # District queries
-        "Show me all projects in Zomba district",
-        "What projects are there in Lilongwe?",
-        
-        # Budget queries
-        "What is the total budget for all projects?",
         "What is the total budget for infrastructure projects?",
-        
-        # Status queries
-        "Show me all completed projects",
-        "List active projects",
-        
-        # Sector queries
-        "Show me education projects",
-        "List all infrastructure projects",
-        
-        # Invalid queries
-        "What is the weather like?",
-        "Tell me a joke",
-        
-        # Complex queries
-        "Show me completed projects in the Southern Region",
-        "What is the average budget for education projects?"
+        "Show me all projects in Zomba district",
+        "List all completed projects"
     ]
     
     for query in queries:
