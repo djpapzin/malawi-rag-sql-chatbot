@@ -588,11 +588,18 @@ class LangChainSQLIntegration:
         """Get answer for user query"""
         try:
             # First, detect query intent
-            intent_prompt = """You are an expert at understanding user intent. Given this user query, determine if it is:
+            intent_prompt = """You are an expert at understanding user intent for a Malawi infrastructure projects database. The database contains ONLY the following information:
+            - Project names and locations (districts)
+            - Project sectors (Infrastructure, Education, etc.)
+            - Project status (Active, Completed, etc.)
+            - Project budgets and completion percentages
+            - Project start and completion dates
+
+            Given this user query, determine if it is:
             1. A GREETING (e.g., hello, hi, hey)
             2. A GENERAL QUESTION about what the system can do
-            3. A SPECIFIC QUESTION about projects that needs SQL
-            4. OTHER (specify what)
+            3. A SPECIFIC QUESTION about projects that needs SQL (ONLY if it asks about data we actually have)
+            4. OTHER (if it asks about data we don't have, like ages, names of people, etc.)
             
             Respond with just one word: GREETING, GENERAL, SQL, or OTHER.
             
