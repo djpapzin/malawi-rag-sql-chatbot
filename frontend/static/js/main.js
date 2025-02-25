@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const initialView = document.getElementById('initial-view');
     const chatView = document.getElementById('chat-view');
 
+    // Get the base URL from the current window location
+    const baseUrl = window.location.origin;
+
     if (!chatInput || !sendButton || !guidanceTiles || !chatMessages || !chatForm) {
         console.error('Required DOM elements not found');
         return;
@@ -43,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
             
-            const response = await fetch('http://localhost:5000/query', {
+            const response = await fetch(`${baseUrl}/query`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -63,23 +66,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.detail || `Server error: ${response.status}`);
             }
             
-            if (data && data.response) {
+            if (data && data.results) {
                 // Format the response for display
                 let formattedResponse = '';
                 
                 // Handle greeting messages
-                if (data.response.query_type === "greeting" && data.response.results[0].message) {
-                    formattedResponse = data.response.results[0].message;
+                if (data.query_type === "chat" && data.results[0].message) {
+                    formattedResponse = data.results[0].message;
                 }
                 // Handle query results
-                else if (data.response.results && data.response.results.length > 0) {
+                else if (data.results && data.results.length > 0) {
                     // Check if it's a total budget query
-                    if (data.response.results[0].total_budget && !data.response.results[0].project_name) {
-                        const budget = data.response.results[0].total_budget;
+                    if (data.results[0].total_budget && !data.results[0].project_name) {
+                        const budget = data.results[0].total_budget;
                         formattedResponse = `The total budget is ${budget.formatted}`;
                     } else {
                         // Format multiple project results
-                        formattedResponse = data.response.results.map(project => {
+                        formattedResponse = data.results.map(project => {
                             let details = [];
                             
                             if (project.project_name) {
@@ -122,8 +125,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         }).join('\n\n');
                         
                         // Add summary if there are multiple results
-                        if (data.response.metadata && data.response.metadata.total_results > 1) {
-                            formattedResponse += `\n\n📈 Found ${data.response.metadata.total_results} projects`;
+                        if (data.metadata && data.metadata.total_results > 1) {
+                            formattedResponse += `\n\n📈 Found ${data.metadata.total_results} projects`;
                         }
                     }
                 } else {
