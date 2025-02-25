@@ -60,82 +60,109 @@ document.addEventListener('DOMContentLoaded', function() {
             clearTimeout(timeoutId);
             
             const data = await response.json();
-            console.log('Received response:', data);
+            // Handle nested response format
+            const responseData = data.response || data;
+            
+            console.log('Received response:', {
+                data,
+                responseData,
+                type: responseData.query_type,
+                hasResults: Boolean(responseData.results),
+                resultsLength: responseData.results ? responseData.results.length : 0,
+                firstResult: responseData.results && responseData.results[0]
+            });
             
             if (!response.ok) {
-                throw new Error(data.detail || `Server error: ${response.status}`);
+                throw new Error(responseData.detail || `Server error: ${response.status}`);
             }
             
-            if (data && data.results) {
+            if (responseData && responseData.results) {
                 // Format the response for display
                 let formattedResponse = '';
                 
-                // Handle greeting messages
-                if (data.query_type === "chat" && data.results[0].message) {
-                    formattedResponse = data.results[0].message;
+                // Handle chat messages (greetings, help, etc)
+                if (responseData.query_type === "chat" && responseData.results[0] && responseData.results[0].message) {
+                    formattedResponse = responseData.results[0].message;
                 }
-                // Handle query results
-                else if (data.results && data.results.length > 0) {
-                    // Check if it's a total budget query
-                    if (data.results[0].total_budget && !data.results[0].project_name) {
-                        const budget = data.results[0].total_budget;
-                        formattedResponse = `The total budget is ${budget.formatted}`;
-                    } else {
-                        // Format multiple project results
-                        formattedResponse = data.results.map(project => {
-                            let details = [];
+                // Handle SQL query results
+                else if (responseData.query_type === "sql" && responseData.results) {
+                    // Add explanation if available
+                    if (responseData.explanation) {
+                        formattedResponse = responseData.explanation + "\n\n";
+                    }
+                    
+                    // Format results
+                    if (responseData.results.length > 0) {
+                        // Check if it's a total budget query
+                        if (responseData.results[0].total_budget && !responseData.results[0].project_name) {
+                            const budget = responseData.results[0].total_budget;
+                            formattedResponse += `The total budget is ${typeof budget === 'object' ? budget.formatted : `MWK ${Number(budget).toLocaleString()}`}`;
+                        } else {
+                            // Format multiple project results
+                            formattedResponse += responseData.results.map(project => {
+                                let details = [];
+                                
+                                if (project.project_name || project.projectname) {
+                                    details.push(`📋 Project: ${project.project_name || project.projectname}`);
+                                }
+                                
+                                if (project.district) {
+                                    details.push(`📍 District: ${project.district}`);
+                                }
+    
+                                if (project.region) {
+                                    details.push(`🌍 Region: ${project.region}`);
+                                }
+                                
+                                if (project.project_sector || project.projectsector) {
+                                    details.push(`🏗️ Sector: ${project.project_sector || project.projectsector}`);
+                                }
+                                
+                                if (project.project_status || project.projectstatus) {
+                                    details.push(`📊 Status: ${project.project_status || project.projectstatus}`);
+                                }
+                                
+                                if (project.budget) {
+                                    details.push(`💰 Budget: MWK ${Number(project.budget).toLocaleString()}`);
+                                } else if (project.total_budget) {
+                                    if (typeof project.total_budget === 'object') {
+                                        details.push(`💰 Budget: ${project.total_budget.formatted}`);
+                                    } else {
+                                        details.push(`💰 Budget: MWK ${Number(project.total_budget).toLocaleString()}`);
+                                    }
+                                }
+                                
+                                if (project.completion_percentage !== undefined || project.completionpercentage !== undefined) {
+                                    details.push(`✅ Completion: ${project.completion_percentage || project.completionpercentage}%`);
+                                }
+    
+                                if (project.start_date || project.startdate) {
+                                    details.push(`📅 Start Date: ${project.start_date || project.startdate}`);
+                                }
+    
+                                if (project.completion_date || project.completiondata) {
+                                    details.push(`🏁 Completion Date: ${project.completion_date || project.completiondata}`);
+                                }
+                                
+                                return details.join('\n');
+                            }).join('\n\n');
                             
-                            if (project.project_name) {
-                                details.push(`📋 Project: ${project.project_name}`);
+                            // Add summary if there are multiple results
+                            if (responseData.metadata && responseData.metadata.total_results > 1) {
+                                formattedResponse += `\n\n📈 Found ${responseData.metadata.total_results} projects`;
                             }
-                            
-                            if (project.district) {
-                                details.push(`📍 District: ${project.district}`);
-                            }
-
-                            if (project.region) {
-                                details.push(`🌍 Region: ${project.region}`);
-                            }
-                            
-                            if (project.project_sector) {
-                                details.push(`🏗️ Sector: ${project.project_sector}`);
-                            }
-                            
-                            if (project.project_status) {
-                                details.push(`📊 Status: ${project.project_status}`);
-                            }
-                            
-                            if (project.total_budget && project.total_budget.formatted) {
-                                details.push(`💰 Budget: ${project.total_budget.formatted}`);
-                            }
-                            
-                            if (project.completion_percentage !== undefined) {
-                                details.push(`✅ Completion: ${project.completion_percentage}%`);
-                            }
-
-                            if (project.start_date) {
-                                details.push(`📅 Start Date: ${project.start_date}`);
-                            }
-
-                            if (project.completion_date) {
-                                details.push(`🏁 Completion Date: ${project.completion_date}`);
-                            }
-                            
-                            return details.join('\n');
-                        }).join('\n\n');
-                        
-                        // Add summary if there are multiple results
-                        if (data.metadata && data.metadata.total_results > 1) {
-                            formattedResponse += `\n\n📈 Found ${data.metadata.total_results} projects`;
                         }
                     }
-                } else {
+                }
+                
+                if (!formattedResponse) {
                     formattedResponse = 'I couldn\'t find any results matching your query. Try:\n\n' +
                         '• Being more specific about the location or sector\n' +
                         '• Checking for spelling mistakes\n' +
                         '• Using simpler terms\n' +
                         '• Asking about a different region or project type';
                 }
+                
                 appendMessage(formattedResponse);
             } else {
                 console.error('Invalid response format:', data);
