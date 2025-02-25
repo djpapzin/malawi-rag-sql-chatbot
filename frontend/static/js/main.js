@@ -203,17 +203,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const exampleQuery = tile.querySelector('.example-query').textContent;
             if (exampleQuery) {
                 chatInput.value = exampleQuery.replace('Example: ', '').replace(/["]/g, '');
-                sendMessage();
+            sendMessage();
             }
         });
     });
-
+            
     // Hide guidance tiles when chat starts
     chatInput.addEventListener('focus', () => {
-        guidanceTiles.style.opacity = '0';
-        setTimeout(() => {
-            guidanceTiles.style.display = 'none';
-        }, 300);
+            guidanceTiles.style.opacity = '0';
+            setTimeout(() => {
+                guidanceTiles.style.display = 'none';
+            }, 300);
     });
 
     // Handle tile clicks
