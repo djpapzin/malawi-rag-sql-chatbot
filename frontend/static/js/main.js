@@ -93,10 +93,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Format results
                     if (responseData.results.length > 0) {
-                        // Check if it's a total budget query
-                        if (responseData.results[0].total_budget && !responseData.results[0].project_name) {
-                            const budget = responseData.results[0].total_budget;
-                            formattedResponse += `The total budget is ${typeof budget === 'object' ? budget.formatted : `MWK ${Number(budget).toLocaleString()}`}`;
+                        const result = responseData.results[0];
+                        
+                        // Check if it's a budget summary query
+                        if (result.total_budget !== undefined && result.total_projects !== undefined) {
+                            formattedResponse += `📊 Project Budget Summary:\n\n`;
+                            formattedResponse += `• Total Projects: ${result.total_projects}\n`;
+                            formattedResponse += `• Projects with Budget Data: ${result.projects_with_budget}\n`;
+                            formattedResponse += `• Total Budget: ${typeof result.total_budget === 'object' ? 
+                                result.total_budget.formatted : 
+                                `MWK ${Number(result.total_budget || 0).toLocaleString()}`}\n`;
+                            if (result.average_budget) {
+                                formattedResponse += `• Average Budget per Project: MWK ${Number(result.average_budget).toLocaleString()}`;
+                            }
                         } else {
                             // Format multiple project results
                             formattedResponse += responseData.results.map(project => {
@@ -109,10 +118,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (project.district) {
                                     details.push(`📍 District: ${project.district}`);
                                 }
-    
-                                if (project.region) {
-                                    details.push(`🌍 Region: ${project.region}`);
-                                }
                                 
                                 if (project.project_sector || project.projectsector) {
                                     details.push(`🏗️ Sector: ${project.project_sector || project.projectsector}`);
@@ -122,35 +127,26 @@ document.addEventListener('DOMContentLoaded', function() {
                                     details.push(`📊 Status: ${project.project_status || project.projectstatus}`);
                                 }
                                 
-                                if (project.budget) {
-                                    details.push(`💰 Budget: MWK ${Number(project.budget).toLocaleString()}`);
-                                } else if (project.total_budget) {
-                                    if (typeof project.total_budget === 'object') {
-                                        details.push(`💰 Budget: ${project.total_budget.formatted}`);
-                                    } else {
-                                        details.push(`💰 Budget: MWK ${Number(project.total_budget).toLocaleString()}`);
+                                // Handle budget with null check
+                                if (project.budget || project.total_budget) {
+                                    const budgetValue = project.budget || 
+                                        (typeof project.total_budget === 'object' ? 
+                                            project.total_budget.amount : 
+                                            project.total_budget);
+                                    if (budgetValue !== null && budgetValue !== undefined) {
+                                        details.push(`💰 Budget: MWK ${Number(budgetValue).toLocaleString()}`);
                                     }
                                 }
                                 
                                 if (project.completion_percentage !== undefined || project.completionpercentage !== undefined) {
-                                    details.push(`✅ Completion: ${project.completion_percentage || project.completionpercentage}%`);
-                                }
-    
-                                if (project.start_date || project.startdate) {
-                                    details.push(`📅 Start Date: ${project.start_date || project.startdate}`);
-                                }
-    
-                                if (project.completion_date || project.completiondata) {
-                                    details.push(`🏁 Completion Date: ${project.completion_date || project.completiondata}`);
+                                    const percentage = project.completion_percentage || project.completionpercentage;
+                                    if (percentage !== null) {
+                                        details.push(`✅ Completion: ${percentage}%`);
+                                    }
                                 }
                                 
                                 return details.join('\n');
                             }).join('\n\n');
-                            
-                            // Add summary if there are multiple results
-                            if (responseData.metadata && responseData.metadata.total_results > 1) {
-                                formattedResponse += `\n\n📈 Found ${responseData.metadata.total_results} projects`;
-                            }
                         }
                     }
                 }

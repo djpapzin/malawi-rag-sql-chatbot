@@ -1,0 +1,12 @@
+Test 1: Total Infrastructure Budget
+--------------------------------------------------------------------------------
+Query: What is the total budget for infrastructure projects?
+--------------------------------------------------------------------------------
+No budget information available
+
+
+Test 2: Projects in Zomba District
+--------------------------------------------------------------------------------
+Query: Show me projects in Zomba district
+--------------------------------------------------------------------------------
+No projects found

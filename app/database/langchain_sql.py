@@ -340,7 +340,16 @@ class LangChainSQLIntegration:
             
             # Total budget query
             if "total budget" in query_lower and "all projects" in query_lower:
-                sql = "SELECT SUM(budget) as total_budget FROM proj_dashboard;"
+                sql = """
+                    SELECT 
+                        COUNT(*) as total_projects,
+                        COUNT(budget) as projects_with_budget,
+                        SUM(budget) as total_budget,
+                        AVG(budget) as average_budget,
+                        MIN(budget) as min_budget,
+                        MAX(budget) as max_budget
+                    FROM proj_dashboard;
+                """
                 logger.info(f"Generated total budget query: {sql}")
                 return sql
                 

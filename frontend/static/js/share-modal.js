@@ -1,10 +1,15 @@
 // Share modal functionality
 document.addEventListener('DOMContentLoaded', function() {
-    const shareButton = document.getElementById('share-button');
-    const shareModal = document.getElementById('share-modal');
-    
-    // Only initialize share functionality if both elements exist
-    if (shareButton && shareModal) {
+    // Only try to initialize if the elements exist
+    const initShareModal = () => {
+        const shareButton = document.getElementById('share-button');
+        const shareModal = document.getElementById('share-modal');
+        
+        if (!shareButton || !shareModal) {
+            console.log('Share functionality not available - required elements missing');
+            return;
+        }
+        
         // Show modal
         shareButton.addEventListener('click', () => {
             shareModal.classList.remove('hidden');
@@ -23,5 +28,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 shareModal.classList.add('hidden');
             }
         });
-    }
+    };
+
+    // Try to initialize share modal
+    initShareModal();
 }); 
