@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 
 def test_query(query):
-    url = "http://localhost:5000/query"
+    url = "http://localhost:5000/api/rag-sql-chatbot/chat"
     headers = {"Content-Type": "application/json"}
     data = {"message": query}
     

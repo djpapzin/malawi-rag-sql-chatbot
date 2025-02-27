@@ -2,7 +2,7 @@ import requests
 import json
 
 def test_specific():
-    url = "http://localhost:5000/query"
+    url = "http://localhost:5000/api/rag-sql-chatbot/chat"
     headers = {"Content-Type": "application/json"}
     query = {"message": "Show me details about Mangochi infrastructure projects"}
     

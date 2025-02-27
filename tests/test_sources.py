@@ -84,7 +84,7 @@ def test_query_endpoint(test_client):
     )
     
     # Send request
-    response = test_client.post("/query", json=query.dict())
+    response = test_client.post("/api/rag-sql-chatbot/chat", json=query.dict())
     
     # Verify response
     assert response.status_code == 200

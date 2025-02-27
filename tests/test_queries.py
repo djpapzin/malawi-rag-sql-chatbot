@@ -18,7 +18,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration
-API_URL = "http://localhost:5000/query"
+API_URL = "http://localhost:5000/api/rag-sql-chatbot/chat"
 RESULTS_DIR = "test_results"
 EXPECTED_FIELDS = {
     "general": ["project_name", "fiscal_year", "location", "total_budget", "status", "project_sector"],

@@ -7,7 +7,7 @@ BASE_URL = "http://localhost:8003"
 
 def test_query(message: str):
     """Test a specific query"""
-    url = f"{BASE_URL}/query"
+    url = f"{BASE_URL}/api/rag-sql-chatbot/chat"
     headers = {"Content-Type": "application/json"}
     data = {
         "message": message,

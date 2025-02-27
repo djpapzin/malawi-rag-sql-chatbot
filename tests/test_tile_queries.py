@@ -14,7 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Test configuration
-API_URL = "http://localhost:5000/query"
+API_URL = "http://localhost:5000/api/rag-sql-chatbot/chat"
 RESULTS_FILE = "tile_test_results.json"
 
 def format_sql(sql: str) -> str:
@@ -57,7 +57,7 @@ def test_tile_queries():
     logger = logging.getLogger(__name__)
 
     # API endpoint
-    api_url = "http://localhost:5000/query"
+    api_url = "http://localhost:5000/api/rag-sql-chatbot/chat"
     results_file = "tile_test_results.json"
 
     # Test queries
