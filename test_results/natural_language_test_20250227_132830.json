@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-02-27T13:28:30.706681",
+  "total_tests": 4,
+  "passed_tests": 0,
+  "results": [
+    {
+      "test_case": "Basic project query",
+      "query": "What projects are there in Lilongwe?",
+      "passed": false,
+      "error": "Response missing natural language message\nassert 'message' in {'data': {'completion_percentage': 0, 'district': 'Lilongwe', 'project_name': 'Lilongwe Road Development Phase 1', 'project_sector': 'Infrastructure', ...}, 'type': 'budget_summary'}"
+    },
+    {
+      "test_case": "Status-based query",
+      "query": "Tell me about completed projects",
+      "passed": false,
+      "error": "Response missing natural language message\nassert 'message' in {'data': {'completion_percentage': 2, 'district': 'Mzuzu', 'project_name': 'Mzuzu School Construction Phase 1', 'project_sector': 'Energy', ...}, 'type': 'budget_summary'}"
+    },
+    {
+      "test_case": "Aggregate query",
+      "query": "What is the total budget for infrastructure projects?",
+      "passed": false,
+      "error": "Response missing natural language message\nassert 'message' in {'data': {'total_budget': {'amount': 142925000.0, 'formatted': 'MWK 142,925,000.00'}}, 'type': 'budget_summary'}"
+    },
+    {
+      "test_case": "Greeting query",
+      "query": "Hello, how can you help me?",
+      "passed": false,
+      "error": "Response missing natural language message\nassert 'message' in {'data': {'completion_percentage': 0, 'district': 'Lilongwe', 'project_name': 'Lilongwe Road Development Phase 1', 'project_sector': 'Infrastructure', ...}, 'type': 'budget_summary'}"
+    }
+  ]
+}

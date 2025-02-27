@@ -5,7 +5,7 @@ import os
 
 def test_query_endpoint():
     # Test setup
-    url = "http://localhost:5000/query"
+    url = "http://localhost:5000/api/rag-sql-chatbot/chat"
     test_cases = [
         {
             "name": "Basic SQL Query",

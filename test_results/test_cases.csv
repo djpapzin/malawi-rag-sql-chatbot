@@ -1,0 +1,14 @@
+Reference	System/Process	Title	Area	Pass/Fail	Status	Testing Status	Context																		
+AITEST-001	RAG PDF Chatbot	Correct list of documents show	AI Chatbot	Fail	Done	TESTED	Web version	https://kwantu.codebasehq.com/projects/ai/tickets/36																	
+AITEST-002	RAG PDF Chatbot	Links to documents work	AI Chatbot	Not tested			Web version																		
+AITEST-003	RAG PDF Chatbot	Suggested questions give sensible answers	AI Chatbot	Pass	Done	TESTED	Web version																		
+AITEST-004	RAG PDF Chatbot	Non relevant questions gives no answer	AI Chatbot	Pass	Done	TESTED	Web version																		
+AITEST-005	RAG PDF Chatbot	Translation works	AI Chatbot	Pass	Done	TESTED	Web version																		
+AITEST-006	RAG SQL Chatbot	Initial listing shows with the following info: Name / Location / Total budget	AI Chatbot	Fail	Done	TESTED	Web version	https://kwantu.codebasehq.com/projects/ai/tickets/37																	
+AITEST-007	RAG SQL Chatbot	Detailed project overview shows with the following info: Name / Location / Budget / Progress	AI Chatbot	Not tested			Web version																		
+AITEST-008	RAG SQL Chatbot	Suggested questions give sensible answers	AI Chatbot	Fail	Done	TESTED	Web version	https://kwantu.codebasehq.com/projects/ai/tickets/38																	
+AITEST-009	RAG SQL Chatbot	Non relevant questions gives no answer	AI Chatbot	Pass	Done	TESTED	Web version																		
+AITEST-010	RAG SQL Chatbot	Translation works	AI Chatbot	Fail	Done	TESTED	Web version	https://kwantu.codebasehq.com/projects/ai/tickets/39																	
+AITEST-011	NLP Demo	Manual text entry and summary shows relevant response	AI Chatbot	Pass	Done	TESTED	Web version																		
+AITEST-012	NLP Demo	Manual text entry and topic analysis shows relevant response	AI Chatbot	Pass	Done	TESTED	Web version																		
+AITEST-013	NLP Demo	Manual text entry and sentiment analysis shows relevant response	AI Chatbot	Pass	Done	TESTED	Web version																		
