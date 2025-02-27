@@ -7,239 +7,248 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatMessages = document.getElementById('chat-messages');
     const initialView = document.getElementById('initial-view');
     const chatView = document.getElementById('chat-view');
+    const queryDetails = document.getElementById('query-details');
+    const queryDetailsHeader = document.querySelector('.query-details-header');
+    const queryDetailsContent = document.querySelector('.query-details-content');
+    const sqlQueryText = document.getElementById('sql-query-text');
+    const queryTime = document.getElementById('query-time');
+    const totalResults = document.getElementById('total-results');
+    const toggleDetailsBtn = document.getElementById('toggle-details');
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'loading-indicator';
+    loadingIndicator.innerHTML = '<div class="spinner"></div>';
 
     // Get the base URL from the current window location
     const baseUrl = window.location.origin;
 
-    if (!chatInput || !sendButton || !guidanceTiles || !chatMessages || !chatForm) {
-        console.error('Required DOM elements not found');
-        return;
+    // Validate required DOM elements
+    const requiredElements = { chatInput, sendButton, guidanceTiles, chatMessages, chatForm, queryDetails, queryDetailsHeader, queryDetailsContent, sqlQueryText, queryTime, totalResults, toggleDetailsBtn };
+    for (const [name, element] of Object.entries(requiredElements)) {
+        if (!element) {
+            console.error(`Required DOM element not found: ${name}`);
+            return;
+        }
     }
 
     // Initially hide the chat view
-    chatView.style.display = 'none';
+    if (chatView) chatView.style.display = 'none';
 
     // State
     let isLoading = false;
+    let isQueryDetailsExpanded = false;
+
+    function showLoading() {
+        isLoading = true;
+        if (chatMessages) {
+            chatMessages.appendChild(loadingIndicator.cloneNode(true));
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
+    function hideLoading() {
+        isLoading = false;
+        const indicators = chatMessages?.querySelectorAll('.loading-indicator');
+        indicators?.forEach(indicator => indicator.remove());
+    }
+
+    function updateQueryDetails(metadata) {
+        if (!metadata) return;
+        
+        // Show query details panel
+        if (queryDetails) {
+            queryDetails.classList.remove('hidden');
+        }
+        
+        // Update SQL query
+        if (sqlQueryText && metadata.sql_query) {
+            sqlQueryText.textContent = metadata.sql_query;
+        }
+        
+        // Update metadata
+        if (queryTime) {
+            queryTime.textContent = metadata.query_time || '0s';
+        }
+        if (totalResults) {
+            totalResults.textContent = metadata.total_results || '0';
+        }
+    }
+
+    function toggleQueryDetails() {
+        isQueryDetailsExpanded = !isQueryDetailsExpanded;
+        
+        if (queryDetailsContent) {
+            queryDetailsContent.classList.toggle('expanded', isQueryDetailsExpanded);
+        }
+        
+        if (toggleDetailsBtn) {
+            toggleDetailsBtn.classList.toggle('expanded', isQueryDetailsExpanded);
+        }
+    }
 
     async function sendMessage(e) {
         if (e) e.preventDefault();
         if (isLoading) return;
         
-        const message = chatInput.value.trim();
+        const message = chatInput?.value?.trim();
         if (!message) return;
         
-        isLoading = true;
+        showLoading();
         
         // Clear input
-        chatInput.value = '';
+        if (chatInput) chatInput.value = '';
 
         // Show chat view and hide initial view
-        initialView.style.display = 'none';
-        chatView.style.display = 'block';
+        if (initialView) initialView.style.display = 'none';
+        if (chatView) chatView.style.display = 'block';
         
         // Add user message
         appendMessage(message, true);
         
         try {
-            console.log('Sending request:', message);
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-            
-            const response = await fetch(`${baseUrl}/query`, {
+            const response = await fetch(`${baseUrl}/api/rag-sql-chatbot/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     message: message
-                }),
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            const data = await response.json();
-            // Handle nested response format
-            const responseData = data.response || data;
-            
-            console.log('Received response:', {
-                data,
-                responseData,
-                type: responseData.query_type,
-                hasResults: Boolean(responseData.results),
-                resultsLength: responseData.results ? responseData.results.length : 0,
-                firstResult: responseData.results && responseData.results[0]
+                })
             });
             
             if (!response.ok) {
-                throw new Error(responseData.detail || `Server error: ${response.status}`);
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Response:', data);
+            
+            // Update query details panel with metadata
+            if (data.response?.metadata) {
+                updateQueryDetails(data.response.metadata);
             }
             
-            if (responseData && responseData.results) {
-                // Format the response for display
-                let formattedResponse = '';
-                
-                // Handle chat messages (greetings, help, etc)
-                if (responseData.query_type === "chat" && responseData.results[0] && responseData.results[0].message) {
-                    formattedResponse = responseData.results[0].message;
+            // Handle different response types
+            if (data.response?.query_type === "chat") {
+                // For greetings and general queries
+                const message = data.response.results[0]?.message;
+                if (message) {
+                    appendMessage(message);
                 }
-                // Handle SQL query results
-                else if (responseData.query_type === "sql" && responseData.results) {
-                    // Add explanation if available
-                    if (responseData.explanation) {
-                        formattedResponse = responseData.explanation + "\n\n";
+            } else if (data.response?.results?.length > 0) {
+                const result = data.response.results[0];
+                
+                // If it's a budget_summary type, use the data field
+                const projectData = result.type === 'budget_summary' ? result.data : result;
+                
+                if (result.message) {
+                    // If there's a natural language message, use it
+                    appendMessage(result.message);
+                } else {
+                    // Format the response in a user-friendly way
+                    const details = [];
+                    if (projectData.project_name) {
+                        details.push(`📋 Project: ${projectData.project_name}`);
+                    }
+                    if (projectData.district) {
+                        details.push(`📍 District: ${projectData.district}`);
+                    }
+                    if (projectData.project_sector) {
+                        details.push(`🏗️ Sector: ${projectData.project_sector}`);
+                    }
+                    if (projectData.project_status) {
+                        details.push(`📊 Status: ${projectData.project_status}`);
+                    }
+                    if (projectData.total_budget) {
+                        const budget = typeof projectData.total_budget === 'object' ? 
+                            projectData.total_budget.formatted : 
+                            `MWK ${Number(projectData.total_budget).toLocaleString()}`;
+                        details.push(`💰 Budget: ${budget}`);
+                    }
+                    if (projectData.completion_percentage !== undefined) {
+                        details.push(`✅ Completion: ${projectData.completion_percentage}%`);
+                    }
+                    if (projectData.start_date) {
+                        details.push(`📅 Start Date: ${projectData.start_date}`);
+                    }
+                    if (projectData.completion_date) {
+                        details.push(`🏁 Completion Date: ${projectData.completion_date}`);
                     }
                     
-                    // Format results
-                    if (responseData.results.length > 0) {
-                        const result = responseData.results[0];
-                        
-                        // Check if it's a budget summary query
-                        if (result.total_budget !== undefined && result.total_projects !== undefined) {
-                            formattedResponse += `📊 Project Budget Summary:\n\n`;
-                            formattedResponse += `• Total Projects: ${result.total_projects}\n`;
-                            formattedResponse += `• Projects with Budget Data: ${result.projects_with_budget}\n`;
-                            formattedResponse += `• Total Budget: ${typeof result.total_budget === 'object' ? 
-                                result.total_budget.formatted : 
-                                `MWK ${Number(result.total_budget || 0).toLocaleString()}`}\n`;
-                            if (result.average_budget) {
-                                formattedResponse += `• Average Budget per Project: MWK ${Number(result.average_budget).toLocaleString()}`;
-                            }
-                        } else {
-                            // Format multiple project results
-                            formattedResponse += responseData.results.map(project => {
-                                let details = [];
-                                
-                                if (project.project_name || project.projectname) {
-                                    details.push(`📋 Project: ${project.project_name || project.projectname}`);
-                                }
-                                
-                                if (project.district) {
-                                    details.push(`📍 District: ${project.district}`);
-                                }
-                                
-                                if (project.project_sector || project.projectsector) {
-                                    details.push(`🏗️ Sector: ${project.project_sector || project.projectsector}`);
-                                }
-                                
-                                if (project.project_status || project.projectstatus) {
-                                    details.push(`📊 Status: ${project.project_status || project.projectstatus}`);
-                                }
-                                
-                                // Handle budget with null check
-                                if (project.budget || project.total_budget) {
-                                    const budgetValue = project.budget || 
-                                        (typeof project.total_budget === 'object' ? 
-                                            project.total_budget.amount : 
-                                            project.total_budget);
-                                    if (budgetValue !== null && budgetValue !== undefined) {
-                                        details.push(`💰 Budget: MWK ${Number(budgetValue).toLocaleString()}`);
-                                    }
-                                }
-                                
-                                if (project.completion_percentage !== undefined || project.completionpercentage !== undefined) {
-                                    const percentage = project.completion_percentage || project.completionpercentage;
-                                    if (percentage !== null) {
-                                        details.push(`✅ Completion: ${percentage}%`);
-                                    }
-                                }
-                                
-                                return details.join('\n');
-                            }).join('\n\n');
-                        }
-                    }
+                    appendMessage(details.join('\n'));
                 }
-                
-                if (!formattedResponse) {
-                    formattedResponse = 'I couldn\'t find any results matching your query. Try:\n\n' +
-                        '• Being more specific about the location or sector\n' +
-                        '• Checking for spelling mistakes\n' +
-                        '• Using simpler terms\n' +
-                        '• Asking about a different region or project type';
-                }
-                
-                appendMessage(formattedResponse);
             } else {
-                console.error('Invalid response format:', data);
-                appendMessage('Sorry, I received an invalid response format. Please try again.');
+                appendMessage("I couldn't find any projects matching your criteria. Please try a different query.");
             }
+            
         } catch (error) {
             console.error('Error:', error);
-            if (error.name === 'AbortError') {
-                appendMessage('Sorry, the request took too long. Please try again with a simpler question.');
-            } else {
-                // Provide more helpful error messages
-                let errorMessage = 'I encountered an error. ';
-                if (error.message.includes('Must include FROM')) {
-                    errorMessage += 'Could you please rephrase your question to be more specific about what project information you\'re looking for?';
-                } else if (error.message.includes('500')) {
-                    errorMessage += 'The server encountered an issue. Please try asking a different question about the projects.';
-                } else {
-                    errorMessage += error.message;
-                }
-                appendMessage(errorMessage);
-            }
+            appendMessage(`Sorry, there was an error processing your request: ${error.message}`);
         } finally {
-            isLoading = false;
+            hideLoading();
         }
     }
 
     function appendMessage(message, isUser = false) {
+        if (!chatMessages) return;
+        
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message p-4 ${isUser ? 'bg-[#2e2e2e]' : 'bg-[#1e1e1e]'} rounded-lg`;
-
-        const contentWrapper = document.createElement('div');
-        contentWrapper.className = 'flex items-start gap-4';
-
-        const avatar = document.createElement('div');
-        avatar.className = `avatar ${isUser ? 'bg-blue-500/20 text-blue-500' : 'bg-green-500/20 text-green-500'} p-2 rounded-lg`;
-        avatar.innerHTML = isUser ? 
-            '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>' :
-            '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>';
-
-        const messageContent = document.createElement('div');
-        messageContent.className = 'flex-1 text-gray-300 whitespace-pre-wrap';
-        messageContent.textContent = message;
+        messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
         
-        contentWrapper.appendChild(avatar);
-        contentWrapper.appendChild(messageContent);
-        messageDiv.appendChild(contentWrapper);
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'message-icon';
+        iconSpan.textContent = isUser ? '👤' : '🤖';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = message;
+        
+        messageDiv.appendChild(iconSpan);
+        messageDiv.appendChild(contentDiv);
+        
         chatMessages.appendChild(messageDiv);
-        
-        // Scroll to bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Handle form submission
-    chatForm.addEventListener('submit', sendMessage);
-
-    // Handle enter key press
-    chatInput.addEventListener('keypress', (e) => {
+    // Event Listeners
+    chatForm?.addEventListener('submit', sendMessage);
+    
+    chatInput?.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
         }
     });
 
-    // Handle tile clicks
-    const tiles = document.querySelectorAll('.tile');
-    tiles.forEach(tile => {
-        tile.addEventListener('click', () => {
-            const exampleQuery = tile.querySelector('.example-query').textContent;
-            if (exampleQuery) {
-                chatInput.value = exampleQuery.replace('Example: ', '').replace(/["]/g, '');
-            sendMessage();
-            }
-        });
+    // Query details toggle
+    queryDetailsHeader?.addEventListener('click', toggleQueryDetails);
+    toggleDetailsBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleQueryDetails();
     });
-            
+
+    // Handle tile clicks
+    function initiateChat(query) {
+        if (chatInput && query) {
+            chatInput.value = query;
+            sendMessage();
+        }
+    }
+
+    // Add click handlers to guidance tiles
+    const tiles = guidanceTiles?.querySelectorAll('.tile');
+    tiles?.forEach(tile => {
+        const query = tile.querySelector('.example-query')?.textContent?.replace('Example: ', '')?.replace(/["]/g, '');
+        if (query) {
+            tile.addEventListener('click', () => initiateChat(query));
+        }
+    });
+
     // Hide guidance tiles when chat starts
     chatInput.addEventListener('focus', () => {
-            guidanceTiles.style.opacity = '0';
-            setTimeout(() => {
-                guidanceTiles.style.display = 'none';
-            }, 300);
+        guidanceTiles.style.opacity = '0';
+        setTimeout(() => {
+            guidanceTiles.style.display = 'none';
+        }, 300);
     });
 
     // Handle tile clicks

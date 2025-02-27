@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dwizani - Malawi Infrastructure Projects Chatbot</title>
     <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/loading.css">
 </head>
 <body>
     <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -55,6 +56,25 @@
 
         <div id="chat-view" class="mt-8">
             <div id="chat-messages" class="space-y-4 min-h-[300px] max-h-[500px] overflow-y-auto bg-white rounded-lg shadow-sm p-4 mb-4"></div>
+        </div>
+
+        <div id="query-details" class="hidden">
+            <div class="query-details-header">
+                <h3>Query Details</h3>
+                <button id="toggle-details" class="icon-button">
+                    <span class="toggle-icon">▼</span>
+                </button>
+            </div>
+            <div class="query-details-content">
+                <div class="sql-query">
+                    <h4>Generated SQL Query:</h4>
+                    <pre><code id="sql-query-text"></code></pre>
+                </div>
+                <div class="query-metadata">
+                    <p>Query Time: <span id="query-time"></span></p>
+                    <p>Results Found: <span id="total-results"></span></p>
+                </div>
+            </div>
         </div>
 
         <div class="chat-input-container">

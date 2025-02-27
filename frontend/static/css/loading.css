@@ -1,0 +1,51 @@
+.loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.message {
+    display: flex;
+    align-items: flex-start;
+    padding: 1rem;
+    margin: 0.5rem;
+    border-radius: 8px;
+}
+
+.user-message {
+    background-color: #2e2e2e;
+    margin-left: 2rem;
+}
+
+.bot-message {
+    background-color: #1e1e1e;
+    margin-right: 2rem;
+}
+
+.message-icon {
+    flex-shrink: 0;
+    margin-right: 0.75rem;
+    font-size: 1.25rem;
+}
+
+.message-content {
+    flex: 1;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #e0e0e0;
+}
