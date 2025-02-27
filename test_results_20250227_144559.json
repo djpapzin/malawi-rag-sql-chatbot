@@ -1,0 +1,32 @@
+[
+  {
+    "test_case": "Basic project query",
+    "query": "What projects are there in Lilongwe?",
+    "passed": true,
+    "missing_content": [],
+    "response": "i found 20 projects in lilongwe with a total budget of mwk 102,576,530.62. the projects include: lilongwe water supply construction phase 48, lilongwe market development phase 46, lilongwe school cons..."
+  },
+  {
+    "test_case": "Status-based query",
+    "query": "Tell me about completed projects",
+    "passed": false,
+    "missing_content": [
+      "status"
+    ],
+    "response": "i found 49 completed projects with a total budget of mwk 258,475,000.00. the projects include: kasungu school construction phase 49, lilongwe water supply construction phase 48, salima school construc..."
+  },
+  {
+    "test_case": "Aggregate query",
+    "query": "What is the total budget for infrastructure projects?",
+    "passed": true,
+    "missing_content": [],
+    "response": "the total budget for infrastructure projects is mwk 142,925,000.00 across 28 projects."
+  },
+  {
+    "test_case": "Greeting query",
+    "query": "Hello, how can you help me?",
+    "passed": true,
+    "missing_content": [],
+    "response": "hello! i can help you find information about infrastructure projects in malawi. you can ask me about projects in specific districts, budgets, completion status, or get general statistics. how can i as..."
+  }
+]

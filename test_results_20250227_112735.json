@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-02-27T11:27:10.682982",
+  "test_results": {
+    "tests/test_llm_components.py": {
+      "status": "\u274c FAILED",
+      "exit_code": 1
+    },
+    "tests/test_llm_integration.py": {
+      "status": "\u26a0\ufe0f ERROR",
+      "exit_code": 2
+    },
+    "tests/test_comprehensive_queries.py": {
+      "status": "\u2705 PASSED",
+      "exit_code": 0
+    }
+  },
+  "summary": {
+    "total": 3,
+    "passed": 1,
+    "failed": 1,
+    "errors": 1
+  }
+}

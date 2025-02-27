@@ -1,0 +1,26 @@
+[
+  {
+    "test_case": "Basic project query",
+    "query": "What projects are there in Lilongwe?",
+    "passed": false,
+    "error": "HTTPConnectionPool(host='154.0.164.254', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f4ffd2746b0>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+  },
+  {
+    "test_case": "Status-based query",
+    "query": "Tell me about completed projects",
+    "passed": false,
+    "error": "HTTPConnectionPool(host='154.0.164.254', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f4ffd274b60>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+  },
+  {
+    "test_case": "Aggregate query",
+    "query": "What is the total budget for infrastructure projects?",
+    "passed": false,
+    "error": "HTTPConnectionPool(host='154.0.164.254', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f4ffd275310>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+  },
+  {
+    "test_case": "Greeting query",
+    "query": "Hello, how can you help me?",
+    "passed": false,
+    "error": "HTTPConnectionPool(host='154.0.164.254', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f4ffd91cdd0>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+  }
+]

@@ -1,0 +1,39 @@
+[
+  {
+    "test_case": "Basic project query",
+    "query": "What projects are there in Lilongwe?",
+    "passed": false,
+    "missing_content": [
+      "budget"
+    ],
+    "response": "i found 20 projects matching your query. the first project is 'lilongwe road development phase 1'. would you like more details about any specific project?"
+  },
+  {
+    "test_case": "Status-based query",
+    "query": "Tell me about completed projects",
+    "passed": false,
+    "missing_content": [
+      "completed",
+      "status"
+    ],
+    "response": "i found 49 projects matching your query. the first project is 'mzuzu school construction phase 1'. would you like more details about any specific project?"
+  },
+  {
+    "test_case": "Aggregate query",
+    "query": "What is the total budget for infrastructure projects?",
+    "passed": false,
+    "missing_content": [
+      "budget",
+      "infrastructure",
+      "total"
+    ],
+    "response": "i encountered an error while processing your query. please try again."
+  },
+  {
+    "test_case": "Greeting query",
+    "query": "Hello, how can you help me?",
+    "passed": true,
+    "missing_content": [],
+    "response": "hello! i can help you find information about infrastructure projects in malawi. you can ask me about projects in specific districts, budgets, completion status, or get general statistics. how can i as..."
+  }
+]

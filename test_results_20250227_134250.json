@@ -1,0 +1,26 @@
+[
+  {
+    "test_case": "Basic project query",
+    "query": "What projects are there in Lilongwe?",
+    "passed": false,
+    "error": "Response missing 'results' field\nassert 'results' in {'response': {'metadata': {'query_time': '0.00s', 'sql_query': \"SELECT projectname AS project_name, district, projectsector AS project_sector, projectstatus AS project_status, budget AS total_budget, completionpercentage AS completion_percentage FROM proj_dashboard WHERE district = 'Lilongwe';\", 'total_results': 1}, 'query_type': 'aggregate', 'results': [{'data': {'completion_percentage': 0, 'district': 'Lilongwe', 'project_name': 'Lilongwe Road Development Phase 1', 'project_sector': 'Infrastructure', ...}, 'type': 'budget_summary'}]}}"
+  },
+  {
+    "test_case": "Status-based query",
+    "query": "Tell me about completed projects",
+    "passed": false,
+    "error": "Response missing 'results' field\nassert 'results' in {'response': {'metadata': {'query_time': '0.00s', 'sql_query': \"SELECT projectname AS project_name, district, projectsector AS project_sector, projectstatus AS project_status, budget AS total_budget, completionpercentage AS completion_percentage FROM proj_dashboard WHERE projectstatus = 'Completed';\", 'total_results': 1}, 'query_type': 'aggregate', 'results': [{'data': {'completion_percentage': 2, 'district': 'Mzuzu', 'project_name': 'Mzuzu School Construction Phase 1', 'project_sector': 'Energy', ...}, 'type': 'budget_summary'}]}}"
+  },
+  {
+    "test_case": "Aggregate query",
+    "query": "What is the total budget for infrastructure projects?",
+    "passed": false,
+    "error": "Response missing 'results' field\nassert 'results' in {'response': {'metadata': {'query_time': '0.00s', 'sql_query': \"\\n                SELECT SUM(budget) AS total_budget \\n                FROM proj_dashboard \\n                WHERE projectsector = 'Infrastructure';\\n            \", 'total_results': 1}, 'query_type': 'aggregate', 'results': [{'data': {'total_budget': {'amount': 142925000.0, 'formatted': 'MWK 142,925,000.00'}}, 'type': 'budget_summary'}]}}"
+  },
+  {
+    "test_case": "Greeting query",
+    "query": "Hello, how can you help me?",
+    "passed": false,
+    "error": "Response missing 'results' field\nassert 'results' in {'response': {'metadata': {'query_time': '0.00s', 'sql_query': \"SELECT projectname AS project_name, district, projectsector AS project_sector, projectstatus AS project_status, budget AS total_budget, completionpercentage AS completion_percentage \\nFROM proj_dashboard \\nWHERE projectsector = 'Education';\", 'total_results': 1}, 'query_type': 'aggregate', 'results': [{'data': {'completion_percentage': 3, 'district': 'Zomba', 'project_name': 'Zomba Hospital Improvement Phase 1', 'project_sector': 'Education', ...}, 'type': 'budget_summary'}]}}"
+  }
+]

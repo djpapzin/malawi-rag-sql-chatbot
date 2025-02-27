@@ -1,0 +1,34 @@
+[
+  {
+    "test_case": "Basic project query",
+    "query": "What projects are there in Lilongwe?",
+    "passed": true,
+    "missing_content": [],
+    "response": "i found 20 projectsin lilongweacross 7 sectors. the total budget for these projects is mwk 102,576,530.62. project status breakdown: 10 active, 10 completed. the first project is 'lilongwe road develo..."
+  },
+  {
+    "test_case": "Status-based query",
+    "query": "Tell me about completed projects",
+    "passed": true,
+    "missing_content": [],
+    "response": "i found 49 projectsacross 5 districtsacross 7 sectors. the total budget for these projects is mwk 258,475,000.00. project status breakdown: 49 completed. the first project is 'mzuzu school constructio..."
+  },
+  {
+    "test_case": "Aggregate query",
+    "query": "What is the total budget for infrastructure projects?",
+    "passed": false,
+    "missing_content": [
+      "budget",
+      "infrastructure",
+      "total"
+    ],
+    "response": "i encountered an error while processing your query. please try again."
+  },
+  {
+    "test_case": "Greeting query",
+    "query": "Hello, how can you help me?",
+    "passed": true,
+    "missing_content": [],
+    "response": "hello! i can help you find information about infrastructure projects in malawi. you can ask me about projects in specific districts, budgets, completion status, or get general statistics. how can i as..."
+  }
+]
