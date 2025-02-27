@@ -57,66 +57,22 @@ The application uses a single table `proj_dashboard` with the following structur
 
 The database is automatically populated with 196 sample records when running `init_db.py`.
 
-## Running the Application
+## Database
+The application uses a SQLite database located at:
+`malawi_projects1.db` (in the project root directory)
 
-1. Start the Backend:
+Initialize with:
 ```bash
-# From the project root
-uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
+# Generate the database with 196 sample infrastructure projects
+python scripts/init_db.py
 ```
 
-2. Access the Application:
-The application will be available at http://localhost:5000
-
-## API Endpoints
-
-### Health Check
-```bash
-curl http://localhost:5000/health
-```
-
-### Query Endpoint
-```powershell
-$headers = @{ "Content-Type" = "application/json" }
-$body = @{
-    message = "List education projects"
-    source_lang = "english"
-    page = 1
-    page_size = 5
-} | ConvertTo-Json
-
-Invoke-WebRequest -Uri "http://localhost:5000/query" -Method Post -Headers $headers -Body $body
-```
-
-### Response Format
-```json
-{
-  "response": {
-    "results": [
-      {
-        "project_name": "Zomba School Construction Phase 1",
-        "district": "Zomba",
-        "project_sector": "Education",
-        "project_status": "Active",
-        "total_budget": {
-          "amount": 500000,
-          "formatted": "MWK 500,000.00"
-        },
-        "completion_percentage": 45
-      }
-    ],
-    "metadata": {
-      "total_results": 1,
-      "query_time": "2.5s",
-      "sql_query": "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'education'"
-    }
-  }
-}
-```
+For detailed information about the database schema, setup, and usage, see:
+- [Database Setup and Configuration](docs/DATABASE_SETUP.md)
+- [Database Schema](docs/DATABASE_SCHEMA.md)
 
 ## Environment Variables
-Create a `.env` file with:
-```
+```ini
 TOGETHER_API_KEY=your_api_key
 ```
 
@@ -177,6 +133,89 @@ TOGETHER_API_KEY=your_api_key
    - Completed projects
    - On Hold projects
 
+## Running the Application
+
+1. Start the Backend:
+```bash
+# From the project root
+uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
+```
+
+2. Access the Application:
+The application will be available at http://localhost:5000
+
+## API Endpoints
+
+### Health Check
+```bash
+curl http://localhost:5000/health
+```
+
+### Query Endpoint
+```powershell
+$headers = @{ "Content-Type" = "application/json" }
+$body = @{
+    message = "List education projects"
+    source_lang = "english"
+    page = 1
+    page_size = 5
+} | ConvertTo-Json
+
+Invoke-WebRequest -Uri "http://localhost:5000/query" -Method Post -Headers $headers -Body $body
+```
+
+### Response Format
+```json
+{
+  "response": {
+    "results": [
+      {
+        "project_name": "Zomba School Construction Phase 1",
+        "district": "Zomba",
+        "project_sector": "Education",
+        "project_status": "Active",
+        "total_budget": {
+          "amount": 500000,
+          "formatted": "MWK 500,000.00"
+        },
+        "completion_percentage": 45
+      }
+    ],
+    "metadata": {
+      "total_results": 1,
+      "query_time": "2.5s",
+      "sql_query": "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'education'"
+    }
+  }
+}
+```
+
+## API Usage
+
+The chatbot API is accessible at `http://154.0.164.254:5000/api/rag-sql-chatbot/chat`. To interact with the API:
+
+```bash
+curl -X POST http://154.0.164.254:5000/api/rag-sql-chatbot/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What are the ongoing projects in Lilongwe?"}'
+```
+
+The API expects:
+- Method: POST
+- Content-Type: application/json
+- Request Body: JSON object with a "message" field containing the natural language query
+
+Example Response:
+```json
+{
+  "response": {
+    "answer": "Here are the ongoing projects in Lilongwe...",
+    "sql_query": "SELECT * FROM proj_dashboard WHERE district='Lilongwe' AND status='Ongoing'",
+    "results": [...]
+  }
+}
+```
+
 ## Testing
 
 Run the test suite:
@@ -204,3 +243,65 @@ Additional documentation can be found in the `docs/` directory:
 3. Commit your changes
 4. Push to the branch
 5. Create a new Pull Request
+
+## Environment Setup
+
+### Local Development (Windows)
+```bash
+# Create conda environment
+conda create -n malawi-chatbot python=3.11
+conda activate malawi-chatbot
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your API keys
+
+# Start backend (port 8000)
+python -m uvicorn app.main:app --reload
+
+# Frontend (separate terminal)
+cd frontend
+npm install
+NODE_ENV=development npm start
+```
+
+### Server Deployment (Linux)
+```bash
+# Production setup
+conda create -n malawi-chatbot python=3.11
+conda activate malawi-chatbot
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+nano .env  # Set PORT=5000, NODE_ENV=production
+
+# Start production server
+chmod +x run_production.sh
+./run_production.sh
+```
+
+## Database Management
+The SQLite database should be located at:
+`app/database/projects.db`
+
+Initialize with:
+```bash
+cp malawi_projects1.db app/database/projects.db
+```
+
+## Environment Variables
+`.env` configuration:
+```ini
+PORT=5000
+NODE_ENV=production
+DATABASE_URL=sqlite:///app/database/projects.db
+TOGETHER_API_KEY=your-api-key
+CORS_ORIGINS='["http://localhost:3000", "https://your-production-domain"]'
+```
+
+See full documentation in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
