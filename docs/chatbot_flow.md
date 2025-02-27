@@ -156,6 +156,114 @@ CREATE TABLE proj_dashboard (
    WHERE PROJECTNAME LIKE '%Chilipa CDSS Girls Hostel%';
    ```
 
+## Malawi Infrastructure Projects Chatbot Flow
+
+### Overview
+Dwizani (meaning "what you should know" in Chichewa) is a natural language interface for querying the Malawi infrastructure projects database. The system follows a clear flow from user input to natural language response.
+
+### Detailed Flow
+
+### 1. Natural Language Query Input
+- User submits a natural language question through the frontend
+- Example: "Show me all education projects in Lilongwe"
+- Request is sent to `/api/rag-sql-chatbot/chat` endpoint
+- Query is logged for debugging and monitoring
+
+### 2. Query Processing & SQL Generation
+- Natural language query is analyzed for intent and entities
+- SQL query is generated using LLM (Together AI)
+- Query undergoes transformations for:
+  - Case-insensitive matching
+  - Date formatting
+  - NULL handling
+- Generated SQL is logged for verification
+- Example SQL:
+  ```sql
+  SELECT 
+    projectname as project_name,
+    district,
+    projectsector as project_sector,
+    projectstatus as project_status,
+    budget as total_budget,
+    completionpercentage as completion_percentage,
+    substr(startdate,1,4) || '-' || substr(startdate,5,2) || '-' || substr(startdate,7,2) as start_date,
+    substr(completiondata,1,4) || '-' || substr(completiondata,5,2) || '-' || substr(completiondata,7,2) as completion_date
+  FROM proj_dashboard 
+  WHERE LOWER(district) = LOWER('Lilongwe') 
+  AND LOWER(projectsector) = LOWER('Education');
+  ```
+
+### 3. Database Interaction
+- SQL query is executed against SQLite database
+- Results are validated and cleaned
+- Data is formatted for consistency
+- Performance metrics are collected:
+  - Query execution time
+  - Number of results
+  - Any errors encountered
+
+### 4. Natural Language Response Generation
+- Raw database results are transformed into structured format
+- Response includes:
+  - Natural language summary of findings
+  - Formatted project details
+  - Relevant statistics
+  - Query metadata
+- Example Response:
+  ```json
+  {
+    "response": {
+      "text": "I found 2 education projects in Lilongwe:",
+      "results": [
+        {
+          "project_name": "Lilongwe School Construction Phase 3",
+          "district": "Lilongwe",
+          "project_sector": "Education",
+          "project_status": "Completed",
+          "total_budget": {
+            "amount": 987244.90,
+            "formatted": "MWK 987,244.90"
+          },
+          "completion_percentage": 10,
+          "start_date": "2024-11-01",
+          "completion_date": "2025-11-01"
+        }
+      ],
+      "metadata": {
+        "total_results": 2,
+        "query_time": "0.15s",
+        "sql_query": "SELECT..."
+      }
+    }
+  }
+  ```
+
+### 5. Frontend Display
+- Response is rendered in user-friendly format
+- Shows:
+  - Natural language summary
+  - Structured project information
+  - Relevant statistics
+  - Query performance metrics
+
+## Debugging and Monitoring
+- Each step logs detailed information:
+  - Input query
+  - Generated SQL
+  - Query execution metrics
+  - Response formatting
+- Errors are caught and logged at each stage
+- Performance metrics are tracked
+
+## Error Handling
+- Invalid queries are caught and explained
+- Database errors return helpful messages
+- Network issues are handled gracefully
+- All errors include:
+  - Error description
+  - Error location
+  - Troubleshooting suggestions
+
 ## Testing and Monitoring
 
 ### Health Checks
@@ -168,23 +276,6 @@ curl http://localhost:5000/api/rag-sql-chatbot/health
 - Query success rates
 - LLM generation accuracy
 - Database query performance
-
-## Error Handling
-
-1. **User Input Errors**
-   - Invalid query format
-   - Unsupported query types
-   - Missing required parameters
-
-2. **System Errors**
-   - Database connection issues
-   - LLM service unavailability
-   - Invalid SQL generation
-
-3. **Data Quality Issues**
-   - Missing or null values
-   - Inconsistent data formats
-   - Invalid numerical values
 
 ## Future Improvements
 

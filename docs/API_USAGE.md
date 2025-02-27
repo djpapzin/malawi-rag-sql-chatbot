@@ -2,7 +2,7 @@
 
 ## Base URL
 The base URL for all API endpoints is:
-http://localhost:5000/api/rag-sql-chatbot
+http://154.0.164.254:5000
 
 ## Authentication
 Currently using API key in `TOGETHER_API_KEY` environment variable
@@ -11,73 +11,94 @@ Currently using API key in `TOGETHER_API_KEY` environment variable
 
 ### Health Check
 ```powershell
-curl.exe http://localhost:5000/api/rag-sql-chatbot/health
+curl.exe http://154.0.164.254:5000/health
 ```
 
-### Query Endpoint
-### PowerShell Example
-```powershell
-$headers = @{
-    "Content-Type" = "application/json"
+### Chat Endpoint
+```
+POST /api/rag-sql-chatbot/chat
+```
+
+This endpoint handles natural language queries about infrastructure projects in Malawi.
+
+#### Request Format
+
+- Method: POST
+- Content-Type: application/json
+- Request Body:
+```json
+{
+  "message": "your natural language query here"
 }
-
-$body = @{
-    message = "Show me education projects in Zomba"
-    source_lang = "english"
-    page = 1
-    page_size = 10
-} | ConvertTo-Json
-
-Invoke-WebRequest -Uri "http://localhost:5000/api/rag-sql-chatbot/query" `
-    -Method Post `
-    -Headers $headers `
-    -Body $body
 ```
 
-### Curl Example
+#### Example Queries
+
 ```bash
-curl -X POST http://localhost:5000/api/rag-sql-chatbot/query \
+# Query projects in a specific district
+curl -X POST http://154.0.164.254:5000/api/rag-sql-chatbot/chat \
   -H "Content-Type: application/json" \
-  -d '{
-    "message": "What is the total budget for infrastructure projects?",
-    "source_lang": "english",
-    "page": 1,
-    "page_size": 30,
-    "continue_previous": false
-  }'
+  -d '{"message": "What are the ongoing projects in Lilongwe?"}'
+
+# Query project status
+curl -X POST http://154.0.164.254:5000/api/rag-sql-chatbot/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Show me all completed water projects"}'
+
+# Query project budget
+curl -X POST http://154.0.164.254:5000/api/rag-sql-chatbot/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is the total budget for infrastructure projects in Blantyre?"}'
 ```
 
-## Request Format
+#### Response Format
+
 ```json
 {
-    "message": "Your query here",
-    "source_lang": "english",
-    "page": 1,
-    "page_size": 30,
-    "continue_previous": false
+  "response": {
+    "answer": "Natural language response to the query",
+    "sql_query": "The SQL query that was executed",
+    "results": [
+      {
+        "project_name": "Example Project",
+        "district": "District Name",
+        "project_sector": "Sector Name",
+        "status": "Project Status",
+        "budget_mwk": "Budget Amount",
+        "completion_percentage": "Completion %"
+      }
+    ]
+  }
 }
 ```
 
-## Response Format
+## Error Handling
+
+The API returns appropriate HTTP status codes:
+
+- 200: Successful query
+- 400: Invalid request format
+- 500: Server error
+
+Error responses include a message explaining the error:
+
 ```json
 {
-    "response": "The total budget for infrastructure projects is...",
-    "metadata": {
-        "query_time": "2025-02-21T15:30:48",
-        "sql_query": "SELECT SUM(budget) FROM proj_dashboard...",
-        "source": "proj_dashboard"
-    }
+  "error": "Error message describing what went wrong"
 }
 ```
 
 ## Rate Limits
-- 10 requests/minute
-- 100 requests/day
+- 60 requests/minute
+- Responses include rate limit headers:
+  - X-RateLimit-Limit
+  - X-RateLimit-Remaining
+  - X-RateLimit-Reset
 
 ## Rate Limiting Headers
 ```powershell
-$response.Headers['X-RateLimit-Limit']      # 100
-$response.Headers['X-RateLimit-Remaining']  # 99
+$response.Headers['X-RateLimit-Limit']      # 60
+$response.Headers['X-RateLimit-Remaining']  # 59
 $response.Headers['X-RateLimit-Reset']      # 1708524000 (Unix timestamp)
 ```
 
@@ -93,9 +114,17 @@ $response.Headers['X-RateLimit-Reset']      # 1708524000 (Unix timestamp)
 ## Example Query Flow
 ```mermaid
 sequenceDiagram
-    Frontend->>API: POST /query
+    Frontend->>API: POST /api/rag-sql-chatbot/chat
     API->>LLM: Process query
     LLM->>Database: Generate SQL
     Database-->>API: Return results
     API-->>Frontend: Formatted response
 ```
+
+## Best Practices
+
+1. Always include the "message" field in your request
+2. Keep queries concise and specific
+3. Handle rate limiting appropriately
+4. Implement proper error handling
+5. Cache responses when appropriate

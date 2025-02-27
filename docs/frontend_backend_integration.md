@@ -38,7 +38,7 @@ frontend/
 
 1. **Main Chat Endpoint**
    ```
-   POST /api/rag-sql-chatbot/query
+   POST /api/rag-sql-chatbot/chat
    Content-Type: application/json
    
    {
@@ -88,7 +88,7 @@ The chat interface maintains the following states:
 // Send a message to the backend
 async function sendMessage(message) {
   try {
-    const response = await fetch('/api/rag-sql-chatbot/query', {
+    const response = await fetch('/api/rag-sql-chatbot/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

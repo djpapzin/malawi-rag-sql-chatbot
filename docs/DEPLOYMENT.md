@@ -1,106 +1,61 @@
-# Deployment Guide: Dwizani Chatbot
+# Production Deployment Guide
 
 ## Server Requirements
-- CentOS 7/8
-- Python 3.9+
-- Git
+- Ubuntu 22.04 LTS
+- Python 3.11
+- Node.js 18.x
 - Nginx
-- Conda/Miniconda installed
+- SSL Certificate (Let's Encrypt)
 
 ## Deployment Steps
 
-### 1. Server Access
+1. Clone repository:
 ```bash
-ssh username@154.0.164.254
-cd /var/www/dziwani/
+git clone https://github.com/your-repo/malawi-rag-sql-chatbot.git
+cd malawi-rag-sql-chatbot
 ```
 
-### 2. Update Codebase
-```bash
-# If first deployment
-git clone https://github.com/your-repo/rag-sql-chatbot.git
-
-# For subsequent updates
-cd rag-sql-chatbot
-git pull origin main
-```
-
-### 3. Environment Setup
-```bash
-conda activate rag-sql-bot
-pip install -r requirements.txt
-
-# Create production .env
-cp .env.example .env
-nano .env  # Update with production values
-```
-
-### 4. Process Management (Systemd Service)
-Create `/etc/systemd/system/dziwani.service`:
+2. Configure environment:
 ```ini
-[Unit]
-Description=Dwizani Chatbot Service
-After=network.target
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/dziwani/rag-sql-chatbot
-EnvironmentFile=/var/www/dziwani/rag-sql-chatbot/.env
-ExecStart=/opt/conda/envs/rag-sql-bot/bin/gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app
-
-[Install]
-WantedBy=multi-user.target
+# .env
+PORT=5000
+NODE_ENV=production
+DATABASE_URL=sqlite:///app/database/projects.db
+CORS_ORIGINS='["https://dziwani.kwantu.support"]'
 ```
 
-### 5. Nginx Configuration
-Create `/etc/nginx/conf.d/dziwani.conf`:
+3. Production startup:
+```bash
+./run_production.sh  # Uses gunicorn with 4 workers
+```
+
+4. Nginx configuration:
 ```nginx
 server {
-    listen 80;
+    listen 443 ssl;
     server_name dziwani.kwantu.support;
 
-    location / {
+    ssl_certificate /etc/letsencrypt/live/dziwani.kwantu.support/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dziwani.kwantu.support/privkey.pem;
+
+    location /api/ {
         proxy_pass http://localhost:5000;
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
-
-    location /static {
-        alias /var/www/dziwani/rag-sql-chatbot/frontend/static;
+    
+    location / {
+        root /path/to/frontend/build;
+        try_files $uri $uri/ /index.html;
     }
 }
 ```
 
-### 6. SSL Setup
+## Maintenance
 ```bash
-sudo certbot --nginx -d dziwani.kwantu.support
-```
-
-### 7. Service Management
-```bash
-sudo systemctl daemon-reload
-sudo systemctl start dziwani
-sudo systemctl enable dziwani
-sudo systemctl restart nginx
-```
-
-## Testing Procedure
-1. Verify service status:
-```bash
-systemctl status dziwani
-curl http://localhost:5000/health
-```
-
-2. Test public access:
-```bash
-curl https://dziwani.kwantu.support/api/rag-sql-chatbot/health
-```
-
-## Update Workflow
-```bash
-ssh username@154.0.164.254
-cd /var/www/dziwani/rag-sql-chatbot
+# Update process
 git pull origin main
-sudo systemctl restart dziwani
-```
+pkill -f "gunicorn app.main:app"
+./run_production.sh
+
+# Log monitoring
+tail -f app.log
