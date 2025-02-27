@@ -71,33 +71,41 @@ class QuerySource(BaseModel):
     class Config:
         from_attributes = True
 
-class ChatQuery(BaseModel):
-    """Chat query model"""
+class ChatRequest(BaseModel):
+    """Request model for chat endpoint"""
     message: str
-    source_lang: str = "english"
-    page: Optional[int] = 1
-    page_size: Optional[int] = 30
-    continue_previous: Optional[bool] = False
+
+class ResultData(BaseModel):
+    """Model for result data"""
+    type: str
+    message: str
+    data: Dict[str, Any]
 
 class ChatResponse(BaseModel):
-    """Model for chat response"""
-    response: Union[GeneralQueryResponse, SpecificQueryResponse]
-
-    class Config:
-        from_attributes = True
+    """Response model for chat endpoint"""
+    results: List[ResultData]
+    query_time_ms: float
+    sql_query: str
 
 class DatabaseManager:
     def __init__(self, db_path: str = None):
-        # Use the database in app/database/projects.db by default
+        # Default to the database specified in environment variable or fall back to a default
         if db_path is None:
-            db_path = os.path.join(os.path.dirname(__file__), 'database', 'projects.db')
+            db_path = os.getenv('DATABASE_URL', '')
+            if db_path.startswith('sqlite:///'):
+                db_path = db_path[len('sqlite:///'):]
+                
+            # If no database URL is set, default to malawi_projects1.db in the project root
+            if not db_path:
+                db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'malawi_projects1.db')
         
         # Convert to absolute path if relative
         if not os.path.isabs(db_path):
             db_path = os.path.abspath(db_path)
             
         self.db_path = db_path
-        
+        logger.info(f"Using database at: {self.db_path}")
+
     @contextmanager
     def get_connection(self):
         conn = None

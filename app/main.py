@@ -5,40 +5,51 @@ from fastapi.templating import Jinja2Templates
 import logging
 import traceback
 from datetime import datetime
-from typing import Union
+from typing import Union, Dict, Any
 import asyncio
-from .models import (
-    ChatQuery,
+from app.models import (
+    ChatRequest,
     ChatResponse,
     GeneralQueryResponse,
     SpecificQueryResponse,
     DatabaseManager
 )
-from .database.langchain_sql import LangChainSQLIntegration
+from app.database.langchain_sql import LangChainSQLIntegration
+from app.llm.response_handler import ResponseHandler
+from app.llm.conversation_store import ConversationStore
 import os
 from dotenv import load_dotenv
+import time
 
 # Load environment variables
 load_dotenv()
 
+# Configure logging
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(os.getenv("LOG_FILE", "/tmp/malawi-rag-sql-chatbot.log"))
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
 # Get configuration from environment
 PORT = int(os.getenv('PORT', '5000'))  # Changed default port to 5000
 HOST = os.getenv('HOST', '0.0.0.0')
-API_PREFIX = os.getenv('API_PREFIX', '')
+API_PREFIX = os.getenv('API_PREFIX', '/api/rag-sql-chatbot')
 CORS_ORIGINS = eval(os.getenv('CORS_ORIGINS', '["*"]'))
-
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Malawi Projects Chatbot",
     description="A chatbot for querying Malawi infrastructure projects",
-    version="1.0.0"
+    version="1.0.0",
+    openapi_url=f"{API_PREFIX}/openapi.json",
+    docs_url=f"{API_PREFIX}/docs",
+    redoc_url=f"{API_PREFIX}/redoc"
 )
 
 # Initialize templates
@@ -47,10 +58,11 @@ templates = Jinja2Templates(directory="frontend/templates")
 # Set up static files and templates
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
-# Add CORS middleware
+# Configure CORS
+origins = eval(os.getenv("CORS_ORIGINS", '["http://localhost:5000"]'))
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,7 +70,9 @@ app.add_middleware(
 
 # Initialize components
 db_manager = DatabaseManager()
-sql_integration = LangChainSQLIntegration()
+langchain_sql = LangChainSQLIntegration()
+response_handler = ResponseHandler()
+conversation_store = ConversationStore()
 logger.info("Initialized components")
 
 @app.get("/")
@@ -69,59 +83,51 @@ async def root(request: Request):
 async def health_check():
     """Health check endpoint"""
     try:
-        # Test database connection
-        with db_manager.get_connection() as conn:
+        # Get connection and check row count
+        with langchain_sql.db_manager.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM proj_dashboard")
-            count = cursor.fetchone()[0]
+            row_count = cursor.fetchone()[0]
         
         return {
             "status": "healthy",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.%f"),
             "components": {
                 "database": {
                     "status": "connected",
-                    "row_count": count
+                    "row_count": row_count
                 },
                 "api": "running"
             }
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Service unhealthy: {str(e)}"
-        )
+        logger.error(f"Health check failed: {str(e)}")
+        return {
+            "status": "unhealthy",
+            "error": str(e)
+        }
 
-@app.post("/query")
-async def process_query(query: ChatQuery) -> ChatResponse:
-    """Process a chat query and return response with sources"""
+@app.post(f"{API_PREFIX}/chat")
+async def chat(request: ChatRequest) -> Dict[str, Any]:
+    """Process a chat message and return a response."""
     try:
-        # Log incoming query
-        logger.info(f"Processing query: {query.message}")
-        
-        try:
-            # Get answer from SQL integration
-            result = await sql_integration.get_answer(query.message)
-            
-            # Return response in new format
-            return ChatResponse(response=result)
-            
-        except asyncio.TimeoutError:
-            logger.error("Query processing timed out")
-            raise HTTPException(
-                status_code=504,
-                detail="Query processing timed out. Please try again with a simpler query."
-            )
-            
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions
+        # Process the query and return results directly
+        # The process_query method now returns the exact format expected by tests
+        return await langchain_sql.process_query(request.message)
         
     except Exception as e:
-        # Log error
-        logger.error(f"Error processing query: {str(e)}\nFull trace: {traceback.format_exc()}")
-        
-        # Raise HTTPException
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        logger.error(f"Error processing chat request: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {
+            "results": [{
+                "type": "error",
+                "message": "I encountered an error processing your request. Please try again.",
+                "data": {"error": str(e)}
+            }],
+            "metadata": {
+                "total_results": 0,
+                "query_time": "0.00s",
+                "sql_query": "",
+                "error": str(e)
+            }
+        }
