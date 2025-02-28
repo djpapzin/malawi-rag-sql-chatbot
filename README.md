@@ -45,27 +45,26 @@ python scripts/init_db.py
 
 ### Database Structure
 
-The application uses a single table `proj_dashboard` with the following structure:
-- `projectname`: Name of the infrastructure project
-- `district`: District location (e.g., Lilongwe, Blantyre, etc.)
-- `projectsector`: Sector (Infrastructure, Water, Energy, etc.)
-- `projectstatus`: Status (Active, Planning, Completed, On Hold)
-- `budget`: Project budget in MWK
-- `completionpercentage`: Project completion (0-100)
-- `startdate`: Start date (YYYYMMDD format)
-- `completiondata`: Completion date (YYYYMMDD format)
+The application uses a single table `proj_dashboard` with a comprehensive schema containing data on Malawi's infrastructure projects. Key fields include:
 
-The database is automatically populated with 196 sample records when running `init_db.py`.
+- `PROJECTNAME`: Name of the infrastructure project
+- `DISTRICT`: District location (e.g., Lilongwe, Blantyre, etc.)
+- `PROJECTSECTOR`: Sector (Education, Health, Roads and bridges, etc.)
+- `PROJECTSTATUS`: Current project status
+- `BUDGET`: Project budget
+- `COMPLETIONPERCENTAGE`: Project completion (0-100)
+- `STARTDATE`: Start date
+- `COMPLETIONDATA`: Completion date
+- `PROJECTDESC`: Detailed description of the project
+- `FUNDINGSOURCE`: Source of project funding
+
+The database contains 1048 real infrastructure projects.
 
 ## Database
 The application uses a SQLite database located at:
 `malawi_projects1.db` (in the project root directory)
 
-Initialize with:
-```bash
-# Generate the database with 196 sample infrastructure projects
-python scripts/init_db.py
-```
+This database was created from a real SQL dump file containing actual Malawi infrastructure projects data.
 
 For detailed information about the database schema, setup, and usage, see:
 - [Database Setup and Configuration](docs/DATABASE_SETUP.md)
