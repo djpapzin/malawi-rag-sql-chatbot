@@ -44,7 +44,23 @@ async def chat(request: Request):
         if "message" not in body:
             return JSONResponse(
                 status_code=400,
-                content={"error": "Message field is required in the request body"}
+                content={
+                    "results": [{
+                        "type": "error",
+                        "message": "Message field is required in the request body",
+                        "data": {}
+                    }],
+                    "metadata": {
+                        "total_results": 0,
+                        "query_time": "0.00s",
+                        "sql_query": ""
+                    }
+                },
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type"
+                }
             )
         
         user_message = body["message"]
@@ -53,11 +69,24 @@ async def chat(request: Request):
         if not user_message or user_message.strip() == "":
             return JSONResponse(
                 status_code=400,
-                content={"error": "Message cannot be empty"}
+                content={
+                    "results": [{
+                        "type": "error",
+                        "message": "Message cannot be empty",
+                        "data": {}
+                    }],
+                    "metadata": {
+                        "total_results": 0,
+                        "query_time": "0.00s",
+                        "sql_query": ""
+                    }
+                },
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type"
+                }
             )
-        
-        # Check if this is an aggregate query
-        is_aggregate = _is_aggregate_query(user_message)
         
         # Process the message
         start_time = time.time()
@@ -65,23 +94,77 @@ async def chat(request: Request):
         # Initialize the SQL chain
         sql_chain = LangChainSQLIntegration()
         
-        # Run the query
-        response = sql_chain.process_query(user_message)
+        # Run the query and await the response
+        response = await sql_chain.process_query(user_message)
         
         # Calculate query time
         query_time = time.time() - start_time
         
-        # Add query time to response metadata
-        if "metadata" in response:
+        # Ensure response has the correct structure
+        if not isinstance(response, dict):
+            response = {
+                "results": [{
+                    "type": "text",
+                    "message": str(response),
+                    "data": {}
+                }],
+                "metadata": {
+                    "total_results": 1,
+                    "query_time": f"{query_time:.2f}s",
+                    "sql_query": ""
+                }
+            }
+        elif "metadata" not in response:
+            response["metadata"] = {
+                "total_results": len(response.get("results", [])),
+                "query_time": f"{query_time:.2f}s",
+                "sql_query": ""
+            }
+        else:
             response["metadata"]["query_time"] = f"{query_time:.2f}s"
         
         # Return the response
-        return JSONResponse(content=response)
+        return JSONResponse(
+            content=response,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type"
+            }
+        )
     
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}")
         logger.error(traceback.format_exc())
         return JSONResponse(
             status_code=500,
-            content={"error": f"An error occurred: {str(e)}"}
+            content={
+                "results": [{
+                    "type": "error",
+                    "message": str(e),
+                    "data": {}
+                }],
+                "metadata": {
+                    "total_results": 0,
+                    "query_time": "0.00s",
+                    "sql_query": ""
+                }
+            },
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type"
+            }
         )
+
+@router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return JSONResponse(
+        content={"status": "healthy", "message": "RAG SQL Chatbot is running"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+        }
+    )
