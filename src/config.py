@@ -27,7 +27,7 @@ class LangChainConfig(BaseModel):
     llm_kwargs: Dict[str, Any] = Field(default_factory=lambda: {
         "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K",
         "temperature": 0.1,
-        "max_tokens": 512,
+        "max_tokens": 256,
         "top_p": 0.7,
         "top_k": 50,
         "repetition_penalty": 1
