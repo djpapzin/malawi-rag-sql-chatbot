@@ -1,0 +1,41 @@
+DATABASE MIGRATION REPORT
+=======================
+
+Generated: 2025-02-28 15:53:32
+Database: /home/dj/malawi-rag-sql-chatbot/pmisProjects.db
+Total Projects: 1048
+
+PROJECTS BY SECTOR
+-----------------
+Unknown: 13 projects
+Agriculture and environment: 40 projects, Total Budget: $34,379,169,847.50, Avg Budget: $859,479,246.19
+Commercial services: 193 projects, Total Budget: $43,838,138,794.20, Avg Budget: $227,140,615.51
+Community security initiatives: 71 projects, Total Budget: $5,412,872,258.50, Avg Budget: $76,237,637.44
+Education: 269 projects, Total Budget: $19,601,108,060.50, Avg Budget: $72,866,572.72
+Health: 219 projects, Total Budget: $53,044,625,236.90, Avg Budget: $242,212,900.63
+Roads and bridges: 175 projects, Total Budget: $10,005,644,927.00, Avg Budget: $57,175,113.87
+Water and sanitation: 68 projects, Total Budget: $2,877,540,096.00, Avg Budget: $42,316,766.12
+
+TOP 10 DISTRICTS BY PROJECT COUNT
+--------------------------------
+Lilongwe: 89 projects
+Dedza: 57 projects
+Mulanje: 56 projects
+Mangochi: 56 projects
+Mzimba: 55 projects
+Kasungu: 54 projects
+Dowa: 53 projects
+Machinga: 46 projects
+Chiradzulu: 46 projects
+Chikwawa: 45 projects
+
+PROJECTS BY STATUS
+-----------------
+Unknown: 857 projects
+Approved: 11 projects
+Canceled: 2 projects
+Handed over: 6 projects
+Implementation: On track: 77 projects
+Implementation: On track or Implementation: Delayed: 51 projects
+Stalled: 6 projects
+Works completed: 38 projects

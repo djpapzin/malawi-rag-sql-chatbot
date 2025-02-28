@@ -1,0 +1,131 @@
+{
+  "timestamp": "2025-02-28T15:53:32.301314",
+  "database_path": "/home/dj/malawi-rag-sql-chatbot/pmisProjects.db",
+  "total_projects": 1048,
+  "sectors": [
+    {
+      "name": "Unknown",
+      "count": 13,
+      "total_budget": 0,
+      "avg_budget": 0.0
+    },
+    {
+      "name": "Agriculture and environment",
+      "count": 40,
+      "total_budget": 34379169847.5,
+      "avg_budget": 859479246.1875
+    },
+    {
+      "name": "Commercial services",
+      "count": 193,
+      "total_budget": 43838138794.2,
+      "avg_budget": 227140615.51398963
+    },
+    {
+      "name": "Community security initiatives",
+      "count": 71,
+      "total_budget": 5412872258.5,
+      "avg_budget": 76237637.44366197
+    },
+    {
+      "name": "Education",
+      "count": 269,
+      "total_budget": 19601108060.5,
+      "avg_budget": 72866572.71561338
+    },
+    {
+      "name": "Health",
+      "count": 219,
+      "total_budget": 53044625236.9,
+      "avg_budget": 242212900.62511417
+    },
+    {
+      "name": "Roads and bridges",
+      "count": 175,
+      "total_budget": 10005644927,
+      "avg_budget": 57175113.86857143
+    },
+    {
+      "name": "Water and sanitation",
+      "count": 68,
+      "total_budget": 2877540096,
+      "avg_budget": 42316766.11764706
+    }
+  ],
+  "top_districts": [
+    {
+      "name": "Lilongwe",
+      "count": 89
+    },
+    {
+      "name": "Dedza",
+      "count": 57
+    },
+    {
+      "name": "Mulanje",
+      "count": 56
+    },
+    {
+      "name": "Mangochi",
+      "count": 56
+    },
+    {
+      "name": "Mzimba",
+      "count": 55
+    },
+    {
+      "name": "Kasungu",
+      "count": 54
+    },
+    {
+      "name": "Dowa",
+      "count": 53
+    },
+    {
+      "name": "Machinga",
+      "count": 46
+    },
+    {
+      "name": "Chiradzulu",
+      "count": 46
+    },
+    {
+      "name": "Chikwawa",
+      "count": 45
+    }
+  ],
+  "statuses": [
+    {
+      "name": "Unknown",
+      "count": 857
+    },
+    {
+      "name": "Approved",
+      "count": 11
+    },
+    {
+      "name": "Canceled",
+      "count": 2
+    },
+    {
+      "name": "Handed over",
+      "count": 6
+    },
+    {
+      "name": "Implementation: On track",
+      "count": 77
+    },
+    {
+      "name": "Implementation: On track or Implementation: Delayed",
+      "count": 51
+    },
+    {
+      "name": "Stalled",
+      "count": 6
+    },
+    {
+      "name": "Works completed",
+      "count": 38
+    }
+  ]
+}
