@@ -123,23 +123,62 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Response:', data);
             
             // Update query details panel with metadata
-            if (data.metadata) {
-                updateQueryDetails(data.metadata);
+            if (data.response?.metadata) {
+                updateQueryDetails(data.response.metadata);
             }
             
-            // Simplified response handling
-            if (data.results && data.results.length > 0) {
-                const result = data.results[0];
-                
-                // Simply display the message content
-                if (result.message) {
-                    // Clean up the message to remove any code blocks or extra formatting
-                    // This takes only the first paragraph of text
-                    const cleanMessage = result.message.split('\n\n')[0].replace(/"/g, '');
-                    appendMessage(cleanMessage);
-                } else {
-                    appendMessage("I couldn't find any relevant information for your query.");
+            // Handle different response types
+            if (data.response?.query_type === "chat") {
+                // For chat responses (greetings, help, other)
+                const message = data.response.results[0]?.message;
+                if (message) {
+                    appendMessage(message);
                 }
+            } else if (data.response?.results?.length > 0) {
+                // For SQL query responses
+                const results = data.response.results;
+                
+                // If there's an explanation, show it first
+                if (data.response.explanation) {
+                    appendMessage(data.response.explanation);
+                }
+                
+                // Show each result
+                results.forEach(result => {
+                    // Format the response in a user-friendly way
+                    const details = [];
+                    if (result.project_name) {
+                        details.push(`📋 Project: ${result.project_name}`);
+                    }
+                    if (result.district) {
+                        details.push(`📍 District: ${result.district}`);
+                    }
+                    if (result.project_sector) {
+                        details.push(`🏗️ Sector: ${result.project_sector}`);
+                    }
+                    if (result.project_status) {
+                        details.push(`📊 Status: ${result.project_status}`);
+                    }
+                    if (result.total_budget) {
+                        const budget = typeof result.total_budget === 'object' ? 
+                            result.total_budget.formatted : 
+                            `MWK ${Number(result.total_budget).toLocaleString()}`;
+                        details.push(`💰 Budget: ${budget}`);
+                    }
+                    if (result.completion_percentage !== undefined) {
+                        details.push(`✅ Completion: ${result.completion_percentage}%`);
+                    }
+                    if (result.start_date) {
+                        details.push(`📅 Start Date: ${result.start_date}`);
+                    }
+                    if (result.completion_date) {
+                        details.push(`🏁 Completion Date: ${result.completion_date}`);
+                    }
+                    
+                    if (details.length > 0) {
+                        appendMessage(details.join('\n'));
+                    }
+                });
             } else {
                 appendMessage("I couldn't find any projects matching your criteria. Please try a different query.");
             }
@@ -164,19 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        
-        // Handle messages with line breaks
-        if (message.includes('\n')) {
-            message.split('\n').forEach(line => {
-                if (line.trim()) {
-                    const p = document.createElement('p');
-                    p.textContent = line;
-                    contentDiv.appendChild(p);
-                }
-            });
-        } else {
-            contentDiv.textContent = message;
-        }
+        contentDiv.textContent = message;
         
         messageDiv.appendChild(iconSpan);
         messageDiv.appendChild(contentDiv);

@@ -78,15 +78,16 @@
         </div>
 
         <div class="chat-input-container">
-            <form id="chat-form" class="flex gap-3">
+            <form id="chat-form" class="flex items-center w-full gap-2">
                 <input type="text" 
-                       id="user-input" 
-                       class="flex-1" 
-                       placeholder="Ask me about infrastructure projects in Malawi...">
+                       id="user-input"
+                       class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                       placeholder="Ask me about infrastructure projects..."
+                       autocomplete="off">
                 <button id="sendButton" 
+                        class="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
                         type="submit">
-                    <span>Send</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                     </svg>
                 </button>
