@@ -95,9 +95,9 @@ class DatabaseManager:
             if db_path.startswith('sqlite:///'):
                 db_path = db_path[len('sqlite:///'):]
                 
-            # If no database URL is set, default to pmisProjects.db in the project root
+            # If no database URL is set, default to malawi_projects1.db in the project root
             if not db_path:
-                db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'pmisProjects.db')
+                db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'malawi_projects1.db')
         
         # Convert to absolute path if relative
         if not os.path.isabs(db_path):
