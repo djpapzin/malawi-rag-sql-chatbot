@@ -1,62 +1,144 @@
 # Database Schema and Setup
 
 ## Database Setup
-To generate the database, run:
-```bash
-python scripts/init_db.py
+The application uses a real Malawi infrastructure projects database imported from an SQL dump file. 
+
+The database file is located at:
 ```
-This script will create `malawi_projects1.db` in the project root directory with 196 sample infrastructure projects, including realistic project names, budgets, completion percentages, and dates.
+/home/dj/malawi-rag-sql-chatbot/malawi_projects1.db
+```
+
+This database contains 1048 actual infrastructure projects from Malawi.
 
 ## Main Table Schema
 ```sql
-CREATE TABLE proj_dashboard (
-    projectname TEXT,
-    district TEXT,
-    projectsector TEXT,
-    projectstatus TEXT,
-    budget NUMERIC,
-    completionpercentage NUMERIC,
-    startdate NUMERIC,
-    completiondata NUMERIC
+CREATE TABLE `proj_dashboard` (
+        `G_UUID` varchar (300),
+        `G_VALIDDATE` TEXT,
+        `G_SEQ` int (11),
+        `isLatest` tinyint (1),
+        `isLatest_pending` tinyint (1),
+        `isLatest_approved` tinyint (1),
+        `G_CONTEXT` varchar (300),
+        `G_COMMUNITYID` varchar (300),
+        `G_APPID` varchar (300),
+        `G_PROFILEUUID` varchar (300),
+        `G_WORKFLOWUUID` varchar (300),
+        `MAP_BOUNDARY` varchar (300),
+        `MAP_LATITUDE` REAL,
+        `MAP_LONGITUDE` REAL,
+        `PROJECTNAME` varchar (300),
+        `PROJECTCODE` varchar (300),
+        `PROJECTSTATUS` varchar (300),
+        `PROJECTDESC` varchar (300),
+        `PROJECTRATIONALE` varchar (300),
+        `PROJECTSECTOR` varchar (300),
+        `PROJECTTYPE` varchar (300),
+        `FISCALYEAR` varchar (300),
+        `REGION` varchar (300),
+        `DISTRICT` varchar (300),
+        `DISTRICTCODE` varchar (300),
+        `TRADITIONALAUTHORITY` varchar (300),
+        `FUNDINGSOURCE` varchar (300),
+        `STAGE` varchar (300),
+        `PROJECTID` varchar (300),
+        `BUDGET` Decimal (17),
+        `PROJECTCOMPLETEBINARY` int (11),
+        `ISPROJECTCOMPLETE` varchar (300),
+        `PROJECTSTALLEDBINARY` int (11),
+        `ISPROJECTSTALLED` varchar (300),
+        `PROJECTHANDEDBINARY` int (11),
+        `ISPROJECTHANDEDOVER` varchar (300),
+        `CONTRACTORNAME` varchar (300),
+        `SIGNINGDATE` TEXT,
+        `TOTALVALUE` Decimal (17),
+        `CERTIFICATES` int (11),
+        `ADDENDUMCOUNT` int (11),
+        `DURATIONS` int (11),
+        `BUDGETTOTAL` Decimal (17),
+        `TOTALEXPENDITUREYEAR` Decimal (17),
+        `BUDGETREMAINING` Decimal (17),
+        `CONTEXPENVARIANCE` Decimal (17),
+        `CONTEXPENVARIANCEPERCENT` Decimal (13),
+        `TECCONVARIANCE` Decimal (17),
+        `TECCONVARIANCEPERCENT` Decimal (13),
+        `PERCENTSPEND` Decimal (13),
+        `CERTIFICATESPAID` int (11),
+        `PERCENTCERTIFICATES` Decimal (13),
+        `COMPLETIONPERCENTAGE` Decimal (13),
+        `MALES` int (11),
+        `FEMALES` int (11),
+        `TOTALMEMBERS` int (11),
+        `TOTALISSUES` int (11),
+        `STARTDATE` TEXT,
+        `LASTVISIT` TEXT,
+        `COMPLETIONDATA` TEXT,
+        `ADDENDUM` varchar (300),
+        `COMPLETIONESTIDATE` TEXT,
+        `ACTUALCOMPLETIONDATE` TEXT,
+        `FLAGONE` int (11),
+        `FLAGTWO` int (11),
+        `FLAGTHREE` int (11),
+        `ANYFLAG` int (11),
+        `ALLFLAGS` int (11),
+        `ISOVERDUE` varchar (300),
+        `DAYSOVERDUE` int (11),
+        `COMPLETIONSTATUS` varchar (300),
+        `PEOPLEBENEFITED` varchar (300),
+        `SITEREPORTCOMMENTS` varchar (3000),
+        `CONTRACTORUUID` varchar (300),
+        `SITEREPORTUUID` varchar (300),
+        `COMPLETIONSTATUSUUID` varchar (300),
+        `CYCLE` varchar (300),
+        `CYCLECODE` varchar (300)
 );
 ```
 
-### Column Descriptions
-- `projectname`: Name of the infrastructure project
-- `district`: District where the project is located (e.g., Lilongwe, Blantyre, Mzuzu, etc.)
-- `projectsector`: Sector of the project (e.g., Infrastructure, Water, Energy, etc.)
-- `projectstatus`: Current status of the project (Active, Planning, Completed, On Hold)
-- `budget`: Project budget in MWK (Malawian Kwacha)
-- `completionpercentage`: Project completion percentage (0-100)
-- `startdate`: Project start date in YYYYMMDD format (stored as integer)
-- `completiondata`: Project completion date in YYYYMMDD format (stored as integer)
+### Key Column Descriptions
+- `PROJECTNAME`: Name of the infrastructure project
+- `DISTRICT`: District where the project is located
+- `PROJECTSECTOR`: Sector of the project (e.g., Education, Health, etc.)
+- `PROJECTSTATUS`: Current status of the project
+- `BUDGET`: Project budget
+- `COMPLETIONPERCENTAGE`: Project completion percentage
+- `STARTDATE`: Project start date
+- `COMPLETIONDATA`: Project completion date
+- `PROJECTDESC`: Detailed description of the project
+- `PROJECTRATIONALE`: Rationale or justification for the project
+- `REGION`: Region where the project is located
+- `FUNDINGSOURCE`: Source of project funding
+- `CONTRACTORNAME`: Name of the contractor
+- `TOTALVALUE`: Total contract value
+- `MAP_LATITUDE` and `MAP_LONGITUDE`: Geographic coordinates of the project
 
 ### Important Implementation Notes
-1. **Date Format**: Both date fields are stored as integers in YYYYMMDD format
-   - Example: January 1, 2023 is stored as `20230101`
-   - SQL queries must transform these values for proper display: 
-     ```sql
-     substr(startdate,1,4) || '-' || substr(startdate,5,2) || '-' || substr(startdate,7,2) as start_date
-     ```
+1. **Date Formats**: Date fields are stored as TEXT
+   - When querying, you may need to format them for proper display
 
-2. **Case Sensitivity**: The `district` field values are case-sensitive
+2. **Case Sensitivity**: Field values may be case-sensitive
    - SQL queries should use `LOWER()` function for case-insensitive comparisons:
      ```sql
-     WHERE LOWER(district) = LOWER('Lilongwe')
+     WHERE LOWER(DISTRICT) = LOWER('Lilongwe')
      ```
 
-### Sample Data Format
-```sql
--- Example record:
-('Lilongwe Road Development Phase 1', 'Lilongwe', 'Infrastructure', 'Active', 500000, 0, 20230101, 20240101)
-```
+### Primary Sectors
+Based on the data analysis, the primary project sectors include:
+- Agriculture and environment
+- Commercial services
+- Community security initiatives
+- Education
+- Health
+- Roads and bridges
+- Water and sanitation
 
-### Available Values
-1. Districts: Lilongwe, Blantyre, Mzuzu, Zomba, Kasungu, Mangochi, Salima, Nkhata Bay, Karonga, Dedza
-2. Sectors: Infrastructure, Water, Energy, Education, Healthcare, Agriculture, Transport
-3. Statuses: Active, Planning, Completed, On Hold
-
-Note: This is the only table used in the application. The database is automatically populated with 196 sample records when running the `init_db.py` script.
+### Database Statistics
+- Total number of records: 1048
+- Top districts by project count:
+  - Lilongwe: 89 projects
+  - Dedza: 57 projects
+  - Mulanje: 56 projects
+  - Mangochi: 56 projects
+  - Mzimba: 55 projects
 
 ## For More Information
 See the comprehensive [Database Setup and Configuration](DATABASE_SETUP.md) document for detailed information about database usage, access patterns, and troubleshooting.

@@ -57,9 +57,11 @@ python scripts/convert_database.py
 ```
 
 This will create:
-- SQLite database: `pmisProjects.db`
+- SQLite database: `malawi_projects1.db` (containing data from pmisProjects.sql)
 - CSV export: `pmisProjects.csv`
 - Schema documentation: `DATABASE_SCHEMA.md`
+
+Note: The application is configured to use `malawi_projects1.db` as the primary database file. A symbolic link is created from `malawi_projects1.db` to `pmisProjects.db` for backward compatibility.
 
 ### Running the Server
 

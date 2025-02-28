@@ -7,87 +7,154 @@ This document provides definitive information about the database used in the Mal
 - **Database File**: `malawi_projects1.db`
 - **Location**: Project root directory (`/home/dj/malawi-rag-sql-chatbot/malawi_projects1.db`)
 - **Table**: `proj_dashboard`
-- **Record Count**: 196 infrastructure projects
+- **Record Count**: 1048 infrastructure projects
 
-## Database Schema
-```sql
-CREATE TABLE proj_dashboard (
-    projectname TEXT,
-    district TEXT,
-    projectsector TEXT,
-    projectstatus TEXT,
-    budget NUMERIC,
-    completionpercentage NUMERIC,
-    startdate NUMERIC,
-    completiondata NUMERIC
-);
-```
+## Database Origin
+The database has been created from a real SQL dump file (`pmisProjects.sql`) containing actual Malawi infrastructure projects data. The original SQL dump was imported into an SQLite database for use with the chatbot application.
 
-### Column Descriptions
-- `projectname`: Name of the infrastructure project
-- `district`: District where the project is located (e.g., Lilongwe, Blantyre, Mzuzu, etc.)
-- `projectsector`: Sector of the project (e.g., Infrastructure, Water, Energy, etc.)
-- `projectstatus`: Current status of the project (Active, Planning, Completed, On Hold)
-- `budget`: Project budget in MWK (Malawian Kwacha)
-- `completionpercentage`: Project completion percentage (0-100)
-- `startdate`: Project start date in YYYYMMDD format (stored as integer)
-- `completiondata`: Project completion date in YYYYMMDD format (stored as integer)
-
-## Important Notes
-1. **Date Format**: Both date fields (`startdate` and `completiondata`) are stored as integers in YYYYMMDD format
-   - Example: January 1, 2023 is stored as `20230101`
-   - SQL queries must transform these values for proper date display
-
-2. **Case Sensitivity**: The `district` field values are case-sensitive
-   - SQL queries should use `LOWER()` function for case-insensitive comparisons
-   - Example: `WHERE LOWER(district) = LOWER('Lilongwe')`
-
-## Database Creation
-To recreate the database from scratch:
+## Data Migration
+If you need to recreate the database from the SQL dump:
 
 ```bash
 cd /home/dj/malawi-rag-sql-chatbot
-python scripts/init_db.py
+sqlite3 malawi_projects1.db < pmisProjects.sql
 ```
 
-This script will:
-1. Create a new `malawi_projects1.db` file
-2. Create the `proj_dashboard` table
-3. Populate it with 196 sample infrastructure projects
+## Database Schema
+The database contains a comprehensive schema with many fields. Here are the most important columns:
+
+```sql
+CREATE TABLE `proj_dashboard` (
+        /* System and metadata fields */
+        `G_UUID` varchar (300),
+        /* ... many other metadata fields ... */
+        
+        /* Core project information */
+        `PROJECTNAME` varchar (300),
+        `PROJECTCODE` varchar (300),
+        `PROJECTSTATUS` varchar (300),
+        `PROJECTDESC` varchar (300),
+        `PROJECTRATIONALE` varchar (300),
+        `PROJECTSECTOR` varchar (300),
+        `PROJECTTYPE` varchar (300),
+        
+        /* Location information */
+        `REGION` varchar (300),
+        `DISTRICT` varchar (300),
+        `DISTRICTCODE` varchar (300),
+        `TRADITIONALAUTHORITY` varchar (300),
+        `MAP_LATITUDE` REAL,
+        `MAP_LONGITUDE` REAL,
+        
+        /* Financial information */
+        `BUDGET` Decimal (17),
+        `FUNDINGSOURCE` varchar (300),
+        `TOTALVALUE` Decimal (17),
+        `BUDGETTOTAL` Decimal (17),
+        `TOTALEXPENDITUREYEAR` Decimal (17),
+        `BUDGETREMAINING` Decimal (17),
+        
+        /* Progress information */
+        `COMPLETIONPERCENTAGE` Decimal (13),
+        `STARTDATE` TEXT,
+        `COMPLETIONDATA` TEXT,
+        `COMPLETIONESTIDATE` TEXT,
+        `ACTUALCOMPLETIONDATE` TEXT,
+        
+        /* Contractor information */
+        `CONTRACTORNAME` varchar (300),
+        `SIGNINGDATE` TEXT,
+        
+        /* Additional fields - see full schema in DATABASE_SCHEMA.md */
+);
+```
+
+## Key Fields for Queries
+The most commonly queried fields include:
+
+1. **Project Information**:
+   - `PROJECTNAME`: The name of the project
+   - `PROJECTDESC`: Detailed description of the project
+   - `PROJECTSECTOR`: Sector categorization (e.g., Education, Health)
+   - `PROJECTSTATUS`: Current project status
+
+2. **Location Information**:
+   - `DISTRICT`: The district where the project is located
+   - `REGION`: The region of Malawi
+
+3. **Financial Information**:
+   - `BUDGET`: The allocated budget
+   - `TOTALVALUE`: The total value of the project
+
+4. **Progress Information**:
+   - `COMPLETIONPERCENTAGE`: The percentage of project completion
+   - `STARTDATE`: When the project started
+   - `COMPLETIONDATA`: Expected completion date
+
+## Important Implementation Notes
+
+### Date Fields
+Unlike the test database, date fields in this database are stored as TEXT:
+- `STARTDATE`
+- `COMPLETIONDATA`
+- `SIGNINGDATE`
+- `COMPLETIONESTIDATE`
+- `ACTUALCOMPLETIONDATE`
+
+### Case Sensitivity
+The field names in this database are in ALL CAPS, and when querying them, you should maintain this capitalization:
+
+```sql
+SELECT PROJECTNAME, DISTRICT, BUDGET FROM proj_dashboard WHERE PROJECTSECTOR = 'Education'
+```
+
+However, the values within fields may still require case-insensitive comparisons:
+
+```sql
+SELECT PROJECTNAME, BUDGET FROM proj_dashboard WHERE LOWER(DISTRICT) = LOWER('Lilongwe')
+```
 
 ## Database Access in Code
-The application accesses the database through the `DatabaseManager` class in `app/models.py`, which looks for the database in the following locations:
-1. Path specified in `DATABASE_URL` environment variable
-2. Default path: project root directory (`malawi_projects1.db`)
+The application accesses the database through the DatabaseManager class which looks for the database at:
+- Path specified in DATABASE_URL environment variable, or
+- Default path: project root directory (`malawi_projects1.db`)
 
-## SQL Query Transformations
-When working with this database, queries need two important transformations:
+## Common Query Patterns
 
-1. **Case-insensitive district comparisons**:
-   ```sql
-   -- Original query
-   WHERE district = 'Lilongwe'
-   
-   -- Transformed query
-   WHERE LOWER(district) = LOWER('Lilongwe')
-   ```
+### Projects by District
+```sql
+SELECT PROJECTNAME, PROJECTSECTOR, BUDGET, COMPLETIONPERCENTAGE
+FROM proj_dashboard
+WHERE LOWER(DISTRICT) = LOWER('Lilongwe')
+ORDER BY BUDGET DESC
+```
 
-2. **Date formatting**:
-   ```sql
-   -- Original query
-   SELECT startdate as start_date
-   
-   -- Transformed query
-   SELECT substr(startdate,1,4) || '-' || substr(startdate,5,2) || '-' || substr(startdate,7,2) as start_date
-   ```
+### Projects by Sector
+```sql
+SELECT PROJECTNAME, DISTRICT, BUDGET, COMPLETIONPERCENTAGE
+FROM proj_dashboard
+WHERE LOWER(PROJECTSECTOR) = LOWER('Education')
+ORDER BY COMPLETIONPERCENTAGE DESC
+```
+
+### Project Budget Analysis
+```sql
+SELECT PROJECTSECTOR, 
+       COUNT(*) as project_count, 
+       SUM(BUDGET) as total_budget, 
+       AVG(BUDGET) as average_budget
+FROM proj_dashboard
+GROUP BY PROJECTSECTOR
+ORDER BY total_budget DESC
+```
 
 ## Troubleshooting
 If you encounter database-related issues:
 
-1. Verify the database exists at the root directory
+1. Verify the database exists at the expected path
 2. Check that the `proj_dashboard` table exists and has records
-3. Ensure SQL queries handle case sensitivity and date formatting correctly
-4. If needed, recreate the database using the `init_db.py` script
+3. Ensure SQL queries use the correct field names (in ALL CAPS)
+4. If needed, recreate the database from the SQL dump file
 
 ## Warning About Other Setup Scripts
 Note that there are other database setup scripts in the repository that create different database schemas:
