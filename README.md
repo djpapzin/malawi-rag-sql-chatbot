@@ -39,13 +39,15 @@ conda activate rag-sql-env
 # Install dependencies
 pip install -r requirements.txt
 
-# Generate the database
-python scripts/init_db.py
+# Database Setup
+# The application uses malawi_projects1.db which contains data imported from pmisProjects.sql
+# If you need to regenerate the database:
+python scripts/convert_database.py
 ```
 
 ### Database Structure
 
-The application uses a single table `proj_dashboard` with a comprehensive schema containing data on Malawi's infrastructure projects. Key fields include:
+The application uses a SQLite database file `malawi_projects1.db` with a single table `proj_dashboard` containing data on Malawi's infrastructure projects. This database is populated with real project data imported from the pmisProjects.sql dump file. Key fields include:
 
 - `PROJECTNAME`: Name of the infrastructure project
 - `DISTRICT`: District location (e.g., Lilongwe, Blantyre, etc.)
