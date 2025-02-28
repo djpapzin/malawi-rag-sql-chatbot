@@ -116,7 +116,7 @@ class LangChainSQLIntegration:
             logger.error(f"Error initializing LangChainSQLIntegration: {str(e)}")
             raise
 
-    def _extract_sql_from_text(self, text: str) -> str:
+    async def _extract_sql_from_text(self, text: str) -> str:
         """Extract SQL query from LLM response"""
         logger.info(f"Extracting SQL from text: {repr(text)}")
         
@@ -144,17 +144,21 @@ class LangChainSQLIntegration:
         logger.error(f"Failed to extract SQL query from text: {repr(text)}")
         return ""
 
-    def _get_llm_response(self, prompt: str) -> str:
+    async def _get_llm_response(self, prompt: str) -> str:
         """Get response from LLM using Together API"""
         try:
             import together
             logger.info(f"Sending prompt to LLM: {repr(prompt)}")
             
+            # Use the Together API directly with the completion endpoint
             response = together.Complete.create(
                 prompt=prompt,
                 model=self.model,
+                max_tokens=1024,
                 temperature=self.temperature,
-                max_tokens=1024
+                top_k=50,
+                top_p=0.7,
+                repetition_penalty=1.1
             )
             
             # Extract the raw text from the response
@@ -249,7 +253,7 @@ Just ask me what you'd like to know about these projects!"""
             logger.error(f"Error getting LLM response: {str(e)}")
             raise Exception(f"Failed to get answer: {str(e)}")
 
-    def _validate_sql_query(self, sql_query: str) -> str:
+    async def _validate_sql_query(self, sql_query: str) -> str:
         """Validate a SQL query"""
         try:
             # Basic validation
@@ -329,7 +333,7 @@ Just ask me what you'd like to know about these projects!"""
         ORDER BY total_budget DESC;
         """.strip()
 
-    def generate_sql_query(self, user_query: str) -> str:
+    async def generate_sql_query(self, user_query: str) -> str:
         """Generate a SQL query from a natural language query"""
         try:
             # Handle infrastructure budget query
@@ -390,14 +394,14 @@ WHERE LOWER(projectsector) LIKE '%infrastructure%'
 ORDER BY total_budget DESC;"""
             
             # Get SQL query from LLM
-            sql_query = self._get_llm_response(prompt)
+            sql_query = await self._get_llm_response(prompt)
             
             # Extract SQL if needed
             if not sql_query.lower().startswith('select'):
-                sql_query = self._extract_sql_from_text(sql_query)
+                sql_query = await self._extract_sql_from_text(sql_query)
             
             # Validate and transform query
-            sql_query = self._validate_sql_query(sql_query)
+            sql_query = await self._validate_sql_query(sql_query)
             
             return sql_query
             
@@ -463,7 +467,7 @@ ORDER BY total_budget DESC;"""
             User query: {query}"""
             
             # First try LLM-based intent detection
-            intent = self._get_llm_response(intent_prompt.format(query=user_query)).strip().upper()
+            intent = await self._get_llm_response(intent_prompt.format(query=user_query)).strip().upper()
             logger.info(f"LLM detected intent: {intent} for query: {user_query}")
             
             # If no clear intent, try pattern matching
@@ -486,7 +490,7 @@ ORDER BY total_budget DESC;"""
                 
                 The user has greeted you. Respond warmly and provide these suggestions."""
                 
-                response = self._get_llm_response(greeting_prompt)
+                response = await self._get_llm_response(greeting_prompt)
                 return {
                     "response": {
                         "query_type": "chat",
@@ -526,7 +530,7 @@ ORDER BY total_budget DESC;"""
                 The user asked: {query}
                 Provide a helpful response about these capabilities.""".format(query=user_query)
                 
-                response = self._get_llm_response(capabilities_prompt)
+                response = await self._get_llm_response(capabilities_prompt)
                 return {
                     "response": {
                         "query_type": "chat",
@@ -543,7 +547,7 @@ ORDER BY total_budget DESC;"""
             if intent == "SQL":
                 try:
                     # Generate and execute SQL query
-                    sql_query = self.generate_sql_query(user_query)
+                    sql_query = await self.generate_sql_query(user_query)
                     logger.info(f"Generated SQL query: {sql_query}")
                     
                     with self.db_manager.get_connection() as conn:
@@ -560,7 +564,7 @@ ORDER BY total_budget DESC;"""
                     
                     Provide a brief, natural language explanation of these results."""
                     
-                    explanation = self._get_llm_response(explanation_prompt)
+                    explanation = await self._get_llm_response(explanation_prompt)
                     
                     return {
                         "response": {
@@ -579,7 +583,7 @@ ORDER BY total_budget DESC;"""
                     raise
             
             # Handle other types of queries
-            response = self._get_llm_response(
+            response = await self._get_llm_response(
                 f"""You are a helpful assistant for Malawi infrastructure projects database. 
                 The user asked: "{user_query}"
                 This seems to be an unsupported type of query. Explain what kinds of questions they can ask instead, focusing on:
@@ -610,63 +614,51 @@ ORDER BY total_budget DESC;"""
 
     async def process_query(self, user_query: str) -> Dict[str, Any]:
         """Process a natural language query"""
-        start_time = time.time()
-        
         try:
-            # Check for greeting intent
+            # Check if it's a greeting
             if self._is_greeting_or_general(user_query):
                 return {
                     "results": [{
-                        "type": "greeting",
-                        "message": "Hello! I can help you find information about infrastructure projects in Malawi. You can ask me about projects in specific districts, budgets, completion status, or get general statistics. How can I assist you today?",
+                        "type": "text",
+                        "message": get_greeting_response(),
                         "data": {}
                     }],
                     "metadata": {
                         "total_results": 1,
-                        "query_time": f"{time.time() - start_time:.2f}s",
+                        "query_time": "0.00s",
                         "sql_query": ""
                     }
                 }
+
+            # Start timing
+            start_time = time.time()
             
             # Generate SQL query
-            sql_query = self.generate_sql_query(user_query)
+            sql_query = await self.generate_sql_query(user_query)
             logger.info(f"Generated SQL query: {sql_query}")
             
             # Execute query
-            with self.db_manager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(sql_query)
-                results = [dict(row) for row in cursor.fetchall()]
+            results = self.execute_query(sql_query)
+            logger.info(f"Query results: {results}")
             
-            # Generate natural language response
-            response = await self.generate_natural_response(results, user_query, sql_query)
+            # Calculate query time
+            query_time = time.time() - start_time
             
             # Format response
-            return {
-                "results": [{
-                    "type": "sql",
-                    "message": response,
-                    "data": results
-                }],
-                "metadata": {
-                    "total_results": len(results),
-                    "query_time": f"{time.time() - start_time:.2f}s",
-                    "sql_query": sql_query
-                }
-            }
+            return await self.format_response(results, sql_query, query_time, user_query)
             
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
-            logger.error(traceback.format_exc())
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "results": [{
                     "type": "error",
-                    "message": "I encountered an error while processing your query. Please try again.",
+                    "message": str(e),
                     "data": {}
                 }],
                 "metadata": {
                     "total_results": 0,
-                    "query_time": f"{time.time() - start_time:.2f}s",
+                    "query_time": "0.00s",
                     "sql_query": ""
                 }
             }
@@ -770,44 +762,23 @@ Response:"""
                 return f"I found {len(results)} matching projects with a total budget of MWK {total_budget:,.2f}."
             return "I found some matching projects in the database."
 
-    async def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str) -> Dict:
+    async def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str) -> Dict[str, Any]:
         """Format query results into a standardized response with natural language."""
         try:
             # Generate natural language response
-            nl_response = await self.generate_natural_response(query_results, user_query, sql_query)
-            
-            # Format results with natural language message
-            formatted_results = []
-            
-            # Handle empty results
-            if not query_results:
-                # No results case
-                formatted_results = [{
-                    "type": "no_results",
-                    "message": f"I couldn't find any matching projects. Could you try rephrasing your question?",
-                    "data": {}
-                }]
-            else:
-                # For each result, create a formatted result object with natural language
-                for result in query_results:
-                    # Format budget if present
-                    if 'total_budget' in result and not isinstance(result['total_budget'], dict):
-                        budget = float(result['total_budget'])
-                        result['total_budget'] = {
-                            'amount': budget,
-                            'formatted': f"MWK {budget:,.2f}"
-                        }
-                    
-                    formatted_results.append({
-                        "type": "budget_summary",
-                        "message": nl_response,
-                        "data": result
-                    })
+            natural_response = await self.generate_natural_response(query_results, user_query, sql_query)
             
             return {
-                "results": formatted_results,
-                "query_time_ms": query_time * 1000,
-                "sql_query": sql_query
+                "results": [{
+                    "type": "text",
+                    "message": natural_response,
+                    "data": {}
+                }],
+                "metadata": {
+                    "total_results": len(query_results),
+                    "query_time": f"{query_time:.2f}s",
+                    "sql_query": sql_query
+                }
             }
             
         except Exception as e:
@@ -818,8 +789,11 @@ Response:"""
                     "message": "I encountered an error processing your request. Please try again.",
                     "data": {}
                 }],
-                "query_time_ms": query_time * 1000,
-                "sql_query": sql_query
+                "metadata": {
+                    "total_results": 0,
+                    "query_time": f"{query_time:.2f}s",
+                    "sql_query": sql_query
+                }
             }
 
     def _format_basic_response(self, query_results: List[Dict[str, Any]]) -> str:
@@ -1017,6 +991,15 @@ Response:"""
         except Exception as e:
             logger.error(f"Error getting schema info: {str(e)}")
             raise
+
+    def _get_table_info(self) -> Dict[str, Any]:
+        """
+        Get information about the database schema.
+        
+        Returns:
+            Dict[str, Any]: Database schema information in a structured format
+        """
+        return self.get_table_info()
 
     def _is_aggregate_query(self, query: str) -> bool:
         """Check if the query requires aggregation"""
