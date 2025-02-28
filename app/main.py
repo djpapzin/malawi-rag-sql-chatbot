@@ -30,7 +30,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(os.getenv("LOG_FILE", "/tmp/malawi-rag-sql-chatbot.log"))
+        logging.FileHandler("malawi-rag-sql-chatbot.log")
     ]
 )
 
@@ -59,7 +59,11 @@ templates = Jinja2Templates(directory="frontend/templates")
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
 # Configure CORS
-origins = eval(os.getenv("CORS_ORIGINS", '["http://localhost:5000"]'))
+origins = [
+    "http://154.0.164.254:3000",     # Frontend development
+    "http://154.0.164.254:5000",     # Backend development
+    "https://dziwani.kwantu.support" # Production
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -75,11 +79,15 @@ response_handler = ResponseHandler()
 conversation_store = ConversationStore()
 logger.info("Initialized components")
 
+# Include routers
+from app.routers import chat
+app.include_router(chat.router, prefix=API_PREFIX)
+
 @app.get("/")
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/health")
+@app.get(f"{API_PREFIX}/health")
 async def health_check():
     """Health check endpoint"""
     try:
