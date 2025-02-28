@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 # Get configuration from environment
 PORT = int(os.getenv('PORT', '5000'))  # Changed default port to 5000
 HOST = os.getenv('HOST', '0.0.0.0')
-API_PREFIX = os.getenv('API_PREFIX', '/api/rag-sql-chatbot')
+API_PREFIX = os.getenv('API_PREFIX', '/api')
 CORS_ORIGINS = eval(os.getenv('CORS_ORIGINS', '["*"]'))
 
 # Initialize FastAPI app
@@ -114,6 +114,16 @@ async def health_check():
             "status": "unhealthy",
             "error": str(e)
         }
+
+# Add a simplified health endpoint at /api/health that doesn't require database connection
+@app.get("/api/health")
+async def simplified_health_check():
+    """Simple health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "message": "API is running"
+    }
 
 @app.post(f"{API_PREFIX}/chat")
 async def chat(request: ChatRequest) -> Dict[str, Any]:
