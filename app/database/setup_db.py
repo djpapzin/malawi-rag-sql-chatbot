@@ -4,7 +4,7 @@ import os
 
 def setup_database():
     # Create database connection
-    conn = sqlite3.connect('malawi_projects1.db')
+    conn = sqlite3.connect('pmisProjects.db')
     cursor = conn.cursor()
 
     # Create tables

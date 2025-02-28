@@ -1,31 +1,29 @@
+#!/usr/bin/env python3
 import sqlite3
 
 # Connect to the database
-conn = sqlite3.connect('malawi_projects1.db')
+conn = sqlite3.connect('pmisProjects.db')
 cursor = conn.cursor()
 
-# Get table info
-cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='proj_dashboard';")
-print(cursor.fetchone()[0])
+# Get a list of tables
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+tables = cursor.fetchall()
 
-# Test some queries
-test_queries = [
-    "SELECT COUNT(*) FROM proj_dashboard WHERE DISTRICT = 'Lilongwe'",
-    "SELECT SUM(BUDGET) FROM proj_dashboard",
-    "SELECT * FROM proj_dashboard WHERE PROJECTSECTOR = 'Infrastructure'",
-    "SELECT * FROM proj_dashboard WHERE COMPLETIONPERCENTAGE > 50",
-    "SELECT DISTRICT, AVG(BUDGET) FROM proj_dashboard GROUP BY DISTRICT"
-]
+print(f"Found {len(tables)} tables:")
 
-print("\nTesting queries:")
-for query in test_queries:
-    try:
-        cursor.execute(query)
-        result = cursor.fetchone()
-        print(f"\nQuery: {query}")
-        print(f"Result: {result}")
-    except Exception as e:
-        print(f"\nQuery: {query}")
-        print(f"Error: {str(e)}")
+# For each table, get schema and count rows
+for table in tables:
+    table_name = table[0]
+    cursor.execute(f"PRAGMA table_info({table_name});")
+    columns = cursor.fetchall()
+    
+    cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
+    row_count = cursor.fetchone()[0]
+    
+    print(f"\nTable: {table_name} ({row_count} rows)")
+    print("-" * 80)
+    for col in columns:
+        col_id, col_name, col_type, notnull, default_val, pk = col
+        print(f"{col_name} ({col_type})")
 
 conn.close()

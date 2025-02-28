@@ -8,7 +8,7 @@ from contextlib import contextmanager
 logger = logging.getLogger(__name__)
 
 class DatabaseManager:
-    def __init__(self, db_path: str = 'malawi_projects1.db'):
+    def __init__(self, db_path: str = 'pmisProjects.db'):
         self.db_path = db_path
 
     @contextmanager

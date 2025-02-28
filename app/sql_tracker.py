@@ -16,11 +16,12 @@ logger = logging.getLogger(__name__)
 class SQLTracker:
     """Tracks SQL query execution and sources"""
     
-    def __init__(self, database: str = 'malawi_projects1.db'):
+    def __init__(self, database: str = 'pmisProjects.db'):
         self.database = database
         self.connection = None
         self.last_page = 1
         self.last_query = None
+        self.queries = []
         logger.info(f"Initialized SQLTracker with database: {database}")
         
     def _connect(self):

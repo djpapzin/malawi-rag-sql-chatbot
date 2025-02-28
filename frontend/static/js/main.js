@@ -1,19 +1,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('user-input');
-    const sendButton = document.getElementById('sendButton');
+    const chatForm = document.querySelector('#chat-form');
+    const chatInput = document.querySelector('#user-input');
+    const sendButton = document.querySelector('#sendButton');
     const guidanceTiles = document.querySelector('.guidance-tiles');
-    const chatMessages = document.getElementById('chat-messages');
-    const initialView = document.getElementById('initial-view');
-    const chatView = document.getElementById('chat-view');
-    const queryDetails = document.getElementById('query-details');
+    const chatMessages = document.querySelector('#chat-messages');
+    const initialView = document.querySelector('#initial-view');
+    const chatView = document.querySelector('#chat-view');
+    const queryDetails = document.querySelector('#query-details');
     const queryDetailsHeader = document.querySelector('.query-details-header');
     const queryDetailsContent = document.querySelector('.query-details-content');
-    const sqlQueryText = document.getElementById('sql-query-text');
-    const queryTime = document.getElementById('query-time');
-    const totalResults = document.getElementById('total-results');
-    const toggleDetailsBtn = document.getElementById('toggle-details');
+    const sqlQueryText = document.querySelector('#sql-query-text');
+    const queryTime = document.querySelector('#query-time');
+    const totalResults = document.querySelector('#total-results');
+    const toggleDetailsBtn = document.querySelector('#toggle-details');
     const loadingIndicator = document.createElement('div');
     loadingIndicator.className = 'loading-indicator';
     loadingIndicator.innerHTML = '<div class="spinner"></div>';

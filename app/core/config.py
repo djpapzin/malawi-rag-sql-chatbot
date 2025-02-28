@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     NODE_ENV: str = "development"
     
     # Database Settings
-    DATABASE_URL: str = os.path.join(BASE_DIR, "malawi_projects1.db")
+    DATABASE_URL: str = os.path.join(BASE_DIR, "pmisProjects.db")
     DATABASE_TYPE: str = "sqlite"
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 10

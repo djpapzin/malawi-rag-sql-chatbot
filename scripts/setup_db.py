@@ -6,10 +6,18 @@ import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
 import random
+import os
+import sys
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, 
+                   format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def create_database():
     """Create the database and tables"""
-    conn = sqlite3.connect('malawi_projects1.db')
+    conn = sqlite3.connect('pmisProjects.db')
     cursor = conn.cursor()
     
     # Create projects table
@@ -84,5 +92,49 @@ def create_database():
     
     print(f"Created database with {len(projects)} sample projects")
 
+def setup_database():
+    """Set up the database with required tables"""
+    try:
+        # Create database file
+        conn = sqlite3.connect('pmisProjects.db')
+        cursor = conn.cursor()
+        
+        logger.info("Creating database tables...")
+        
+        # Create projects table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS proj_dashboard (
+            G_UUID TEXT PRIMARY KEY,
+            PROJECTNAME TEXT,
+            BUDGET REAL,
+            DISTRICT TEXT,
+            COMPLETIONPERCENTAGE REAL,
+            STARTDATE TEXT,
+            COMPLETIONDATA TEXT,
+            PROJECTSECTOR TEXT,
+            PROJECTSTATUS TEXT
+        )
+        ''')
+        
+        conn.commit()
+        
+        # Check if table was created
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        table_names = [table[0] for table in tables]
+        
+        if 'proj_dashboard' in table_names:
+            logger.info("Database setup completed successfully.")
+        else:
+            logger.error("Failed to create tables.")
+            
+        conn.close()
+        
+        return True
+    except Exception as e:
+        logger.error(f"Database setup error: {str(e)}")
+        return False
+
 if __name__ == "__main__":
-    create_database() 
+    create_database()
+    setup_database() 
