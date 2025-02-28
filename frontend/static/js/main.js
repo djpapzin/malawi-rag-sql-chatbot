@@ -123,58 +123,22 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Response:', data);
             
             // Update query details panel with metadata
-            if (data.response?.metadata) {
-                updateQueryDetails(data.response.metadata);
+            if (data.metadata) {
+                updateQueryDetails(data.metadata);
             }
             
-            // Handle different response types
-            if (data.response?.query_type === "chat") {
-                // For greetings and general queries
-                const message = data.response.results[0]?.message;
-                if (message) {
-                    appendMessage(message);
-                }
-            } else if (data.response?.results?.length > 0) {
-                const result = data.response.results[0];
+            // Simplified response handling
+            if (data.results && data.results.length > 0) {
+                const result = data.results[0];
                 
-                // If it's a budget_summary type, use the data field
-                const projectData = result.type === 'budget_summary' ? result.data : result;
-                
+                // Simply display the message content
                 if (result.message) {
-                    // If there's a natural language message, use it
-                    appendMessage(result.message);
+                    // Clean up the message to remove any code blocks or extra formatting
+                    // This takes only the first paragraph of text
+                    const cleanMessage = result.message.split('\n\n')[0].replace(/"/g, '');
+                    appendMessage(cleanMessage);
                 } else {
-                    // Format the response in a user-friendly way
-                    const details = [];
-                    if (projectData.project_name) {
-                        details.push(`📋 Project: ${projectData.project_name}`);
-                    }
-                    if (projectData.district) {
-                        details.push(`📍 District: ${projectData.district}`);
-                    }
-                    if (projectData.project_sector) {
-                        details.push(`🏗️ Sector: ${projectData.project_sector}`);
-                    }
-                    if (projectData.project_status) {
-                        details.push(`📊 Status: ${projectData.project_status}`);
-                    }
-                    if (projectData.total_budget) {
-                        const budget = typeof projectData.total_budget === 'object' ? 
-                            projectData.total_budget.formatted : 
-                            `MWK ${Number(projectData.total_budget).toLocaleString()}`;
-                        details.push(`💰 Budget: ${budget}`);
-                    }
-                    if (projectData.completion_percentage !== undefined) {
-                        details.push(`✅ Completion: ${projectData.completion_percentage}%`);
-                    }
-                    if (projectData.start_date) {
-                        details.push(`📅 Start Date: ${projectData.start_date}`);
-                    }
-                    if (projectData.completion_date) {
-                        details.push(`🏁 Completion Date: ${projectData.completion_date}`);
-                    }
-                    
-                    appendMessage(details.join('\n'));
+                    appendMessage("I couldn't find any relevant information for your query.");
                 }
             } else {
                 appendMessage("I couldn't find any projects matching your criteria. Please try a different query.");
@@ -200,7 +164,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        contentDiv.textContent = message;
+        
+        // Handle messages with line breaks
+        if (message.includes('\n')) {
+            message.split('\n').forEach(line => {
+                if (line.trim()) {
+                    const p = document.createElement('p');
+                    p.textContent = line;
+                    contentDiv.appendChild(p);
+                }
+            });
+        } else {
+            contentDiv.textContent = message;
+        }
         
         messageDiv.appendChild(iconSpan);
         messageDiv.appendChild(contentDiv);
