@@ -1,1 +1,29 @@
-    cd /home/dj/malawi-rag-sql-chatbot && source ~/miniconda/etc/profile.d/conda.sh && conda activate malawi-rag-sql-chatbot && LOG_LEVEL=DEBUG uvicorn app.main:app --host 0.0.0.0 --port 5000
+# Kill all running gunicorn processes
+pkill -f "gunicorn app.main:app"
+
+# Verify that all processes have stopped
+ps -ef | grep gunicorn | grep -v grep
+
+# Navigate to the project directory
+cd /home/dj/malawi-rag-sql-chatbot
+
+# Run the start script
+./start_server.sh
+
+## Alternative: Manual restart without the script
+
+# Navigate to the project directory
+cd /home/dj/malawi-rag-sql-chatbot
+
+# Activate the conda environment
+source /home/dj/miniconda/etc/profile.d/conda.sh
+conda activate malawi-rag-sql-chatbot
+
+# Start the server with nohup
+nohup gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000 --access-logfile server_access.log --error-logfile server_error.log --log-level info > nohup.out 2>&1 &
+
+# Check for running gunicorn processes
+ps -ef | grep gunicorn | grep -v grep
+
+# Test the server health
+curl http://154.0.164.254:5000/health

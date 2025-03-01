@@ -67,26 +67,72 @@ Note: The application is configured to use `malawi_projects1.db` as the primary 
 
 The server is configured to run on `0.0.0.0:5000` to allow external access.
 
-1. Start the server:
+1. Using nohup (recommended for production):
 ```bash
-python -m uvicorn app.main:app --port 5000 --host 0.0.0.0
+cd /home/dj/malawi-rag-sql-chatbot
+./start_server.sh
 ```
 
-2. Verify the server is running:
+This script:
+- Activates the conda environment
+- Stops any existing gunicorn processes
+- Starts the server with nohup to ensure it runs persistently
+- Configures logging to server_access.log and server_error.log
+
+2. Start manually (alternative method):
 ```bash
+cd /home/dj/malawi-rag-sql-chatbot
+source /home/dj/miniconda/etc/profile.d/conda.sh
+conda activate malawi-rag-sql-chatbot
+nohup gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000 --access-logfile server_access.log --error-logfile server_error.log --log-level info > nohup.out 2>&1 &
+```
+
+3. Verify the server is running:
+```bash
+ps -ef | grep gunicorn | grep -v grep
 curl http://154.0.164.254:5000/health
+```
+
+### Restarting After Code Changes
+
+The server does NOT automatically reload when code changes are made. After making changes, you must manually restart the server:
+
+1. Stop the server:
+```bash
+pkill -f "gunicorn app.main:app"
+```
+
+2. Start it again:
+```bash
+cd /home/dj/malawi-rag-sql-chatbot
+./start_server.sh
+```
+
+### Automatic Startup on Reboot
+
+The server is configured to start automatically on system reboot using crontab:
+
+```bash
+@reboot /home/dj/malawi-rag-sql-chatbot/start_server.sh
+```
+
+You can check the current crontab configuration with:
+```bash
+crontab -l
 ```
 
 ### Monitoring
 
 1. Check server logs:
 ```bash
-tail -f logs/server.log
+tail -f server_access.log    # Access logs
+tail -f server_error.log     # Error logs
+tail -f nohup.out            # Startup and general output
 ```
 
 2. Monitor server status:
 ```bash
-ps aux | grep python
+ps -ef | grep gunicorn | grep -v grep
 ```
 
 ### Health Checks
