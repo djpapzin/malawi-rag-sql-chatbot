@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage(message, true);
         
         try {
-            const response = await fetch(`${baseUrl}/api/rag-sql-chatbot/chat`, {
+            const response = await fetch(`${baseUrl}/api/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -131,7 +131,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.results && data.results.length > 0) {
                 data.results.forEach(result => {
                     if (result.type === 'text' && result.message) {
-                        appendMessage(result.message);
+                        // Handle nested response structure
+                        if (result.message.response && result.message.response.results) {
+                            result.message.response.results.forEach(item => {
+                                if (item.message) {
+                                    appendMessage(item.message);
+                                }
+                            });
+                        } else {
+                            // Handle direct message format
+                            appendMessage(typeof result.message === 'string' ? result.message : JSON.stringify(result.message));
+                        }
                     } else if (result.data) {
                         // Format structured data if present
                         const details = [];

@@ -1,0 +1,13 @@
+Based on my analysis of the database, I found the following information about health sector projects:
+
+There are 43 health sector projects across various districts in Malawi. The total budget for these projects is approximately MWK 13,444,511,880.00. Some notable projects include:
+
+* Construction of a Maternity Block and 1no. Staff house at Liwera Health Centre, with a total budget of MWK 1,950,000,000.00.
+* Completion of Chinkombero maternity wing and dispensary, with a total budget of MWK 1,200,000,000.00.
+* Construction of a Maternity Block and 1no. Staff house at Beni Health Centre, with a total budget of MWK 1,950,000,000.00.
+
+These projects aim to improve healthcare services and infrastructure in Malawi's rural areas. The largest health project is the "Maintanance of dispensary, construction of one staff house..." with a budget of MWK 35,577,086,000.00.
+
+For education projects, the total allocated budget is MWK 25,600,000,000.00 across 127 projects.
+
+Would you like more specific information about any of these projects? 
