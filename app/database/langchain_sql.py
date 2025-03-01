@@ -336,6 +336,40 @@ Just ask me what you'd like to know about these projects!"""
     async def generate_sql_query(self, user_query: str) -> str:
         """Generate a SQL query from a natural language query"""
         try:
+            # Check for specific project queries
+            project_name_patterns = [
+                r"tell me about ['\"](.+?)['\"]",
+                r"details? (?:for|about) ['\"](.+?)['\"]",
+                r"information (?:for|about) ['\"](.+?)['\"]",
+                r"show me ['\"](.+?)['\"]",
+                r"what (?:is|are) ['\"](.+?)['\"]",
+                # Additional patterns without quotes
+                r"tell me about (?:the )?project (?:called |named )?(.+?)(?:\s|$|\.)",
+                r"details? (?:for|about) (?:the )?project (?:called |named )?(.+?)(?:\s|$|\.)",
+                r"information (?:for|about) (?:the )?project (?:called |named )?(.+?)(?:\s|$|\.)",
+                r"show me (?:the )?project (?:called |named )?(.+?)(?:\s|$|\.)"
+            ]
+            
+            for pattern in project_name_patterns:
+                match = re.search(pattern, user_query.lower())
+                if match:
+                    project_name = match.group(1)
+                    logger.info(f"Detected specific project query for: {project_name}")
+                    return f"""
+                    SELECT 
+                        projectname as project_name,
+                        district,
+                        projectsector as project_sector,
+                        projectstatus as project_status,
+                        COALESCE(budget, 0) as total_budget,
+                        COALESCE(completionpercentage, 0) as completion_percentage,
+                        startdate,
+                        completiondata as completion_date
+                    FROM proj_dashboard 
+                    WHERE LOWER(projectname) LIKE '%{project_name.lower().replace("'", "''")}%'
+                    LIMIT 1;
+                    """
+            
             # Handle infrastructure budget query
             if "infrastructure" in user_query.lower() and any(word in user_query.lower() for word in ["budget", "cost", "amount", "total"]):
                 return self._get_infrastructure_budget_query()
@@ -663,39 +697,12 @@ ORDER BY total_budget DESC;"""
                 }
             }
 
-    async def generate_natural_response(self, results: List[Dict], user_query: str, sql_query: str) -> str:
-        """Generate a natural language response from query results"""
+    async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None) -> str:
+        """Generate a natural language response from query results."""
         try:
-            # Handle infrastructure budget query
-            if "infrastructure" in user_query.lower() and any(word in user_query.lower() for word in ["budget", "cost", "amount", "total"]):
-                if results and len(results) > 0:
-                    result = results[0]
-                    budget = float(result.get('total_budget', 0))
-                    count = int(result.get('project_count', 0))
-                    return f"The total budget for infrastructure projects is MWK {budget:,.2f} across {count} projects."
-                else:
-                    return "I found no infrastructure projects in the database."
+            logger.info(f"Generating natural response for user query: {user_query}")
             
-            # Handle basic project queries
-            if "lilongwe" in user_query.lower():
-                if not results:
-                    return "I found no projects in Lilongwe."
-                total_budget = sum(float(r.get('total_budget', 0)) for r in results)
-                return f"I found {len(results)} projects in Lilongwe with a total budget of MWK {total_budget:,.2f}. The projects include: {', '.join(r.get('project_name', '') for r in results[:3])}{'...' if len(results) > 3 else ''}."
-            
-            if "completed" in user_query.lower() or "status" in user_query.lower():
-                logger.debug(f"Generating status response for query: {user_query}")
-                logger.debug(f"Results count: {len(results)}, First 3 projects: {results[:3]}")
-                if not results:
-                    return "I found no completed projects."
-                total_budget = sum(float(r.get('total_budget', 0)) for r in results)
-                project_names = [r.get('project_name', '') for r in results[:3]]
-                project_list = ', '.join(project_names)
-                if len(results) > 3:
-                    project_list += '...'
-                return f"I found {len(results)} projects with a status of 'completed' and a total budget of MWK {total_budget:,.2f}. The projects include: {project_list}"
-            
-            # Format results for prompt
+            # Convert results to string format for the prompt
             results_str = json.dumps(results, indent=2)
             
             # Check if this is an aggregate query
@@ -744,6 +751,9 @@ Response:"""
             # Clean up response
             response = response.strip()
             
+            # Remove code blocks and technical notes
+            response = self._clean_llm_response(response)
+            
             # Handle empty response
             if not response:
                 if not results:
@@ -761,18 +771,31 @@ Response:"""
                 total_budget = sum(float(r.get('total_budget', 0)) for r in results)
                 return f"I found {len(results)} matching projects with a total budget of MWK {total_budget:,.2f}."
             return "I found some matching projects in the database."
-
+            
     async def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str) -> Dict[str, Any]:
         """Format query results into a standardized response with natural language."""
         try:
-            # Generate natural language response
+            if not query_results:
+                return {
+                    "results": [{
+                        "type": "text",
+                        "message": "No matching projects found. Please try different search terms.",
+                        "data": {}
+                    }],
+                    "metadata": {
+                        "total_results": 0,
+                        "query_time": f"{query_time:.2f}s",
+                        "sql_query": sql_query
+                    }
+                }
+                
             natural_response = await self.generate_natural_response(query_results, user_query, sql_query)
             
             return {
                 "results": [{
                     "type": "text",
                     "message": natural_response,
-                    "data": {}
+                    "data": query_results[0] if len(query_results) == 1 else {}
                 }],
                 "metadata": {
                     "total_results": len(query_results),
@@ -782,11 +805,11 @@ Response:"""
             }
             
         except Exception as e:
-            logger.error(f"Error formatting response: {str(e)}")
+            logger.error(f"Formatting error: {str(e)}")
             return {
                 "results": [{
                     "type": "error",
-                    "message": "I encountered an error processing your request. Please try again.",
+                    "message": "Couldn't format response - please try again",
                     "data": {}
                 }],
                 "metadata": {
@@ -795,6 +818,21 @@ Response:"""
                     "sql_query": sql_query
                 }
             }
+
+    def _clean_llm_response(self, response: str) -> str:
+        """Remove code blocks and technical notes from LLM response."""
+        # Remove Python code blocks
+        response = re.sub(r'```python.*?```', '', response, flags=re.DOTALL)
+        # Remove any other code blocks
+        response = re.sub(r'```.*?```', '', response, flags=re.DOTALL)
+        # Remove notes about SQL queries
+        response = re.sub(r'Note:.*?(?=\n\n|$)', '', response, flags=re.DOTALL)
+        # Remove metadata about filtering
+        response = re.sub(r'The response only includes projects where.*?(?=\n\n|$)', '', response, flags=re.DOTALL)
+        # Clean up any double newlines resulting from removals
+        response = re.sub(r'\n{3,}', '\n\n', response)
+        # Remove any trailing/leading whitespace
+        return response.strip()
 
     def _format_basic_response(self, query_results: List[Dict[str, Any]]) -> str:
         """Fallback method for basic response formatting."""

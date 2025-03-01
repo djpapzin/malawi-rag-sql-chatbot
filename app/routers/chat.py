@@ -160,11 +160,20 @@ async def chat(request: Request):
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return JSONResponse(
-        content={"status": "healthy", "message": "RAG SQL Chatbot is running"},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type"
+    try:
+        # Initialize SQL integration to test database connection
+        sql_chain = LangChainSQLIntegration()
+        
+        return {
+            "status": "healthy",
+            "message": "RAG SQL Chatbot is running"
         }
-    )
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "unhealthy",
+                "error": str(e)
+            }
+        )
