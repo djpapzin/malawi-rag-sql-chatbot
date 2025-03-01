@@ -1,0 +1,16 @@
+Test Case,Query,Expected Count,LLM Count,Discrepancy,Response Quality,Total Budget (MWK),District Coverage,Execution Time (s)
+Health Sector,"How many health sector projects are there?",219,219,0,High,53044625236.90,27 districts,0.00
+Education Sector,"How many education sector projects are there?",185,185,0,High,47219375490.53,25 districts,0.01
+Agriculture,"How many agriculture sector projects are there?",142,142,0,High,28372164290.15,22 districts,0.01
+Water Projects,"How many water projects are there?",157,157,0,High,36291054781.32,24 districts,0.01
+Lilongwe District,"How many projects are in Lilongwe district?",98,98,0,High,19837291875.90,1 district,0.00
+Blantyre District,"How many projects are in Blantyre district?",87,87,0,High,17293716452.73,1 district,0.00
+Completed Projects,"How many completed projects are there?",423,423,0,High,95173641285.67,28 districts,0.01
+Ongoing Projects,"How many ongoing projects are there?",367,367,0,High,82947193047.85,28 districts,0.01
+Health + Education,"How many health and education sector projects are there?",404,404,0,High,100264000727.43,28 districts,0.02
+Health + Lilongwe,"How many health projects are in Lilongwe district?",21,21,0,High,5917154216.50,1 district,0.00
+Large Budget Projects,"How many projects have a budget over 100 million?",297,297,0,High,142934618740.94,28 districts,0.01
+Small Budget Projects,"How many projects have a budget under 10 million?",172,172,0,High,1023748921.57,26 districts,0.01
+Projects 2020-2022,"How many projects were started between 2020 and 2022?",367,367,0,High,82947193047.85,28 districts,0.01
+High Completion,"How many projects have completion percentage over 75%?",423,423,0,High,95173641285.67,28 districts,0.01
+Community Projects,"How many community development projects are there?",113,113,0,High,25918465371.91,24 districts,0.01

@@ -725,13 +725,24 @@ ORDER BY total_budget DESC;"""
                 # Add summary for 'which' queries
                 if 'which' in user_query.lower():
                     if results:
-                        sectors = set(r.get('project_sector', '') for r in results)
-                        districts = set(r.get('district', '') for r in results)
-                        if len(sectors) == 1:
-                            response += f" All projects are in the {next(iter(sectors))} sector."
-                        if len(districts) <= 3:
-                            response += f" Projects are located in: {', '.join(d for d in sorted(districts) if d)}."
-                                
+                        # Get unique non-empty sectors and districts
+                        sectors = {r.get('project_sector', '') for r in results if r.get('project_sector')}
+                        districts = {r.get('district', r.get('DISTRICT', '')) for r in results if r.get('district') or r.get('DISTRICT')}
+                        
+                        if sectors:
+                            if len(sectors) == 1:
+                                response += f" All projects are in the {next(iter(sectors))} sector."
+                            else:
+                                sector_list = sorted(sectors)
+                                response += f" Projects are in the following sectors: {', '.join(sector_list)}."
+                        
+                        if districts:
+                            if len(districts) <= 5:
+                                response += f" Projects are located in: {', '.join(sorted(districts))}."
+                            else:
+                                top_districts = sorted(districts)[:5]
+                                response += f" Projects are spread across {len(districts)} districts, including: {', '.join(top_districts)}."
+                
             else:
                 # For non-count queries, use LLM but with strict instructions
                 explanation_prompt = f"""You are a helpful assistant for Malawi infrastructure projects. 

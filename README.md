@@ -246,6 +246,13 @@ sudo systemctl start dwizani.service
 sudo systemctl status dwizani.service
 ```
 
+The systemd service is configured to:
+- Start automatically on system boot
+- Restart automatically if it crashes
+- Run with the correct conda environment
+- Use gunicorn with 4 workers for optimal performance
+- Log to server_access.log and server_error.log files
+
 ## API Endpoints
 
 ### Health Check
