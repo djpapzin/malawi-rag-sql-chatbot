@@ -59,14 +59,9 @@ templates = Jinja2Templates(directory="frontend/templates")
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
 # Configure CORS
-origins = [
-    "http://154.0.164.254:3000",     # Frontend development
-    "http://154.0.164.254:5000",     # Backend development
-    "https://dziwani.kwantu.support" # Production
-]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,44 +74,20 @@ response_handler = ResponseHandler()
 conversation_store = ConversationStore()
 logger.info("Initialized components")
 
-# Include routers
+# Include routers with correct prefix for rag-sql-chatbot
 from app.routers import chat
-app.include_router(chat.router, prefix=API_PREFIX)
+app.include_router(
+    chat.router, 
+    prefix=f"{API_PREFIX}/rag-sql-chatbot",
+    tags=["chatbot"]
+)
 
-@app.get("/")
+@app.get(f"{API_PREFIX}/")
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get(f"{API_PREFIX}/health")
-async def health_check():
-    """Health check endpoint"""
-    try:
-        # Get connection and check row count
-        with langchain_sql.db_manager.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM proj_dashboard")
-            row_count = cursor.fetchone()[0]
-        
-        return {
-            "status": "healthy",
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.%f"),
-            "components": {
-                "database": {
-                    "status": "connected",
-                    "row_count": row_count
-                },
-                "api": "running"
-            }
-        }
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
-
 # Add a simplified health endpoint at /api/health that doesn't require database connection
-@app.get("/api/health")
+@app.get(f"{API_PREFIX}/health")
 async def simplified_health_check():
     """Simple health check endpoint"""
     return {
@@ -125,7 +96,7 @@ async def simplified_health_check():
         "message": "API is running"
     }
 
-@app.post(f"{API_PREFIX}/chat")
+@app.post(f"{API_PREFIX}/rag-sql-chatbot/chat")
 async def chat(request: ChatRequest) -> Dict[str, Any]:
     """Process a chat message and return a response."""
     try:

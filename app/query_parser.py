@@ -425,6 +425,22 @@ class QueryParser:
             
         return f"AND LOWER(PROJECTSTATUS) LIKE '%{status}%'"
 
+    def _build_completion_query(self, is_complete: bool) -> str:
+        """Build SQL query for completed/incomplete projects"""
+        status = 'yes' if is_complete else 'no'
+        return f"""
+        SELECT 
+            projectname as project_name,
+            district,
+            projectsector as project_sector,
+            projectstatus as project_status,
+            COALESCE(budget, 0) as total_budget,
+            COALESCE(completionpercentage, 0) as completion_percentage
+        FROM proj_dashboard 
+        WHERE LOWER(isprojectcomplete) = '{status}'
+        ORDER BY total_budget DESC;
+        """
+
     def _extract_location(self, query: str) -> str:
         """Extract location from query text"""
         # Common patterns for locations

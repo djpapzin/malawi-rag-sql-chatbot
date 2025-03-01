@@ -105,6 +105,33 @@ class ResponseGenerator:
                 
         return "\n".join(metadata)
         
+    def format_budget(self, value: float) -> str:
+        """Format budget value with MWK currency and proper formatting"""
+        if isinstance(value, (int, float)):
+            return f"MWK {value:,.2f}"
+        return str(value)
+
+    def format_project_results(self, results: List[Dict]) -> str:
+        """Format project results into a readable response"""
+        if not results:
+            return "I couldn't find any matching projects."
+        
+        total_budget = sum(float(r.get('total_budget', 0)) for r in results)
+        response = [
+            f"I found {len(results)} projects with a total budget of {self.format_budget(total_budget)}. "
+            "The projects include:"
+        ]
+        
+        for project in results[:5]:  # Show first 5 projects
+            budget = self.format_budget(float(project.get('total_budget', 0)))
+            status = project.get('project_status', 'Unknown status')
+            response.append(f"* {project['project_name']} - {status} ({budget})")
+        
+        if len(results) > 5:
+            response.append(f"...and {len(results) - 5} more projects")
+        
+        return " ".join(response)
+
     def _format_project_list(self, df: pd.DataFrame, query_info: Dict[str, Any] = None) -> str:
         """Format a list of projects for display"""
         if df.empty:
@@ -121,7 +148,7 @@ class ResponseGenerator:
         
         summary.append(f"Found {total_projects} project{'s' if total_projects != 1 else ''}")
         if total_budget is not None and not pd.isna(total_budget):
-            summary.append(f"Total Budget: {self._format_currency(total_budget)}")
+            summary.append(f"Total Budget: {self.format_budget(total_budget)}")
         if avg_completion is not None and not pd.isna(avg_completion):
             summary.append(f"Average Completion: {self._format_percentage(avg_completion)}")
             
