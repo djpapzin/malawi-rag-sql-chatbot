@@ -81,3 +81,4 @@ docs/_build/
 # Backup files
 *.bak
 .windsurfrules
+nohup.out
