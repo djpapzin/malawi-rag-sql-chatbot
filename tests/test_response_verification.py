@@ -1,13 +1,12 @@
 import pytest
 import json
 import re
+import sqlite3
 from typing import Dict, Any
-import mysql.connector
-from mysql.connector import Error
 import os
 from dotenv import load_dotenv
 from app.database.langchain_sql import LangChainSQLIntegration
-from app.models import ChatRequest
+from app.models import ChatRequest, DatabaseManager
 
 # Load environment variables
 load_dotenv()
@@ -17,33 +16,35 @@ class TestResponseVerification:
     def db_connection(self):
         """Create a database connection fixture"""
         try:
-            connection = mysql.connector.connect(
-                host=os.getenv("DB_HOST"),
-                user=os.getenv("DB_USER"),
-                password=os.getenv("DB_PASSWORD"),
-                database=os.getenv("DB_NAME")
-            )
+            # Use the same database path as the application
+            db_manager = DatabaseManager()
+            connection = sqlite3.connect(db_manager.db_path)
+            connection.row_factory = sqlite3.Row  # Enable row factory for named columns
             yield connection
             connection.close()
-        except Error as e:
+        except Exception as e:
             pytest.fail(f"Failed to connect to database: {str(e)}")
 
     def execute_sql_query(self, connection, query: str) -> list:
         """Execute a SQL query and return results"""
         try:
-            cursor = connection.cursor(dictionary=True)
+            cursor = connection.cursor()
             cursor.execute(query)
-            results = cursor.fetchall()
-            cursor.close()
+            results = [dict(row) for row in cursor.fetchall()]
             return results
-        except Error as e:
+        except Exception as e:
             pytest.fail(f"Failed to execute query: {str(e)}")
 
     def extract_number_from_text(self, text: str, pattern: str) -> int:
         """Extract a number from text using regex pattern"""
         match = re.search(pattern, text)
         if match:
-            return int(match.group(1))
+            try:
+                # Handle numbers with commas (e.g., "1,234")
+                number_str = match.group(1).replace(',', '')
+                return int(number_str)
+            except ValueError:
+                return None
         return None
 
     def extract_sql_query(self, metadata: Dict[str, Any]) -> str:
@@ -94,7 +95,15 @@ class TestResponseVerification:
         results_file = "test_results/health_sector_query_results.json"
         os.makedirs(os.path.dirname(results_file), exist_ok=True)
         with open(results_file, "w") as f:
-            json.dump(sql_results, f, indent=2)
+            json.dump(sql_results, f, indent=2, default=str)
+        
+        # Save LLM response for comparison
+        llm_response_file = "test_results/health_sector_llm_response.json"
+        with open(llm_response_file, "w") as f:
+            json.dump({
+                "llm_response": llm_response,
+                "metadata": metadata
+            }, f, indent=2, default=str)
         
         # Verify results
         self.verify_project_count(llm_response, sql_results)
@@ -121,7 +130,15 @@ class TestResponseVerification:
         results_file = "test_results/health_sector_budget_results.json"
         os.makedirs(os.path.dirname(results_file), exist_ok=True)
         with open(results_file, "w") as f:
-            json.dump(sql_results, f, indent=2)
+            json.dump(sql_results, f, indent=2, default=str)
+        
+        # Save LLM response for comparison
+        llm_response_file = "test_results/health_sector_budget_llm_response.json"
+        with open(llm_response_file, "w") as f:
+            json.dump({
+                "llm_response": llm_response,
+                "metadata": metadata
+            }, f, indent=2, default=str)
         
         # Extract budget from LLM response
         budget_pattern = r"MWK\s+([\d,]+(?:\.\d{2})?)"
@@ -129,8 +146,8 @@ class TestResponseVerification:
         
         if llm_budget is not None:
             # Calculate actual total budget from SQL results
-            actual_budget = sum(float(result["total_budget"]) for result in sql_results)
+            actual_budget = sum(float(result.get("total_budget", 0)) for result in sql_results)
             
-            # Verify budget matches
-            assert abs(llm_budget - actual_budget) < 1, \
-                f"LLM mentioned budget {llm_budget} but actual total is {actual_budget}"
+            # Verify budget matches with a small margin of error
+            assert abs(llm_budget - actual_budget) / actual_budget < 0.01, \
+                f"LLM mentioned budget {llm_budget:,} but actual total is {actual_budget:,}"

@@ -21,6 +21,63 @@ A specialized chatbot for querying and exploring Malawi's infrastructure project
 - Loading states and error handling
 - Responsive design for all devices
 
+## Technical Architecture
+
+### Frontend Components
+
+The frontend of Dwizani uses a lightweight, server-side rendered approach:
+
+- **Technology Stack**:
+  - HTML with Jinja2 Templates
+  - Vanilla JavaScript (no framework)
+  - Plain CSS for styling
+  - No build process required
+
+- **Key Files**:
+  - `frontend/templates/index.html` - Main chat interface
+  - `frontend/static/js/main.js` - Core application logic
+  - `frontend/static/css/styles.css` - Main styling
+  - `frontend/static/css/loading.css` - Loading animations
+
+- **Features**:
+  - Responsive design for mobile and desktop
+  - Client-side form validation
+  - Interactive chat history
+  - Expandable query details for technical users
+  - Loading indicators and error handling
+
+### Backend Components
+
+The backend is built on FastAPI with LangChain for RAG-based SQL generation:
+
+- **Technology Stack**:
+  - FastAPI web framework
+  - SQLite database
+  - LangChain for RAG-SQL capabilities
+  - Python 3.11+
+  - Jinja2 for templating
+
+- **Key Components**:
+  - `app/main.py` - Entry point and API configuration
+  - `app/database/langchain_sql.py` - SQL generation with LangChain
+  - `app/models.py` - Data models and database connection
+  - `app/routers/` - API endpoint routing
+  - `app/llm/` - LLM integration and response handling
+
+- **Features**:
+  - Natural language to SQL conversion
+  - Response cleaning and formatting
+  - Error handling and rate limiting
+  - Database query optimization
+  - Conversation context management
+
+### Deployment Architecture
+
+- FastAPI serves both the API and static frontend files
+- No separate frontend build/deployment needed
+- Designed to run on port 5000 with gunicorn workers
+- Supports deployment via systemd, supervisor, or nohup
+
 ## Quick Start
 
 ### Prerequisites
