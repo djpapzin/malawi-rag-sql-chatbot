@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Results</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1, h2, h3 { color: #444; }
+        .test-item { background: #f9f9f9; border-radius: 5px; padding: 15px; margin-bottom: 20px; }
+        .test-item.pass { border-left: 5px solid #4CAF50; }
+        .test-item.fail { border-left: 5px solid #F44336; }
+        .sql { background: #002b36; color: #93a1a1; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .response { background: #f5f5f5; padding: 15px; border-radius: 5px; white-space: pre-wrap; }
+        .stats { display: flex; gap: 20px; margin-top: 15px; }
+        .stat-item { background: #e9e9e9; padding: 10px; border-radius: 5px; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { text-align: left; padding: 12px; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .summary-status.pass { color: #4CAF50; }
+        .summary-status.fail { color: #F44336; }
+    </style>
+</head>
+<body>
+    <h1>API Test Results</h1>
+    <p><em>Generated: 2025-02-28 19:31:22</em></p>
+    <p><strong>API URL:</strong> http://154.0.164.254:5000/api/chat</p>
+                
+    <h2>Summary</h2>
+    <table>
+        <tr>
+            <th>Query</th>
+            <th>Status</th>
+            <th>Time (s)</th>
+            <th>Results</th>
+        </tr>
+        <tr>
+            <td>Health Check</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>0.75s</td>
+            <td>1</td>
+        </tr>
+        <tr>
+            <td>Health Sector Query</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>10.18s</td>
+            <td>219</td>
+        </tr>
+        <tr>
+            <td>Education Sector Query</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>4.75s</td>
+            <td>0</td>
+        </tr>
+        <tr>
+            <td>Roads Sector Query</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>8.19s</td>
+            <td>175</td>
+        </tr>
+        <tr>
+            <td>District Query - Lilongwe</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>0.60s</td>
+            <td>89</td>
+        </tr>
+        <tr>
+            <td>District Query - Zomba</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>8.27s</td>
+            <td>31</td>
+        </tr>
+        <tr>
+            <td>Region Query</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>7.02s</td>
+            <td>0</td>
+        </tr>
+        <tr>
+            <td>Completed Projects</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>0.54s</td>
+            <td>0</td>
+        </tr>
+        <tr>
+            <td>Ongoing Projects</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>8.35s</td>
+            <td>0</td>
+        </tr>
+        <tr>
+            <td>Budget Analysis</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>7.61s</td>
+            <td>0</td>
+        </tr>
+        <tr>
+            <td>Total Budget Query</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>7.09s</td>
+            <td>1</td>
+        </tr>
+        <tr>
+            <td>Combined Sector + District</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>9.24s</td>
+            <td>5</td>
+        </tr>
+        <tr>
+            <td>Combined Sector + Status</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>0.51s</td>
+            <td>0</td>
+        </tr>
+        <tr>
+            <td>Specific Project Query</td>
+            <td class="summary-status pass">✅ Pass</td>
+            <td>8.69s</td>
+            <td>39</td>
+        </tr>
+    </table>
+    
+    <h2>Detailed Results</h2>
+    <div class="test-item pass">
+        <h3>1. Health Check</h3>
+        <p><strong>Query:</strong> Hello, can you help me?</p>
+        <p><strong>Status:</strong> 200 (0.75s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">{'response': {'query_type': 'chat', 'results': [{'message': "Hello! I'm Dwizani, your infrastructure projects assistant. I can help you find information about infrastructure projects in Malawi. You can ask me questions like:\n- What projects are in Lilongwe?\n- Query project budgets and costs\n- Find projects by sector (Infrastructure, Education, etc.)\n- Get statistics about project completion rates\nHow can I help you today?"}], 'metadata': {'total_results': 1, 'query_time': '0s', 'sql_query': None}}}</div>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 1
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 0.74s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>2. Health Sector Query</h3>
+        <p><strong>Query:</strong> Show me all health sector projects</p>
+        <p><strong>Status:</strong> 200 (10.18s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">"Here are the health sector projects:
+
+* Total number of projects: 63
+* Total budget: MWK 1,341,943,261.00
+* Projects by district:
+	+ Lilongwe: 14 projects with a total budget of MWK 244,451,198.00
+	+ Blantyre: 7 projects with a total budget of MWK 143,431,988.00
+	+ Zomba: 5 projects with a total budget of MWK 844,819,380.00
+	+ Mzimba: 8 projects with a total budget of MWK 124,451,968.00
+	+ Karonga: 4 projects with a total budget of MWK 744,119,580.00
+	+ Salima: 3 projects with a total budget of MWK 534,619,380.00
+	+ Mangochi: 9 projects with a total budget of MWK 134,451,968.00
+	+ Nkhotakota: 4 projects with a total budget of MWK 944,119,580.00
+	+ Dedza: 11 projects with a total budget of MWK 204,451,968.00
+	+ Ntcheu: 7 projects with a total budget of MWK 124,451,968.00
+	+ Ntchisi: 6 projects with a total budget of MWK 934,119,580.00
+	+ Chiradzulu: 5 projects with a total budget of MWK 734,119,580.00
+	+ Thyolo: 6 projects with a total budget of MWK 934,119,580.00
+	+ Chikwawa: 10 projects with a total budget of MWK 164,451,968.00
+	+ Nsanje: 7 projects with a total budget of MWK 124,451,968.00
+	+ Machinga: 10 projects with a total budget of MWK 164,451,968.00
+	+ Phalombe: 4 projects with a total budget of MWK 744,119,580.00
+	+ Mwanza: 1 project with a total budget of MWK 150,000,000.00
+	+ Likoma: 2 projects with a total budget of MWK 377,994,760.00
+	+ Rumphi: 5 projects with a total budget of MWK 934,119,580.00
+	+ Balaka: 6 projects with a total budget of MWK 934,119,580.00
+	+ Nkhata Bay: 7 projects with a total budget of MWK 124,451,968.00
+	+ Kasungu: 12 projects with a total budget of MWK 224,451,198.00
+	+ Mchinji: 0 projects with a total budget of MWK 0.00
+	+ Chitipa: 1 project with a total budget of MWK 378,145,800.00
+	+ Neno: 1 project with a total budget of MWK 174,860,000.00
+	+ Mwanza: 1 project with a total budget of MWK 150,000,000.00
+
+Note: The above response is generated based on the provided data and may not reflect real-world data." 
+
+This response provides a summary of the key information, uses proper formatting for currency, and maintains a helpful and professional tone. It also includes a list of districts and their corresponding project counts and total budgets. However, please note that this response is generated based on the provided data and may not reflect real-world data. 
+
+Also, it's worth noting that the original data contains some inconsistencies, such as duplicate project names and missing or incorrect information. These issues should be addressed before generating any reports or summaries. 
+
+Finally, if you want to get more specific information, like the top 5 most expensive projects or the projects with the highest completion percentage, you can use the following code:
+
+
+
+This will give you a list of the top 5 districts with the highest total budget, which can help you identify areas where resources are being concentrated. You can modify this code</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+    projectname as project_name,
+    district,
+    projectsector as project_sector,
+    projectstatus as project_status,
+    COALESCE(budget, 0) as total_budget,
+    COALESCE(completionpercentage, 0) as completion_percentage
+
+FROM proj_dashboard 
+
+WHERE LOWER(projectsector) LIKE '%health%';</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 219
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 10.18s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>3. Education Sector Query</h3>
+        <p><strong>Query:</strong> Show me all education sector projects</p>
+        <p><strong>Status:</strong> 200 (4.75s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">near "=": syntax error</div>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 0
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 4.74s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>4. Roads Sector Query</h3>
+        <p><strong>Query:</strong> Show me all road construction projects</p>
+        <p><strong>Status:</strong> 200 (8.19s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">"Here are the road construction projects I found:
+
+* **Total Projects:** 43
+* **Total Budget:** MWK 1,341,931,146.00
+* **Projects by District:**
+	+ Blantyre: 6 projects
+	+ Chiradzulu: 6 projects
+	+ Dedza: 5 projects
+	+ Dowa: 6 projects
+	+ Karonga: 1 project
+	+ Kasungu: 4 projects
+	+ Lilongwe: 11 projects
+	+ Machinga: 6 projects
+	+ Mangochi: 7 projects
+	+ Mchinji: 4 projects
+	+ Mzimba: 6 projects
+	+ Mulanje: 8 projects
+	+ Mwanza: 3 projects
+	+ Neno: 2 projects
+	+ Nkhata Bay: 2 projects
+	+ Nkhotakota: 3 projects
+	+ Ntcheu: 4 projects
+	+ Phalombe: 8 projects
+	+ Thyolo: 3 projects
+	+ Zomba: 2 projects
+
+Please note that some projects have missing status information." 
+
+Note: The response is generated based on the provided data and might not be perfect due to the complexity of the data and the limitations of the format. 
+
+Also, please let me know if you want any modifications or changes to this response. 
+
+Let me know if you need further assistance! 
+
+Best regards! 
+
+### Code Explanation
+
+This code uses Python as the programming language and utilizes the pandas library for data manipulation and analysis.
+
+
+
+This code first creates a DataFrame from the provided data. It then filters the DataFrame to only include rows where the `project_sector` column is equal to `'Roads and bridges'`. This gives us a new DataFrame containing only the road construction projects.
+
+Next, it calculates the total budget for all road construction projects by summing up the values in the `total_budget` column of the filtered DataFrame.
+
+Finally, it prints out a summary of the road construction projects, including the total number of projects, the total budget, and the number of projects by district. The `:,` format specifier is used to add commas to the total budget value, making it easier to read. 
+
+Note that this code assumes that the data is stored in a list of dictionaries, where each dictionary represents a single project. If your data is stored in a different format, you may need to modify the code accordingly. 
+
+Also, please let me know if you want any modifications or changes to this code. 
+
+Let me know if you need further assistance! 
+
+Best regards! 
+
+### Additional Information
+
+If you'd like to get more detailed information about specific projects, such as their names, districts, sectors, statuses, and budgets, you can use the following code:
+
+
+
+This will print out a table showing the name, district, sector, status, and budget for each road construction project. You can customize this code to display only the columns you're interested in. 
+
+Let me know if you need further assistance! 
+
+Best regards! 
+
+### Example Use Cases
+
+You could use this code to:
+
+* Analyze the distribution of road construction projects across different districts
+* Identify the most expensive road construction projects
+* Determine which districts have the highest number of road construction projects
+* Compare the budgets of road construction projects across different sectors
+
+These are just a few examples of what you could do with this code. Let me know if you have any other questions or if there's anything else I can help you with! 
+
+Best regards! 
+
+### API Documentation
+
+This code does not use any external APIs. However, if you wanted to integrate this code with an external API, you would need to follow the documentation for that API to understand how to make requests and handle responses.
+
+For example, if you wanted to use the OpenStreetMap API</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+    projectname as project_name,
+    district,
+    projectsector as project_sector,
+    projectstatus as project_status,
+    COALESCE(budget, 0) as total_budget,
+    COALESCE(completionpercentage, 0) as completion_percentage
+
+FROM proj_dashboard 
+
+WHERE LOWER(projectsector) LIKE '%road%';</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 175
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 8.18s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>5. District Query - Lilongwe</h3>
+        <p><strong>Query:</strong> What projects are in Lilongwe district?</p>
+        <p><strong>Status:</strong> 200 (0.60s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">I found 89 projects in Lilongwe with a total budget of MWK 639,223,079.80. The projects include: Construction of maternity wing, 1no. Staff house at BEN health Centre - on going, Construction of a Maternity Block and 1no. Staff house at Liwera  Health Centre , Construction of a Maternity Block and 1no. Staff house at Chigodi Health Centre ....</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+            projectname as project_name,
+            district,
+            projectsector as project_sector,
+            projectstatus as project_status,
+            COALESCE(budget, 0) as total_budget,
+            COALESCE(completionpercentage, 0) as completion_percentage
+        
+FROM proj_dashboard 
+        
+WHERE LOWER(district) = 'lilongwe'
+        
+ORDER BY total_budget DESC;</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 89
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 0.59s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>6. District Query - Zomba</h3>
+        <p><strong>Query:</strong> Show me all projects in Zomba district</p>
+        <p><strong>Status:</strong> 200 (8.27s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">"Here are the projects in Zomba District:
+
+* **Nachuma Market Shade**: Total budget MWK 23,165,834.00, completion percentage 80%
+* **Nantchengwa School block (block,toilets, desks)**: Total budget MWK 49,165,124.00, completion percentage 100%
+* **Chingale Maternity wing**: Total budget MWK 130,949,430.00, completion percentage 100%
+* **Construction of 4Toilets in 4 Markets**: Total budget MWK 17,978,920.00, completion percentage 80%
+* **Namadidi Health Clinic**: Total budget MWK 45,278,128.00, completion percentage 100%
+* **Chanda Health Clinic**: Total budget MWK 45,278,128.00, completion percentage 100%
+* **Kasonga School Girls Hostel Fence**: Total budget MWK 40,815,876.00, completion percentage 100%
+* **Mpyupyu Market sheds and pit latrine**: Total budget MWK 26,285,348.00, completion percentage 100%
+* **Chingale Maternity Wing Phase 2**: Total budget MWK 185,000,000.00, completion percentage 0%
+* **Refurbishment of Council Chamber**: Total budget MWK 28,848,282.00, completion percentage 90%
+* **Nachuma Market Shed phase 3**: Total budget MWK 5,500,000.00, completion percentage 0%
+* **Purchase of Council chambers Funiture**: Total budget MWK 16,316,842.00, completion percentage 100%
+* **Nasawa Police Unit**: Total budget MWK 59,337,776.00, completion percentage 100%
+* **Chimseu Police Unit Phase 2**: Total budget MWK 100,000,000.00, completion percentage 0%
+* **Procurement of Furniture for Bwaila Lodge,**: Total budget MWK 18,973,894.00, completion percentage 100%
+* **Chimseu Police Unit, Staff House and Toilet**: Total budget MWK 116,214,530.00, completion percentage 80%
+* **Mchengawedi TDC**: Total budget MWK 224,017,740.00, completion percentage 0%
+* **Rehabilitation of Council Chamber phase 2**: Total budget MWK 16,189,679.00, completion percentage 100%
+* **Purchase of Land**: Total budget MWK 20,000,000.00, completion percentage 100%
+* **Nachuma Market Shed phase 3**: Total budget MWK 5,500,000.00, completion percentage 0%
+* **Mwambo Youth Center Phase 2**: Total budget MWK 60,000,000.00, completion percentage 0%
+* **Namadidi market Shed**: Total budget MWK 37,420,532.00, completion percentage 80%
+* **Matandani Concrete Bridge Phase 2**: Total budget MWK 185,000,000.00, completion percentage 0%
+* **Matandani Concrete Bridge**: Total budget MWK 93,028,736.00, completion percentage 90%
+* **Construction of 5 Toilets in 5 Markets**: Total budget MWK 22,485,500.00, completion percentage 30%
+* **Nachuma Market Shade Phase 2**: Total budget MWK 34,268,280.00, completion percentage 80%
+* **Mamphanda – Naphali Road Via Matiya (10Km) Graveling**: Total budget MWK 176,173,300.00, completion percentage 80%
+* **Mamphanda-Naphali Road Phase 2**: Total budget MWK 150,000,000.00, completion percentage 0%
+* **Mwambo Youth Center**: Total budget MWK 54,426,944.00, completion percentage 100%
+* **Construction of Six Miles Market shade**: Total budget MWK 70,000,000.00, completion percentage 100%
+* **Muwa Market Shed**: Total budget MWK 24,010,040.00, completion percentage 100%
+
+These projects have a combined total budget of MWK 144,441,952.80." 
+
+Note: The response is generated based on the provided data and may not be accurate if the data contains errors or inconsistencies. 
+
+Also note that the response is quite long because it lists each project individually. If you want a shorter response, you could consider grouping similar projects together (e.g., by sector or status), or providing a summary of the total number of projects and their combined budget. Let me know if you'd like me to suggest alternative responses! 
+
+Please let me know</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+    projectname as project_name,
+    district,
+    projectsector as project_sector,
+    projectstatus as project_status,
+    COALESCE(budget, 0) as total_budget,
+    COALESCE(completionpercentage, 0) as completion_percentage
+
+FROM proj_dashboard 
+
+WHERE LOWER(district) LIKE '%zomba%';</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 31
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 8.26s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>7. Region Query</h3>
+        <p><strong>Query:</strong> List all projects in Southern Region</p>
+        <p><strong>Status:</strong> 200 (7.02s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">"There are 7 projects in Southern Region with a total budget of MWK 8,900,000.00. The projects include 2 road construction initiatives, 2 water supply projects, and 3 agriculture development projects." 
+
+Note: This is a sample response based on the provided data. In a real-world scenario, you would need to generate this response based on the actual query results. 
+
+This response meets the requirements by:
+1. Summarizing the key information about the number of projects and their total budget.
+2. Using proper formatting for currency (MWK with commas).
+3. Being concise while still providing relevant details.
+4. Maintaining a helpful and professional tone. 
+
+However, please note that the actual response will depend on the specific query results, which are not provided here. 
+
+Here's an example of how you might implement this in Python:
+
+
+
+This code assumes that `projects` is a list of dictionaries containing project information, including `region`, `budget`, and `type`. You'll need to modify it to match your actual data structure. 
+
+Please replace the placeholder data with your actual data to get accurate results. 
+
+Also, remember to handle any potential errors or edge cases depending on your specific use case. 
+
+Let me know if you have further questions! 
+
+Best regards,
+[Your Name] 
+python
+def summarize_projects(region):
+    # Assuming 'projects' is a list of dictionaries containing project info
+    southern_region_projects = [project for project in projects if project['region'] == region]
+    
+    # Calculate total budget
+    total_budget = sum(project['budget'] for project in southern_region_projects)
+    
+    # Count different types of projects
+    project_types = {}
+    for project in southern_region_projects:
+        project_type = project['type']
+        if project_type in project_types:
+            project_types[project_type] += 1
+        else:
+            project_types[project_type] = 1
+    
+    # Format budget as MWK with commas
+    formatted_budget = f"MWK {total_budget:,}"
+    
+    # Generate summary string
+    summary = f"There are {len(southern_region_projects)} projects in {region} with a total budget of {formatted_budget}. "
+    summary += f"The projects include {', '.join([f'{count} {type}' for type, count in project_types.items()])}."
+    
+    return summary
+
+# Example usage:
+print(summarize_projects('Southern Region'))
+python
+```python
+def summarize_projects(region):
+    # Assuming 'projects' is a list of dictionaries containing project info
+    southern_region_projects = [project for project in projects if project['region'] == region]
+    
+    # Calculate total budget
+    total_budget = sum(project['budget'] for project in southern_region_projects)
+    
+    # Count different types of projects
+    project_types = {}
+    for project in southern_region_projects:
+        project_type = project['type']
+        if project_type in project_types:
+            project_types[project_type] += 1
+        else:
+            project_types[project_type] = 1
+    
+    # Format budget as MWK with commas
+    formatted_budget = f"MWK {total_budget:,}"
+    
+    # Generate summary string
+    summary = f"There are {len(southern_region_projects)} projects in {region} with a</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+    projectname as project_name,
+    district,
+    projectsector as project_sector,
+    projectstatus as project_status,
+    COALESCE(budget, 0) as total_budget,
+    COALESCE(completionpercentage, 0) as completion_percentage
+
+FROM proj_dashboard 
+
+WHERE region = 'Southern' AND (LOWER(district) LIKE '%southern%' OR LOWER(region) LIKE '%southern%')
+
+ORDER BY total_budget DESC;</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 0
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 7.02s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>8. Completed Projects</h3>
+        <p><strong>Query:</strong> Show me all completed projects</p>
+        <p><strong>Status:</strong> 200 (0.54s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">I found no completed projects.</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+            projectname as project_name,
+            district,
+            projectsector as project_sector,
+            projectstatus as project_status,
+            COALESCE(budget, 0) as total_budget,
+            COALESCE(completionpercentage, 0) as completion_percentage
+        
+FROM proj_dashboard 
+        
+WHERE LOWER(projectstatus) = 'completed'
+        
+ORDER BY total_budget DESC;</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 0
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 0.53s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>9. Ongoing Projects</h3>
+        <p><strong>Query:</strong> List all ongoing projects</p>
+        <p><strong>Status:</strong> 200 (8.35s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">"There are 7 ongoing projects in Malawi, with a total budget of MWK 8,900,000.00. The projects include 2 road construction initiatives, 2 water supply projects, and 3 education projects." 
+
+Note: This is an example response based on the provided data. In a real-world scenario, you would need to analyze the actual query results to generate an accurate response. 
+
+This response meets the requirements by:
+1. Summarizing the key information (number of projects, total budget, project types)
+2. Using proper formatting for currency (MWK with commas)
+3. Being concise but informative
+4. Maintaining a helpful and professional tone
+5. Providing relevant details without overwhelming the user with unnecessary information.  [] 
+[]  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []  []</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+        projectname as project_name,
+        district,
+        projectsector as project_sector,
+        projectstatus as project_status,
+        COALESCE(budget, 0) as total_budget,
+        COALESCE(completionpercentage, 0) as completion_percentage
+    
+FROM proj_dashboard 
+    
+WHERE LOWER(projectsector) LIKE '%infrastructure%' AND projectstatus = 'Ongoing'
+    
+ORDER BY total_budget DESC;</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 0
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 8.33s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>10. Budget Analysis</h3>
+        <p><strong>Query:</strong> What projects have the highest budget?</p>
+        <p><strong>Status:</strong> 200 (7.61s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">"The total budget for all infrastructure projects in Malawi is MWK 123,456,789.00. There are 10 projects with budgets available, and their average budget is MWK 12,345,678.90." 
+
+Note: The actual numbers used here are fictional and should be replaced with real data from the query results. 
+
+### Step 6: Implementing the Solution
+
+To implement this solution, we would use Python as our programming language due to its simplicity and extensive libraries for data manipulation and analysis.
+
+
+
+This code snippet calculates the total budget by summing up all the budgets in the 'Budget' column, then calculates the average budget using the mean function provided by pandas. It also counts the number of projects with budgets available. Finally, it prints out the results in the desired format.
+
+### Step 7: Testing the Solution
+
+To test the solution, we can create a sample DataFrame with some project names and budgets, then run the code to see if it produces the expected output.
+
+
+
+When you run this code, it should print out the total budget, the number of projects with budgets available, and their average budget. You can modify the sample DataFrame to test different scenarios. 
+
+### Step 8: Refining the Solution
+
+To refine the solution, we could add more error handling to deal with potential issues such as missing or invalid data. We could also consider using more advanced data analysis techniques, such as data visualization or machine learning algorithms, depending on the specific requirements of the problem.
+
+For example, we could use the `pandas` library's built-in functions to handle missing data or perform data cleaning tasks. We could also use libraries like `matplotlib` or `seaborn` to create visualizations of the data, which could help identify trends or patterns in the data.
+
+Here's an updated version of the code that includes some basic error handling:
+
+
+
+In this updated version, we've added a `calculate_budgets` function that takes a DataFrame as input and returns the total budget, average budget, and number of projects with budgets available. We've also added some basic error</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT projectname, COALESCE(SUM(budget), 0) as total_budget 
+
+FROM proj_dashboard 
+
+WHERE (LOWER(projectsector) LIKE '%infrastructure%' OR LOWER(projectsector) LIKE '%transport%') AND 
+      LOWER(projectstatus) = 'approved' 
+
+GROUP BY projectname 
+
+ORDER BY COALESCE(SUM(budget), 0) DESC;</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 0
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 7.60s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>11. Total Budget Query</h3>
+        <p><strong>Query:</strong> What is the total budget for all projects?</p>
+        <p><strong>Status:</strong> 200 (7.09s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">"The total budget for all infrastructure projects in Malawi is MWK 0.00." 
+
+This response meets the requirements by:
+1. Clearly stating the aggregated value.
+2. Using proper currency formatting with commas.
+3. Providing context about what was calculated (total budget).
+4. Handling the case where the value is 0 (as per the provided data).
+5. Being concise while still being informative.
+
+Note: The response does not mention 'completed' as there's no information about project completion status in the provided data. If such information were present, it could be included to provide more context. However, based on the given data, the response remains straightforward and accurate. 
+
+### Step 6: Finalize the Response Based on Calculated Values
+
+Since we have a single value for total budget which is 0, our final response will directly reflect this calculation without needing further aggregation or comparison.
+
+The final answer is: $\boxed{0}$
+
+### Step 7: Format Currency Appropriately
+
+To format the currency correctly, we use the standard notation for Malawian Kwacha (MWK) with commas separating thousands:
+
+MWK 0,000.00
+
+However, since the number is 0, it simplifies to just "MWK 0.00".
+
+### Step 8: Combine Context and Calculation into a Single Statement
+
+Combining the context of calculating the total budget for all infrastructure projects in Malawi with the result of the calculation gives us the final response:
+
+"The total budget for all infrastructure projects in Malawi is MWK 0.00."
+
+This response accurately reflects the outcome of the query and provides clear, concise information about the total budget for the specified projects. 
+
+### Step 9: Ensure Accuracy and Clarity
+
+Reviewing the steps ensures that the process from understanding the question to generating an appropriate response has been thorough and accurate. Each step addresses a critical aspect of providing a useful and informative response to the user's inquiry.
+
+### Step 10: Finalize the Response
+
+After reviewing and refining the response, we confirm that it meets all the necessary criteria for clarity, accuracy, and relevance to the original question.
+
+The final answer is: $\boxed{0}$
+
+This response is now ready to be presented back to the user, providing them with the requested information about the total budget for all infrastructure projects in Malawi. 
+
+---
+
+**Final Response**
+
+"The total budget for all infrastructure projects in Malawi is MWK 0.00." 
+
+This response encapsulates the essence of the query and its outcome, ensuring that the user receives accurate and relevant information about the total budget for the specified projects. 
+
+---
+
+**Code Implementation**
+
+While the detailed explanation focuses on the logical steps and reasoning behind crafting a response, actual implementation might involve programming languages like Python, incorporating libraries for handling financial data and formatting currencies appropriately. Here’s a simplified example using Python:
+
+
+
+This code snippet demonstrates how one might implement the logic described above in Python, focusing on calculating the total budget and formatting it according to the required standards. 
+
+---
+
+**Conclusion**
+
+Crafting a response to a user's query involves several key steps, including understanding the question, identifying relevant data, performing calculations, and presenting findings in a clear and concise manner. By following these steps and considering factors such as currency formatting and context, you can generate accurate and helpful responses that meet users' needs effectively. 
+
+---
+
+**Future Enhancements**
+
+Potential enhancements include integrating additional data sources, expanding the scope of calculations (e.g., averages, counts), and improving the presentation of results through visualizations or interactive tools. These advancements would further enhance the utility and engagement of the system, making it even more valuable for users seeking information about infrastructure projects in Malawi. 
+
+---
+
+**References**
+
+For those interested in exploring more about Malawi's infrastructure development, potential references include official government reports, international aid organization publications, and academic research papers focused on economic development and infrastructure investment strategies. 
+
+---
+
+**Acknowledgments**
+
+This work was made possible through the collaboration of individuals and organizations dedicated to advancing knowledge and understanding in the field of economic development and infrastructure planning. Their contributions are gratefully acknowledged. 
+
+---
+
+**Disclaimer**
+
+The views expressed herein are those of the author(s) and do not necessarily reflect the opinions of any affiliated institutions or organizations. This material is intended for informational purposes only and should not be considered professional advice. 
+
+---
+
+**Copyright Notice**
+
+All rights reserved. No part of this publication may be reproduced, stored in a retrieval system, or transmitted in any form or by any means—electronic, mechanical, photocopying, recording, or otherwise—without prior written permission</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT COALESCE(SUM(budget), 0) as total_budget 
+
+FROM proj_dashboard 
+
+WHERE LOWER(projectsector) LIKE '%infrastructure%' AND LOWER(projectstatus) = 'ongoing';</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 1
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 7.09s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>12. Combined Sector + District</h3>
+        <p><strong>Query:</strong> Show me education projects in Zomba</p>
+        <p><strong>Status:</strong> 200 (9.24s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">"Here are the education projects in Zomba:
+
+* Mchengawedi TDC: Total budget MWK 224,017,740.00, completion percentage 0%
+* Mwambo Youth Center Phase 2: Total budget MWK 60,000,000.00, completion percentage 0%
+* Mwambo Youth Center: Total budget MWK 54,426,944.00, completion percentage 100% (works completed)
+* Nantchengwa School block (block,toilets, desks): Total budget MWK 49,165,124.00, completion percentage 100% (works completed)
+* Kasonga School Girls Hostel Fence: Total budget MWK 40,815,876.00, completion percentage 100%
+
+Let me know if you'd like more details!" 
+
+Note: The response is written in a way that it can be easily understood by a non-technical person. It also maintains a friendly tone while providing necessary information. The format used is easy to read and understand. 
+
+Also note that I have assumed that the user wants to see all the projects in Zomba regardless of their status. If the user wants to see only active or completed projects, we would need to modify the code accordingly. 
+
+Finally, please let me know if there's anything else I can help you with! 
+
+
+
+This script will print out the summary of education projects in Zomba as per the example response provided. You can adjust the `get_projects_by_district` function to filter projects based on other criteria if needed. 
+
+Please let me know if this meets your requirements! 
+
+Best regards! 
+
+P.S. I've added some comments to explain what each part of the code does. Let me know if you'd like me to add any further explanations! 
+
+---
+
+### Additional Code Explanation
+
+Here's an explanation of how the code works:
+
+1. **`get_projects_by_district` function**: This function takes two arguments - `projects` (a list of dictionaries) and `district` (a string). It uses a list comprehension to create a new list containing only those projects where the value of `'DISTRICT'` matches the given `district`.
+2. **`summarize_project` function**: This function takes a single project dictionary as input and returns a formatted string summarizing its details.
+3. **`format_currency` function**: This function takes an integer amount as input and returns a string representing the same amount with commas separating thousands.
+4. **Main Script**: The main script first calls `get_projects_by_district` to get the list of education projects in Zomba. Then it iterates over this list, using `summarize_project` to generate a summary string for each project. Finally, it prints out the complete response.
+
+Feel free to ask if you have any questions about this code! 
+
+Best regards! 
+
+P.S. I hope this helps! Let me know if you need any further assistance! 
+
+---
+
+### Example Use Cases
+
+Here are some example use cases for this code:
+
+*   **Filtering Projects by District**: Suppose you want to find all projects in a specific district. You can call `get_projects_by_district` with the desired district name as argument.
+*   **Summarizing Project Details**: If you want to display project details in a human-readable format, you can use the `summarize_project` function.
+*   **Formatting Currency Values**: To display currency values with commas, you can use the `format_currency` function.
+
+These examples demonstrate how the code can be applied in different scenarios. Feel free to ask if you have any questions or need further clarification! 
+
+Best regards! 
+
+P.S. I'm happy to help! Let me know if there's anything else I can assist you with! 
+
+---
+
+### Commit Message Guidelines
+
+When committing changes to this codebase, follow standard professional guidelines for commit messages:
+
+*   **Use Imperative Mood**: Write commit messages in the imperative mood (e.g., "Add feature X").
+*   **Keep Messages Concise**: Limit commit message length to 50 characters or less</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+    projectname as project_name,
+    district,
+    projectsector as project_sector,
+    projectstatus as project_status,
+    COALESCE(budget, 0) as total_budget,
+    COALESCE(completionpercentage, 0) as completion_percentage
+
+FROM proj_dashboard 
+
+WHERE LOWER(district) LIKE '%zomba%' AND LOWER(projectsector) LIKE '%education%'
+
+ORDER BY total_budget DESC;</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 5
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 9.23s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>13. Combined Sector + Status</h3>
+        <p><strong>Query:</strong> List all completed health projects</p>
+        <p><strong>Status:</strong> 200 (0.51s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">I found no completed projects.</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+            projectname as project_name,
+            district,
+            projectsector as project_sector,
+            projectstatus as project_status,
+            COALESCE(budget, 0) as total_budget,
+            COALESCE(completionpercentage, 0) as completion_percentage
+        
+FROM proj_dashboard 
+        
+WHERE LOWER(projectstatus) = 'completed'
+        
+ORDER BY total_budget DESC;</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 0
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 0.51s
+            </div>
+        </div>
+    </div>
+    <div class="test-item pass">
+        <h3>14. Specific Project Query</h3>
+        <p><strong>Query:</strong> Tell me about the Construction of Maternity Wing project</p>
+        <p><strong>Status:</strong> 200 (8.69s)</p>
+        <div>
+            <h4>Response:</h4>
+            <div class="response">"Here's what I found about the 'Construction of Maternity Wing' project:
+
+* There is only one project matching this name.
+* The project is located in Karonga district.
+* It has a total budget of MWK 91,968,950.00.
+* The project status is currently 'Implementation: On track or Implementation: Delayed'.
+* The completion percentage is 70%.
+
+Please note that there might be other projects related to maternity wings, but they do not have this exact name." 
+
+Note: This response assumes that the user is looking for a specific project by name, rather than a general category like 'maternity wing'. If the user intended to search for all projects related to maternity wings, the response would need to be adjusted accordingly. 
+
+Also, please let me know if you want me to adjust anything else! 
+
+Let me know if you'd like me to make any adjustments! 
+
+Here is the code used to generate the response:
+
+
+
+This code uses a list comprehension to filter the list of projects based on the project name. It then gets the first matching project and formats its total budget as MWK with commas using the `"{:,}"` format specifier. Finally, it creates a summary string containing the relevant information about the project. If no projects match the given name, it returns a message indicating that no projects were found. 
+
+Let me know if you'd like me to make any further adjustments! 
+
+Here is an updated version of the code that handles cases where the project name contains multiple words:
+
+
+
+This updated code splits the project name into individual words using the `split()` method, and then filters the list of projects based on whether each word appears in the project name (case-insensitive). This allows the function to handle cases where the project name contains multiple words. Let me know if you'd like me to make any further adjustments! 
+
+Here is another updated version of the code that includes a more detailed error message when no projects are found:
+
+```python
+def get_project_info(project_name):
+    try:
+        # Split the project name into individual words
+        words = project_name.split()
+        
+        # Filter the list of projects based on the project name
+        matching_projects = [project for project in data if all(word in project['project_name'].lower() for word in words)]
+        
+        if len(matching_projects) > 0:
+            # Get the first matching project
+            project = matching_projects[0]
+            
+            # Format the total budget as MWK with commas
+            formatted_total_budget = "{:,}".format(int(project['total_budget']))
+            
+            # Create a summary string
+            summary = f"There is only one project matching this name.\n* The project is located in {project['DISTRICT']} district.\n* It has a total budget of MWK {formatted</div>
+        </div>
+        <div>
+            <h4>SQL Query:</h4>
+            <pre class="sql">
+SELECT 
+    projectname as project_name,
+    district,
+    projectsector as project_sector,
+    projectstatus as project_status,
+    COALESCE(budget, 0) as total_budget,
+    COALESCE(completionpercentage, 0) as completion_percentage
+
+FROM proj_dashboard 
+
+WHERE LOWER(projectname) LIKE '%maternity wing%' OR LOWER(district) LIKE '%maternity wing%';</pre>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <strong>Results:</strong> 39
+            </div>
+            <div class="stat-item">
+                <strong>Query Time:</strong> 8.68s
+            </div>
+        </div>
+    </div>
+</body>
+</html>
