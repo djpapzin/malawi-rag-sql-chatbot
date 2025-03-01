@@ -18,8 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadingIndicator.className = 'loading-indicator';
     loadingIndicator.innerHTML = '<div class="spinner"></div>';
 
-    // Use the absolute server IP
-    const API_BASE_URL = 'http://154.0.164.254:5000';
+    // Use relative URL instead of hardcoded IP
+    const API_BASE_URL = '';
 
     // Initially hide the chat view
     if (chatView) chatView.style.display = 'none';
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage(message, true);
         
         try {
-            const response = await fetch(`${API_BASE_URL}/api/rag-sql-chatbot/chat`, {
+            const response = await fetch(`/api/rag-sql-chatbot/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

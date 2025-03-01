@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dwizani - Malawi Infrastructure Projects Chatbot</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/loading.css">
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header>
+            <h1 class="text-3xl font-bold text-center mb-8">Welcome to Dwizani!</h1>
+            <p class="text-center text-gray-600 mb-8 max-w-2xl mx-auto intro">
+                I am Dwizani, a prototype AI chatbot that can answer questions about infrastructure projects. My name means 'what you should know' in Chichewa. For now I have access to data on projects being constructed in Malawi.
+            </p>
+        </header>
+
+        <div id="initial-view" class="space-y-8">
+            <div class="guidance-tiles grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+
+        <div id="chat-container" class="hidden">
+            <div id="chat-messages" class="space-y-4 mb-4"></div>
+            <div id="query-details-container" class="mb-4">
+                <button id="query-details-button" class="flex items-center justify-between w-full p-2 bg-gray-100 rounded">
+                    <span>Query Details</span>
+                    <span class="transform transition-transform" id="query-details-arrow">▼</span>
+                </button>
+                <div id="query-details-content" class="hidden p-4 bg-gray-50 rounded mt-2"></div>
+            </div>
+            <div class="flex">
+                <input type="text" id="user-input" class="flex-grow p-2 border rounded-l" placeholder="Ask me about infrastructure projects...">
+                <button id="send-button" class="bg-blue-500 text-white p-2 rounded-r">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html> 

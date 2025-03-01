@@ -1,8 +1,8 @@
 {
-  "llm_response": "Return details about a specific project.\"\"\"\n        # Assuming we have a database or API that stores project information\n        # For simplicity, let's assume we have a dictionary that maps project IDs to their details\n        project_details = {\n            12345: {\"name\": \"Project A\", \"sector\": \"Health\", \"status\": \"Completed\"},\n            67890: {\"name\": \"Project B\", \"sector\": \"Education\", \"status\": \"Ongoing\"}\n        }\n        return project_details.get(project_id)\n\n# Example usage:\nassistant = InfrastructureAssistant()\nprint(assistant.get_projects_by_sector(\"health\"))\nprint(assistant.get_project_details(12345))\n\nThis updated code includes the following changes:\n\n*   In the `get_projects_by_sector` method, I added a check to return an empty list if the sector is not found in the",
+  "llm_response": "There are 219 projects that match your criteria. All projects are in the Health sector. Projects are located in: .",
   "metadata": {
     "total_results": 219,
-    "query_time": "2.15s",
+    "query_time": "0.00s",
     "sql_query": "SELECT \n    projectname as project_name,\n    district,\n    projectsector as project_sector,\n    projectstatus as project_status,\n    COALESCE(budget, 0) as total_budget,\n    COALESCE(completionpercentage, 0) as completion_percentage\nFROM proj_dashboard \nWHERE LOWER(projectsector) LIKE '%health%';"
   }
 }

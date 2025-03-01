@@ -195,12 +195,56 @@ TOGETHER_API_KEY=your_api_key
 
 1. Start the Backend:
 ```bash
-# From the project root
+# Development mode
 uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
+
+# Production mode using provided scripts
+./start_production.sh  # Starts the application with gunicorn
+./restart.sh          # Stops any running instance and restarts the application
 ```
 
 2. Access the Application:
 The application will be available at http://localhost:5000
+
+## Production Deployment
+
+For production deployment, the application includes two important scripts:
+
+1. **start_production.sh** - Starts the application with gunicorn using the following configuration:
+   - 4 worker processes
+   - uvicorn worker class
+   - 120 second timeout
+   - Binds to 0.0.0.0:5000
+   - Logs to server_access.log and server_error.log
+   - Runs with nohup to ensure the process continues after terminal closes
+
+2. **restart.sh** - Provides a convenient way to restart the application:
+   - Stops any currently running instances
+   - Waits for processes to terminate
+   - Starts the application using start_production.sh
+
+To set up as a service that starts automatically on system boot, consider using systemd or supervisor.
+
+### Setting up as a Systemd Service
+
+A systemd service file `dwizani.service` is included in the repository. To set it up:
+
+```bash
+# Copy the service file to systemd directory
+sudo cp dwizani.service /etc/systemd/system/
+
+# Reload systemd to recognize the new service
+sudo systemctl daemon-reload
+
+# Enable the service to start on boot
+sudo systemctl enable dwizani.service
+
+# Start the service
+sudo systemctl start dwizani.service
+
+# Check status
+sudo systemctl status dwizani.service
+```
 
 ## API Endpoints
 

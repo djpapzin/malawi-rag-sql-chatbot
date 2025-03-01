@@ -720,29 +720,28 @@ ORDER BY total_budget DESC;"""
                 else:
                     count = len(results)
                     
-                response = f"There are exactly {count} projects that match your criteria."
+                response = f"There are {count} projects that match your criteria."
                 
                 # Add summary for 'which' queries
                 if 'which' in user_query.lower():
-                    response = f"There are exactly {count} projects that match your criteria. "
                     if results:
                         sectors = set(r.get('project_sector', '') for r in results)
                         districts = set(r.get('district', '') for r in results)
                         if len(sectors) == 1:
-                            response += f"All projects are in the {next(iter(sectors))} sector. "
+                            response += f" All projects are in the {next(iter(sectors))} sector."
                         if len(districts) <= 3:
-                            response += f"Projects are located in: {', '.join(sorted(districts))}."
-                        
+                            response += f" Projects are located in: {', '.join(d for d in sorted(districts) if d)}."
+                                
             else:
                 # For non-count queries, use LLM but with strict instructions
                 explanation_prompt = f"""You are a helpful assistant for Malawi infrastructure projects. 
                 The user asked: "{user_query}"
-                The query returned EXACTLY {len(results)} results.
+                The query returned {len(results)} results.
                 
                 First result: {str(results[0]) if results else 'No results'}
                 
                 CRITICAL INSTRUCTIONS:
-                1. If mentioning any counts, ALWAYS start with "There are exactly {len(results)} projects"
+                1. If mentioning any counts, ALWAYS start with "There are {len(results)} projects"
                 2. If mentioning any amounts, use the EXACT values from the results
                 3. Do not perform calculations or generate numbers - use only the values provided
                 4. Keep the response brief and factual
@@ -753,17 +752,18 @@ ORDER BY total_budget DESC;"""
                 
                 # Validate that the response uses the correct count
                 if str(len(results)) not in response:
-                    response = f"There are exactly {len(results)} projects that match your criteria. {response}"
+                    response = f"There are {len(results)} projects that match your criteria. {response}"
             
             return {
-                "response": {
-                    "query_type": "sql",
-                    "results": [{"type": "answer", "message": response}],
-                    "metadata": {
-                        "total_results": len(results),
-                        "query_time": query_time,
-                        "sql_query": sql_query
-                    }
+                "results": [{
+                    "type": "text",
+                    "message": response,
+                    "data": results[0] if len(results) == 1 else {}
+                }],
+                "metadata": {
+                    "total_results": len(results),
+                    "query_time": query_time,
+                    "sql_query": sql_query
                 }
             }
             
