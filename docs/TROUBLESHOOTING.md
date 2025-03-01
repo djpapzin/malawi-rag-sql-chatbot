@@ -74,10 +74,58 @@ cd /home/dj/malawi-rag-sql-chatbot
 ```
 
 ## Rate Limiting
+
+If you encounter the following error:
 ```json
 {
-  "error": "Rate limit exceeded",
-  "retry_after": 60
+  "error": "Rate limit exceeded. Please wait 60 seconds before making new requests."
 }
 ```
-Wait 60 seconds before making new requests
+
+This means you have made too many requests in a short period. Wait for 60 seconds before making new requests.
+
+## Worker Timeout Issues
+
+If you encounter worker timeout errors in the server logs like:
+```
+[2025-03-01 17:27:58 +0200] [4111263] [CRITICAL] WORKER TIMEOUT (pid:4111265)
+```
+
+This indicates that a worker process took too long to process a request and was terminated. This can happen with complex queries that require extensive processing.
+
+### Solution:
+
+1. Increase the worker timeout in the `start_server.sh` script:
+   ```bash
+   # Edit the start_server.sh file
+   # Change the timeout parameter
+   nohup gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000 --timeout 120 --access-logfile server_access.log --error-logfile server_error.log --log-level info > nohup.out 2>&1 &
+   ```
+
+2. Increase the client-side timeout in test scripts:
+   ```python
+   # In test_specific_queries.py or other test files
+   # Change the timeout parameter in requests.post calls
+   response = requests.post(url, json={"message": query}, timeout=30)
+   ```
+
+3. Restart the server after making these changes:
+   ```bash
+   ./start_server.sh
+   ```
+
+## Python Code in Responses
+
+If you see Python code or code blocks in the API responses:
+
+### Solution:
+
+The response cleaning function in `app/database/langchain_sql.py` may need enhancement. Update the `_clean_llm_response` method with more comprehensive regex patterns to remove:
+
+1. Code blocks (```python ... ```)
+2. Import statements (import ...)
+3. Function definitions (def ...)
+4. Print statements (print(...))
+5. Return statements (return ...)
+
+After updating the code, restart the server for changes to take effect.

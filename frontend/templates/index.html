@@ -18,7 +18,7 @@
 
         <div id="initial-view" class="space-y-8">
             <div class="guidance-tiles grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="tile bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div class="tile bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                     <div class="icon-container mb-3">
                         <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
@@ -26,10 +26,10 @@
                     </div>
                     <h3 class="text-lg font-semibold mb-2">Find projects by sector</h3>
                     <p class="text-gray-600 mb-2 text-sm">Ask about health, education or roads.</p>
-                    <div class="example-query">Example: "Which projects are there in the health sector"</div>
+                    <div class="example-query">Which projects are there in the health sector</div>
                 </div>
 
-                <div class="tile bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div class="tile bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                     <div class="icon-container mb-3">
                         <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
@@ -37,19 +37,19 @@
                         </svg>
                     </div>
                     <h3 class="text-lg font-semibold mb-2">Find projects by district</h3>
-                    <p class="text-gray-600 mb-2 text-sm">Ask about projects in any district of Malawi (e.g., Zomba, Lilongwe, Blantyre, Mzuzu).</p>
-                    <div class="example-query">Example: "Show me all projects in Zomba district"</div>
+                    <p class="text-gray-600 mb-2 text-sm">Ask about projects in any district of Malawi.</p>
+                    <div class="example-query">Show me all projects in Zomba district</div>
                 </div>
 
-                <div class="tile bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div class="tile bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                     <div class="icon-container mb-3">
                         <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
                     </div>
                     <h3 class="text-lg font-semibold mb-2">Find a specific project</h3>
-                    <p class="text-gray-600 mb-2 text-sm">Ask about a specific project to learn about the contractor and expenditure to date.</p>
-                    <div class="example-query">Example: "Tell me about the Nyandule Classroom Block project"</div>
+                    <p class="text-gray-600 mb-2 text-sm">Ask about a specific project to learn more.</p>
+                    <div class="example-query">Tell me about the Nyandule Classroom Block project</div>
                 </div>
             </div>
         </div>
@@ -58,19 +58,19 @@
             <div id="chat-messages" class="space-y-4 min-h-[300px] max-h-[500px] overflow-y-auto bg-white rounded-lg shadow-sm p-4 mb-4"></div>
         </div>
 
-        <div id="query-details" class="hidden">
-            <div class="query-details-header">
-                <h3>Query Details</h3>
-                <button id="toggle-details" class="icon-button">
+        <div id="query-details" class="hidden bg-white rounded-lg shadow-sm p-4 mb-4">
+            <div class="query-details-header flex justify-between items-center mb-2">
+                <h3 class="font-semibold">Query Details</h3>
+                <button id="toggle-details" class="text-gray-500 hover:text-gray-700">
                     <span class="toggle-icon">▼</span>
                 </button>
             </div>
             <div class="query-details-content">
-                <div class="sql-query">
-                    <h4>Generated SQL Query:</h4>
-                    <pre><code id="sql-query-text"></code></pre>
+                <div class="sql-query mb-4">
+                    <h4 class="text-sm font-medium mb-1">Generated SQL Query:</h4>
+                    <pre class="bg-gray-100 p-2 rounded"><code id="sql-query-text" class="text-sm"></code></pre>
                 </div>
-                <div class="query-metadata">
+                <div class="query-metadata text-sm text-gray-600">
                     <p>Query Time: <span id="query-time"></span></p>
                     <p>Results Found: <span id="total-results"></span></p>
                 </div>
@@ -78,15 +78,15 @@
         </div>
 
         <div class="chat-input-container">
-            <form id="chat-form">
-                <div class="input-group">
+            <form id="chat-form" class="relative">
+                <div class="input-group flex">
                     <input type="text" 
                            id="user-input"
-                           class="chat-input"
+                           class="chat-input flex-1 p-3 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500"
                            placeholder="Ask me about infrastructure projects..."
                            autocomplete="off">
                     <button id="sendButton" 
-                            class="send-button"
+                            class="send-button absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-blue-500 hover:text-blue-600"
                             type="submit">
                         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>

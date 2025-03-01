@@ -820,19 +820,55 @@ Response:"""
             }
 
     def _clean_llm_response(self, response: str) -> str:
-        """Remove code blocks and technical notes from LLM response."""
-        # Remove Python code blocks
-        response = re.sub(r'```python.*?```', '', response, flags=re.DOTALL)
-        # Remove any other code blocks
-        response = re.sub(r'```.*?```', '', response, flags=re.DOTALL)
-        # Remove notes about SQL queries
-        response = re.sub(r'Note:.*?(?=\n\n|$)', '', response, flags=re.DOTALL)
-        # Remove metadata about filtering
-        response = re.sub(r'The response only includes projects where.*?(?=\n\n|$)', '', response, flags=re.DOTALL)
-        # Clean up any double newlines resulting from removals
+        """Clean the LLM response to remove code blocks, markdown, and other unwanted content."""
+        # Remove code blocks (both ```python and ``` style)
+        response = re.sub(r'```(?:python|sql)?(.*?)```', '', response, flags=re.DOTALL)
+        
+        # Remove inline code references
+        response = re.sub(r'`(.*?)`', '', response)
+        
+        # Remove phrases like "Here's the SQL query:" or "Here's how you could do it:"
+        response = re.sub(r"Here's (?:how|the|a) .*?:", '', response)
+        
+        # Remove phrases like "Additional suggestions", "Code improvements", "Code refactoring"
+        response = re.sub(r"(?:Additional|Further) (?:suggestions|improvements|refactoring|notes).*", '', response, flags=re.DOTALL)
+        
+        # Remove explicit Python references
+        response = re.sub(r"(?:import|def|return|class|print).*", '', response, flags=re.DOTALL)
+        
+        # Remove "Best regards" and all postscripts
+        response = re.sub(r"(?:Best regards|Regards|Sincerely|Yours).*", '', response, flags=re.DOTALL)
+        response = re.sub(r"P\.(?:S|P\.S)\..*", '', response, flags=re.DOTALL)
+        
+        # Remove "I hope this helps" and similar phrases
+        response = re.sub(r"(?:I hope this helps|Hope this helps|Let me know|Don't hesitate).*", '', response, flags=re.DOTALL)
+        
+        # Remove "Please note" and similar phrases
+        response = re.sub(r"(?:Please note|Note:).*", '', response, flags=re.DOTALL)
+        
+        # Remove "Also, remember" and similar phrases
+        response = re.sub(r"Also,.*", '', response, flags=re.DOTALL)
+        
+        # Remove "Lastly" and similar phrases
+        response = re.sub(r"Lastly,.*", '', response, flags=re.DOTALL)
+        
+        # Remove "This code will" and similar phrases
+        response = re.sub(r"This code will.*", '', response, flags=re.DOTALL)
+        
+        # Remove "You can" and similar phrases
+        response = re.sub(r"You can.*", '', response, flags=re.DOTALL)
+        
+        # Remove "If" statements
+        response = re.sub(r"If .*", '', response, flags=re.DOTALL)
+        
+        # Remove quotes around the response
+        response = re.sub(r'^"(.*)"$', r'\1', response.strip())
+        
+        # Clean up excessive newlines and whitespace
         response = re.sub(r'\n{3,}', '\n\n', response)
-        # Remove any trailing/leading whitespace
-        return response.strip()
+        response = response.strip()
+        
+        return response
 
     def _format_basic_response(self, query_results: List[Dict[str, Any]]) -> str:
         """Fallback method for basic response formatting."""

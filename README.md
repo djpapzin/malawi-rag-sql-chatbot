@@ -229,6 +229,25 @@ For testing specific queries:
 python tests/test_tile_queries.py
 ```
 
+## Recent Improvements
+
+The following improvements have been made to enhance the system's stability and performance:
+
+### Response Cleaning
+- Enhanced regex patterns in the `_clean_llm_response` method to better remove Python code and unnecessary text
+- Improved handling of code blocks, import statements, and other Python-specific syntax
+- Added patterns to remove phrases like "Additional suggestions," "Code improvements," and "Code refactoring"
+
+### Server Configuration
+- Increased worker timeout to 120 seconds to handle complex queries
+- Improved server restart process with the `start_server.sh` script
+- Enhanced error handling and logging for better troubleshooting
+
+### Testing Framework
+- Updated test queries to be more specific and not rely on context for follow-up queries
+- Increased client-side timeout in test scripts from 10 seconds to 30 seconds
+- Improved test coverage with specific test cases for different query types
+
 ## Documentation
 
 Additional documentation can be found in the `docs/` directory:

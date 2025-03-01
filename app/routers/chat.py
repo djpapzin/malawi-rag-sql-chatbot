@@ -164,10 +164,17 @@ async def health_check():
         # Initialize SQL integration to test database connection
         sql_chain = LangChainSQLIntegration()
         
-        return {
-            "status": "healthy",
-            "message": "RAG SQL Chatbot is running"
-        }
+        return JSONResponse(
+            content={
+                "status": "healthy",
+                "message": "RAG SQL Chatbot is running"
+            },
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type"
+            }
+        )
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         return JSONResponse(
@@ -175,5 +182,22 @@ async def health_check():
             content={
                 "status": "unhealthy",
                 "error": str(e)
+            },
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type"
             }
         )
+
+@router.options("/health")
+async def health_options():
+    """Handle OPTIONS requests for health endpoint"""
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+        }
+    )

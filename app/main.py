@@ -82,9 +82,23 @@ app.include_router(
     tags=["chatbot"]
 )
 
-@app.get(f"{API_PREFIX}/")
+@app.get("/")
 async def root(request: Request):
+    """Serve the main frontend page"""
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get(f"{API_PREFIX}/")
+async def api_root():
+    """API root endpoint"""
+    return {
+        "message": "Welcome to Malawi Projects Chatbot API",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": f"{API_PREFIX}/health",
+            "chat": f"{API_PREFIX}/rag-sql-chatbot/chat",
+            "docs": f"{API_PREFIX}/docs"
+        }
+    }
 
 # Add a simplified health endpoint at /api/health that doesn't require database connection
 @app.get(f"{API_PREFIX}/health")

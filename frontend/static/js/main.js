@@ -18,17 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadingIndicator.className = 'loading-indicator';
     loadingIndicator.innerHTML = '<div class="spinner"></div>';
 
-    // Get the base URL from the current window location
-    const baseUrl = window.location.origin;
-
-    // Validate required DOM elements
-    const requiredElements = { chatInput, sendButton, guidanceTiles, chatMessages, chatForm, queryDetails, queryDetailsHeader, queryDetailsContent, sqlQueryText, queryTime, totalResults, toggleDetailsBtn };
-    for (const [name, element] of Object.entries(requiredElements)) {
-        if (!element) {
-            console.error(`Required DOM element not found: ${name}`);
-            return;
-        }
-    }
+    // Use the absolute server IP
+    const API_BASE_URL = 'http://154.0.164.254:5000';
 
     // Initially hide the chat view
     if (chatView) chatView.style.display = 'none';
@@ -40,14 +31,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function showLoading() {
         isLoading = true;
         if (chatMessages) {
-            chatMessages.appendChild(loadingIndicator.cloneNode(true));
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.textContent = 'Thinking';
+            chatMessages.appendChild(loadingDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     }
 
     function hideLoading() {
         isLoading = false;
-        const indicators = chatMessages?.querySelectorAll('.loading-indicator');
+        const indicators = chatMessages?.querySelectorAll('.loading');
         indicators?.forEach(indicator => indicator.remove());
     }
 
@@ -81,7 +75,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (toggleDetailsBtn) {
-            toggleDetailsBtn.classList.toggle('expanded', isQueryDetailsExpanded);
+            const toggleIcon = toggleDetailsBtn.querySelector('.toggle-icon');
+            if (toggleIcon) {
+                toggleIcon.textContent = isQueryDetailsExpanded ? '▼' : '▲';
+            }
         }
     }
 
@@ -105,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage(message, true);
         
         try {
-            const response = await fetch(`${baseUrl}/api/chat`, {
+            const response = await fetch(`${API_BASE_URL}/api/rag-sql-chatbot/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -120,7 +117,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const data = await response.json();
-            console.log('Response:', data);
             
             // Update query details panel with metadata
             if (data.metadata) {
@@ -130,48 +126,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Handle the results
             if (data.results && data.results.length > 0) {
                 data.results.forEach(result => {
-                    if (result.type === 'text' && result.message) {
-                        // Handle nested response structure
-                        if (result.message.response && result.message.response.results) {
-                            result.message.response.results.forEach(item => {
-                                if (item.message) {
-                                    appendMessage(item.message);
-                                }
-                            });
-                        } else {
-                            // Handle direct message format
-                            appendMessage(typeof result.message === 'string' ? result.message : JSON.stringify(result.message));
-                        }
-                    } else if (result.data) {
-                        // Format structured data if present
-                        const details = [];
-                        const projectData = result.data;
-                        
-                        if (projectData.project_name) {
-                            details.push(`📋 Project: ${projectData.project_name}`);
-                        }
-                        if (projectData.district) {
-                            details.push(`📍 District: ${projectData.district}`);
-                        }
-                        if (projectData.project_sector) {
-                            details.push(`🏗️ Sector: ${projectData.project_sector}`);
-                        }
-                        if (projectData.project_status) {
-                            details.push(`📊 Status: ${projectData.project_status}`);
-                        }
-                        if (projectData.total_budget) {
-                            const budget = typeof projectData.total_budget === 'object' ? 
-                                projectData.total_budget.formatted : 
-                                `MWK ${Number(projectData.total_budget).toLocaleString()}`;
-                            details.push(`💰 Budget: ${budget}`);
-                        }
-                        if (projectData.completion_percentage !== undefined) {
-                            details.push(`✅ Completion: ${projectData.completion_percentage}%`);
-                        }
-                        
-                        if (details.length > 0) {
-                            appendMessage(details.join('\n'));
-                        }
+                    if (result.type === 'text') {
+                        appendMessage(result.message);
                     }
                 });
             } else {
@@ -180,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Error:', error);
-            appendMessage(`Sorry, there was an error processing your request: ${error.message}`);
+            appendMessage(`Sorry, there was an error processing your request. Server error: ${error.message}`);
         } finally {
             hideLoading();
         }
@@ -191,71 +147,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
-        
-        const iconSpan = document.createElement('span');
-        iconSpan.className = 'message-icon';
-        iconSpan.textContent = isUser ? '👤' : '🤖';
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        contentDiv.textContent = message;
-        
-        messageDiv.appendChild(iconSpan);
-        messageDiv.appendChild(contentDiv);
-        
+        messageDiv.textContent = message;
         chatMessages.appendChild(messageDiv);
+        
+        // Scroll to bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     // Event Listeners
     chatForm?.addEventListener('submit', sendMessage);
     
-    chatInput?.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-
-    // Query details toggle
-    queryDetailsHeader?.addEventListener('click', toggleQueryDetails);
-    toggleDetailsBtn?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleQueryDetails();
-    });
-
-    // Handle tile clicks
-    function initiateChat(query) {
-        if (chatInput && query) {
-            chatInput.value = query;
-            sendMessage();
-        }
-    }
-
     // Add click handlers to guidance tiles
-    const tiles = guidanceTiles?.querySelectorAll('.tile');
-    tiles?.forEach(tile => {
-        const query = tile.querySelector('.example-query')?.textContent?.replace('Example: ', '')?.replace(/["]/g, '');
-        if (query) {
-            tile.addEventListener('click', () => initiateChat(query));
-        }
+    const exampleQueries = document.querySelectorAll('.example-query');
+    exampleQueries?.forEach(query => {
+        query.addEventListener('click', () => {
+            if (chatInput) {
+                chatInput.value = query.textContent;
+                chatForm?.dispatchEvent(new Event('submit'));
+            }
+        });
     });
 
-    // Hide guidance tiles when chat starts
-    chatInput.addEventListener('focus', () => {
-        guidanceTiles.style.opacity = '0';
-        setTimeout(() => {
-            guidanceTiles.style.display = 'none';
-        }, 300);
-    });
-
-    // Handle tile clicks
-    window.initiateChat = function(query) {
-        chatInput.value = query;
-        sendMessage();
-        guidanceTiles.style.opacity = '0';
-        setTimeout(() => {
-            guidanceTiles.style.display = 'none';
-        }, 300);
-    }
+    // Add click handler for toggle details button
+    toggleDetailsBtn?.addEventListener('click', toggleQueryDetails);
 });
