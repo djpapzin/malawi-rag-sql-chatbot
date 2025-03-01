@@ -50,6 +50,23 @@ This document outlines the step-by-step process for migrating the Malawi RAG SQL
 - [ ] Test the application locally on the production server
 - [ ] Update the start_server.sh script with production settings
 
+## Frontend Build Process (If Applicable)
+
+- [ ] Check if the application has a frontend that needs building (React, Vue, Angular, etc.)
+- [ ] Navigate to the frontend directory and install dependencies:
+  ```bash
+  cd /path/to/production/malawi-rag-sql-chatbot/frontend
+  npm ci
+  ```
+- [ ] Build the frontend for production:
+  ```bash
+  npm run build
+  ```
+- [ ] Verify the build output (typically in a `build/` or `dist/` directory)
+- [ ] Configure the backend to serve the static frontend files
+
+*See the detailed instructions in [FRONTEND_AND_SYSTEMD.md](FRONTEND_AND_SYSTEMD.md)*
+
 ## Production Configuration
 
 - [ ] Set up Nginx as a reverse proxy:
@@ -85,6 +102,24 @@ This document outlines the step-by-step process for migrating the Malawi RAG SQL
   sudo apt install certbot python3-certbot-nginx
   sudo certbot --nginx -d your-production-domain.com
   ```
+
+## Service Configuration (Choose One)
+
+### Option 1: Systemd (Recommended for Production)
+
+- [ ] Create a systemd service file:
+  ```bash
+  sudo nano /etc/systemd/system/malawi-rag-sql-chatbot.service
+  ```
+- [ ] Add appropriate configuration (see [FRONTEND_AND_SYSTEMD.md](FRONTEND_AND_SYSTEMD.md))
+- [ ] Enable and start the service:
+  ```bash
+  sudo systemctl daemon-reload
+  sudo systemctl enable malawi-rag-sql-chatbot
+  sudo systemctl start malawi-rag-sql-chatbot
+  ```
+
+### Option 2: Supervisor
   
 - [ ] Configure supervisor for process management:
   ```bash
@@ -109,6 +144,16 @@ This document outlines the step-by-step process for migrating the Malawi RAG SQL
   ```bash
   sudo supervisorctl reread
   sudo supervisorctl update
+  ```
+
+### Option 3: Nohup (Simple but Less Robust)
+
+- [ ] Run with nohup:
+  ```bash
+  cd /path/to/production/malawi-rag-sql-chatbot
+  source /home/dj/miniconda/etc/profile.d/conda.sh
+  conda activate malawi-rag-sql-chatbot
+  nohup gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000 --timeout 120 --access-logfile server_access.log --error-logfile server_error.log --log-level info > nohup.out 2>&1 &
   ```
 
 ## Security Enhancements
@@ -146,18 +191,7 @@ This document outlines the step-by-step process for migrating the Malawi RAG SQL
   pkill -f "gunicorn app.main:app"
   ```
 
-- [ ] Start the production server using supervisor:
-  ```bash
-  sudo supervisorctl start malawi-rag-sql-chatbot
-  ```
-
-- [ ] Alternative: Start with nohup (as per request):
-  ```bash
-  cd /path/to/production/malawi-rag-sql-chatbot
-  source /home/dj/miniconda/etc/profile.d/conda.sh
-  conda activate malawi-rag-sql-chatbot
-  nohup gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000 --timeout 120 --access-logfile server_access.log --error-logfile server_error.log --log-level info > nohup.out 2>&1 &
-  ```
+- [ ] Start the production server using your chosen method (systemd, supervisor, or nohup)
 
 ## Testing and Verification
 
@@ -206,13 +240,7 @@ This document outlines the step-by-step process for migrating the Malawi RAG SQL
 
 In case of issues in production:
 
-- [ ] Stop the production services:
-  ```bash
-  sudo supervisorctl stop malawi-rag-sql-chatbot
-  # or if using nohup
-  pkill -f "gunicorn app.main:app"
-  ```
-
+- [ ] Stop the production services (using the appropriate method for your chosen service manager)
 - [ ] Restore from backup if needed
 - [ ] Redirect DNS temporarily back to testing server
 - [ ] Restart the testing server:
