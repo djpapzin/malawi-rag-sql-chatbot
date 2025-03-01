@@ -193,10 +193,10 @@ Invoke-WebRequest -Uri "http://localhost:5000/query" -Method Post -Headers $head
 
 ## API Usage
 
-The chatbot API is accessible at `http://154.0.164.254:5000/api/rag-sql-chatbot/chat`. To interact with the API:
+The chatbot API is accessible at `http://154.0.164.254:5000/api/chat`. To interact with the API:
 
 ```bash
-curl -X POST http://154.0.164.254:5000/api/rag-sql-chatbot/chat \
+curl -X POST http://154.0.164.254:5000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "What are the ongoing projects in Lilongwe?"}'
 ```
@@ -236,6 +236,60 @@ Additional documentation can be found in the `docs/` directory:
 - API Documentation
 - Frontend Integration Guide
 - Testing Guidelines
+
+## Server Management
+
+The server is running with the following setup:
+
+- **Runtime Environment**: Conda environment `malawi-rag-sql-chatbot`
+- **Web Server**: Gunicorn with Uvicorn workers
+- **Port**: 5000
+- **Process Management**: Running with `nohup` for persistence
+- **Auto-start**: Configured with crontab to start on system reboot
+
+### Current Status
+
+The server is running using `nohup`, which means:
+
+- It will continue running after you log out
+- It will not be affected by network disconnections
+- It will stop if the server machine reboots (but will restart thanks to crontab)
+- It will NOT automatically detect code changes or restart when files are modified
+
+### Checking Server Status
+
+To check if the server is running, use:
+
+```bash
+ps -ef | grep gunicorn | grep -v grep
+```
+
+### Restarting the Server
+
+After making code changes, you must manually restart the server for changes to take effect:
+
+```bash
+# Stop existing server
+pkill -f "gunicorn app.main:app"
+
+# Start server again
+cd /home/dj/malawi-rag-sql-chatbot
+./start_server.sh
+```
+
+Alternatively, you can use the provided script:
+
+```bash
+./start_server.sh  # This script stops any existing server and starts a new one
+```
+
+### Viewing Logs
+
+Server logs are available in:
+
+- `server_access.log` - For access logs
+- `server_error.log` - For error logs
+- `nohup.out` - For startup and general server output
 
 ## Contributing
 
@@ -385,3 +439,77 @@ During verification, the following discrepancies were found between the LLM resp
    - Actual budget in database: MWK 195,000,000.00 (10x smaller)
 
 These discrepancies highlight the importance of verifying LLM responses against the actual database when accurate figures are required.
+
+# Malawi RAG SQL Chatbot
+
+This document provides information about the Malawi RAG SQL Chatbot deployment and maintenance.
+
+## Server Configuration
+
+The server is running with the following setup:
+
+- **Runtime Environment**: Conda environment `malawi-rag-sql-chatbot`
+- **Web Server**: Gunicorn with Uvicorn workers
+- **Port**: 5000
+- **Process Management**: Running with `nohup` for persistence
+- **Auto-start**: Configured with crontab to start on system reboot
+
+## Server Management
+
+### Current Status
+
+The server is running using `nohup`, which means:
+
+- It will continue running after you log out
+- It will not be affected by network disconnections
+- It will stop if the server machine reboots (but will restart thanks to crontab)
+- It will NOT automatically detect code changes or restart when files are modified
+
+### Checking Server Status
+
+To check if the server is running, use:
+
+```bash
+ps -ef | grep gunicorn | grep -v grep
+```
+
+### Restarting the Server
+
+After making code changes, you must manually restart the server for changes to take effect:
+
+```bash
+# Stop existing server
+pkill -f "gunicorn app.main:app"
+
+# Start server again
+cd /home/dj/malawi-rag-sql-chatbot
+./start_server.sh
+```
+
+Alternatively, you can use the provided script:
+
+```bash
+./start_server.sh  # This script stops any existing server and starts a new one
+```
+
+### Viewing Logs
+
+Server logs are available in:
+
+- `server_access.log` - For access logs
+- `server_error.log` - For error logs
+- `nohup.out` - For startup and general server output
+
+## Development Notes
+
+- The server does NOT support hot-reloading
+- All code changes require a manual server restart
+- The SQL query parsing is sensitive to syntax issues; be careful when modifying `langchain_sql.py`
+
+## Testing the API
+
+You can test if the API is working correctly using:
+
+```bash
+curl -X POST http://154.0.164.254:5000/api/chat -H "Content-Type: application/json" -d '{"message":"What health projects are in Machinga?"}'
+```
