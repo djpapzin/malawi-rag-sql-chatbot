@@ -1,0 +1,8 @@
+{
+  "llm_response": "The total budget for health sector projects is MWK 53,044,625,236.90",
+  "metadata": {
+    "total_results": 1,
+    "query_time": "1.80s",
+    "sql_query": "SELECT COALESCE(SUM(budget), 0) as total_budget \nFROM proj_dashboard \nWHERE LOWER(projectsector) LIKE '%health%';"
+  }
+}

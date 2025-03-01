@@ -1,0 +1,8 @@
+{
+  "llm_response": "There are 54 projects in the health sector across various districts in Malawi. The total budget for these projects is approximately MWK 13,419,432,610.00. Some notable projects include:\n\n* Construction of a Maternity Block and 1no. Staff house at Liwera Health Centre in Lilongwe, with a budget of MWK 195,000,000.00.\n* Completion of Chinkombero maternity wing and dispensary in Dedza, with a budget of MWK 120,000,000.00.\n* Construction of a Maternity Block and 1no. Staff house at Beni Health Centre in Lilongwe, with a budget of MWK 195,000,000.00.\n\nThese projects aim to improve healthcare services and facilities in Malawi's rural areas.",
+  "metadata": {
+    "total_results": 219,
+    "query_time": "1.77s",
+    "sql_query": "SELECT \n    projectname as project_name,\n    district,\n    projectsector as project_sector,\n    projectstatus as project_status,\n    COALESCE(budget, 0) as total_budget,\n    COALESCE(completionpercentage, 0) as completion_percentage\nFROM proj_dashboard \nWHERE LOWER(projectsector) LIKE '%health%';"
+  }
+}
