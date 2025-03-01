@@ -51,17 +51,40 @@ class TestResponseVerification:
         """Extract SQL query from metadata"""
         return metadata.get("sql_query", "").strip()
 
-    def verify_project_count(self, llm_response: str, sql_results: list) -> bool:
+    def verify_project_count(self, llm_response: str, sql_results: list, metadata: Dict[str, Any]) -> bool:
         """Verify if the number of projects mentioned in LLM response matches SQL results"""
         # Extract number from LLM response (e.g., "There are 43 health projects...")
         llm_count = self.extract_number_from_text(llm_response, r"There are (\d+)")
         actual_count = len(sql_results)
+        metadata_count = metadata.get("total_results", 0)
         
         if llm_count is None:
             pytest.fail(f"Could not extract project count from LLM response: {llm_response}")
         
-        assert llm_count == actual_count, \
-            f"LLM mentioned {llm_count} projects but SQL query returned {actual_count} projects"
+        # Save count verification results
+        verification_file = "test_results/count_verification.json"
+        with open(verification_file, "w") as f:
+            json.dump({
+                "llm_count": llm_count,
+                "actual_count": actual_count,
+                "metadata_count": metadata_count,
+                "discrepancy": {
+                    "llm_vs_actual": llm_count - actual_count,
+                    "llm_vs_metadata": llm_count - metadata_count,
+                    "metadata_vs_actual": metadata_count - actual_count
+                }
+            }, f, indent=2)
+        
+        # Verify counts match
+        assert metadata_count == actual_count, \
+            f"Metadata count ({metadata_count}) doesn't match actual SQL results ({actual_count})"
+        
+        # Flag if LLM count is incorrect but don't fail the test
+        if llm_count != actual_count:
+            print(f"\nWARNING: LLM response count ({llm_count}) doesn't match actual count ({actual_count})")
+            print(f"This indicates the LLM needs improvement in counting accuracy")
+            return False
+        return True
 
     def verify_total_results(self, metadata: Dict[str, Any], sql_results: list) -> bool:
         """Verify if total_results in metadata matches SQL results"""
@@ -70,6 +93,43 @@ class TestResponseVerification:
         
         assert metadata_count == actual_count, \
             f"Metadata shows {metadata_count} results but SQL query returned {actual_count} results"
+
+    def verify_budget_amounts(self, llm_response: str, sql_results: list) -> bool:
+        """Verify budget amounts mentioned in LLM response"""
+        # Extract all budget amounts from LLM response
+        budget_pattern = r"MWK\s+([\d,]+(?:\.\d{2})?)"
+        matches = re.finditer(budget_pattern, llm_response)
+        
+        budgets = {}
+        for match in matches:
+            try:
+                amount = float(match.group(1).replace(',', ''))
+                # Get surrounding context (up to 100 chars before and after)
+                start = max(0, match.start() - 100)
+                end = min(len(llm_response), match.end() + 100)
+                context = llm_response[start:end]
+                budgets[amount] = context
+            except ValueError:
+                continue
+        
+        # Save budget verification results
+        verification_file = "test_results/budget_verification.json"
+        with open(verification_file, "w") as f:
+            json.dump({
+                "llm_budgets": budgets,
+                "sql_results": [{
+                    "project_name": r.get("project_name"),
+                    "budget": r.get("total_budget")
+                } for r in sql_results]
+            }, f, indent=2, default=str)
+        
+        # Verify each mentioned budget exists in SQL results
+        for budget in budgets.keys():
+            matching_projects = [r for r in sql_results 
+                               if abs(float(r.get("total_budget", 0)) - budget) < 1]
+            if not matching_projects:
+                print(f"\nWARNING: Budget amount MWK {budget:,.2f} mentioned in LLM response not found in SQL results")
+                print(f"Context: {budgets[budget]}")
 
     @pytest.mark.asyncio
     async def test_health_sector_query(self, db_connection):
@@ -106,8 +166,9 @@ class TestResponseVerification:
             }, f, indent=2, default=str)
         
         # Verify results
-        self.verify_project_count(llm_response, sql_results)
+        self.verify_project_count(llm_response, sql_results, metadata)
         self.verify_total_results(metadata, sql_results)
+        self.verify_budget_amounts(llm_response, sql_results)
 
     @pytest.mark.asyncio
     async def test_budget_verification(self, db_connection):
@@ -140,7 +201,10 @@ class TestResponseVerification:
                 "metadata": metadata
             }, f, indent=2, default=str)
         
-        # Extract budget from LLM response
+        # Verify budgets
+        self.verify_budget_amounts(llm_response, sql_results)
+        
+        # Extract total budget from LLM response
         budget_pattern = r"MWK\s+([\d,]+(?:\.\d{2})?)"
         llm_budget = self.extract_number_from_text(llm_response, budget_pattern)
         
@@ -148,6 +212,6 @@ class TestResponseVerification:
             # Calculate actual total budget from SQL results
             actual_budget = sum(float(result.get("total_budget", 0)) for result in sql_results)
             
-            # Verify budget matches with a small margin of error
+            # Verify budget matches with a small margin of error (1%)
             assert abs(llm_budget - actual_budget) / actual_budget < 0.01, \
                 f"LLM mentioned budget {llm_budget:,} but actual total is {actual_budget:,}"

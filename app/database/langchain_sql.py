@@ -705,64 +705,67 @@ ORDER BY total_budget DESC;"""
             # Convert results to string format for the prompt
             results_str = json.dumps(results, indent=2)
             
-            # Check if this is an aggregate query
-            is_aggregate = self._is_aggregate_query(user_query)
+            # Check if this is a counting query
+            is_count_query = any(word in user_query.lower() for word in ['how many', 'count', 'number of'])
+            has_count = any('count' in col.lower() for result in results for col in result.keys())
             
-            # Prepare prompt based on query type
-            if is_aggregate:
-                prompt = f"""Given these query results about Malawi infrastructure projects:
-{results_str}
-
-The user asked: "{user_query}"
-
-Generate a natural language response that:
-1. States the aggregated values clearly (total budget, average, count etc.)
-2. Uses proper currency formatting (MWK with commas)
-3. Provides context about what was calculated
-4. Handles cases where values are 0 or not available
-5. Is concise but informative
-
-Example responses:
-- "The total budget for infrastructure projects is MWK 1,234,567.00"
-- "I found 15 completed projects with a total budget of MWK 987,654.00"
-
-Response:"""
-            else:
-                prompt = f"""Given these query results about Malawi infrastructure projects:
-{results_str}
-
-The user asked: "{user_query}"
-
-Generate a natural language response that:
-1. Summarizes the key information
-2. Uses proper formatting for currency (MWK with commas)
-3. Is concise but informative
-4. Maintains a helpful and professional tone
-
-Example responses:
-- "I found 5 projects in Lilongwe with a total budget of MWK 1,234,567.00"
-- "There are 3 education projects, with budgets ranging from MWK 100,000.00 to MWK 500,000.00"
-
-Response:"""
+            start_time = time.time()
+            query_time = f"{time.time() - start_time:.2f}s"
             
-            # Generate response
-            response = await self._get_llm_response(prompt)
-            
-            # Clean up response
-            response = response.strip()
-            
-            # Remove code blocks and technical notes
-            response = self._clean_llm_response(response)
-            
-            # Handle empty response
-            if not response:
-                if not results:
-                    return "I found no matching projects in the database."
+            if is_count_query or has_count or 'which' in user_query.lower():
+                # For count queries, format response directly without LLM
+                count = None
+                if has_count:
+                    count = next(val for result in results for key, val in result.items() if 'count' in key.lower())
                 else:
-                    total_budget = sum(float(r.get('total_budget', 0)) for r in results)
-                    return f"I found {len(results)} matching projects with a total budget of MWK {total_budget:,.2f}."
+                    count = len(results)
+                    
+                response = f"There are exactly {count} projects that match your criteria."
+                
+                # Add summary for 'which' queries
+                if 'which' in user_query.lower():
+                    response = f"There are exactly {count} projects that match your criteria. "
+                    if results:
+                        sectors = set(r.get('project_sector', '') for r in results)
+                        districts = set(r.get('district', '') for r in results)
+                        if len(sectors) == 1:
+                            response += f"All projects are in the {next(iter(sectors))} sector. "
+                        if len(districts) <= 3:
+                            response += f"Projects are located in: {', '.join(sorted(districts))}."
+                        
+            else:
+                # For non-count queries, use LLM but with strict instructions
+                explanation_prompt = f"""You are a helpful assistant for Malawi infrastructure projects. 
+                The user asked: "{user_query}"
+                The query returned EXACTLY {len(results)} results.
+                
+                First result: {str(results[0]) if results else 'No results'}
+                
+                CRITICAL INSTRUCTIONS:
+                1. If mentioning any counts, ALWAYS start with "There are exactly {len(results)} projects"
+                2. If mentioning any amounts, use the EXACT values from the results
+                3. Do not perform calculations or generate numbers - use only the values provided
+                4. Keep the response brief and factual
+                
+                Provide a natural language explanation of these results."""
+                
+                response = await self._get_llm_response(explanation_prompt)
+                
+                # Validate that the response uses the correct count
+                if str(len(results)) not in response:
+                    response = f"There are exactly {len(results)} projects that match your criteria. {response}"
             
-            return response
+            return {
+                "response": {
+                    "query_type": "sql",
+                    "results": [{"type": "answer", "message": response}],
+                    "metadata": {
+                        "total_results": len(results),
+                        "query_time": query_time,
+                        "sql_query": sql_query
+                    }
+                }
+            }
             
         except Exception as e:
             logger.error(f"Error generating natural response: {str(e)}")
@@ -791,18 +794,7 @@ Response:"""
                 
             natural_response = await self.generate_natural_response(query_results, user_query, sql_query)
             
-            return {
-                "results": [{
-                    "type": "text",
-                    "message": natural_response,
-                    "data": query_results[0] if len(query_results) == 1 else {}
-                }],
-                "metadata": {
-                    "total_results": len(query_results),
-                    "query_time": f"{query_time:.2f}s",
-                    "sql_query": sql_query
-                }
-            }
+            return natural_response
             
         except Exception as e:
             logger.error(f"Formatting error: {str(e)}")

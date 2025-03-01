@@ -1,0 +1,10 @@
+{
+  "llm_count": 43,
+  "actual_count": 219,
+  "metadata_count": 219,
+  "discrepancy": {
+    "llm_vs_actual": -176,
+    "llm_vs_metadata": -176,
+    "metadata_vs_actual": 0
+  }
+}
