@@ -1,5 +1,13 @@
 # Server Setup Guide
 
+## Current Production Deployment
+
+- **Production Domain**: https://dziwani.kwantu.support
+- **Server IP**: 154.0.164.254
+- **Application Port**: 5000
+- **Web Server**: Nginx (acting as reverse proxy)
+- **Application Server**: Gunicorn with Uvicorn workers
+
 ## Port Configuration
 
 The application uses different ports for development and production:
@@ -7,19 +15,14 @@ The application uses different ports for development and production:
 - **Production Server (154.0.164.254)**:
   - Port: 5000
   - Host: 0.0.0.0 (all interfaces)
-  - Access via: http://154.0.164.254:5000
-  - Production domain: https://dziwani.kwantu.support
+  - Access via: https://dziwani.kwantu.support
+  - Direct access: http://154.0.164.254:5000
 
 - **Local Development**:
   - Port: 5001
   - Host: localhost
   - Access via: http://localhost:5001
   - Includes hot-reload for development
-
-## Production Server
-
-The production server is running at:
-http://154.0.164.254:5000
 
 ## Server Configuration
 
@@ -28,20 +31,27 @@ http://154.0.164.254:5000
 1. Install required system packages:
 ```bash
 sudo apt-get update
-sudo apt-get install python3 python3-pip sqlite3
+sudo apt-get install python3 python3-pip sqlite3 nginx
 ```
 
-2. Clone the repository and install dependencies:
+2. Install Miniconda:
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+source ~/.bashrc
+```
+
+3. Create and configure conda environment:
+```bash
+conda create -n malawi-rag-sql-chatbot python=3.11
+conda activate malawi-rag-sql-chatbot
+```
+
+4. Clone the repository and install dependencies:
 ```bash
 git clone <repository-url>
 cd malawi-rag-sql-chatbot
 pip install -r requirements.txt
-```
-
-3. Configure environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
 ```
 
 ### Database Setup
@@ -51,17 +61,17 @@ cp .env.example .env
 sqlite3 --version
 ```
 
-2. Initialize the database:
+2. Use the existing database:
 ```bash
-python scripts/convert_database.py
+# The database file is located at:
+/home/dj/malawi-rag-sql-chatbot/malawi_projects1.db
 ```
 
-This will create:
-- SQLite database: `malawi_projects1.db` (containing data from pmisProjects.sql)
-- CSV export: `pmisProjects.csv`
-- Schema documentation: `DATABASE_SCHEMA.md`
+This database contains 1048 actual infrastructure projects from Malawi.
 
-Note: The application is configured to use `malawi_projects1.db` as the primary database file. A symbolic link is created from `malawi_projects1.db` to `pmisProjects.db` for backward compatibility.
+### Nginx Configuration
+
+The application uses Nginx as a reverse proxy. The configuration file is located at:
 
 ### Running the Server
 

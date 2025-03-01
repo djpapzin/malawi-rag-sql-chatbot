@@ -208,153 +208,51 @@ The application will be available at http://localhost:5000
 
 ## Production Deployment
 
-For production deployment, the application includes two important scripts:
+The application is deployed and running at:
+- **URL**: https://dziwani.kwantu.support
+- **Server IP**: 154.0.164.254
+- **Port**: 5000
 
-1. **start_production.sh** - Starts the application with gunicorn using the following configuration:
-   - 4 worker processes
-   - uvicorn worker class
-   - 120 second timeout
-   - Binds to 0.0.0.0:5000
-   - Logs to server_access.log and server_error.log
-   - Runs with nohup to ensure the process continues after terminal closes
+## Project Structure
 
-2. **restart.sh** - Provides a convenient way to restart the application:
-   - Stops any currently running instances
-   - Waits for processes to terminate
-   - Starts the application using start_production.sh
-
-To set up as a service that starts automatically on system boot, consider using systemd or supervisor.
-
-### Setting up as a Systemd Service
-
-A systemd service file `dwizani.service` is included in the repository. To set it up:
-
-```bash
-# Copy the service file to systemd directory
-sudo cp dwizani.service /etc/systemd/system/
-
-# Reload systemd to recognize the new service
-sudo systemctl daemon-reload
-
-# Enable the service to start on boot
-sudo systemctl enable dwizani.service
-
-# Start the service
-sudo systemctl start dwizani.service
-
-# Check status
-sudo systemctl status dwizani.service
+```
+├── app/                 # FastAPI backend
+│   ├── routers/         # API endpoints
+│   ├── database/        # Database integration
+│   └── main.py          # App entrypoint
+├── frontend/            # Frontend static files
+│   ├── static/          # CSS and JS files
+│   │   ├── css/         # Stylesheets
+│   │   └── js/          # JavaScript
+│   └── index.html       # Main HTML file
+├── docs/                # Documentation
+├── scripts/             # Utility scripts
+├── malawi_projects1.db  # SQLite database
+└── start_production.sh  # Production startup script
 ```
 
-The systemd service is configured to:
-- Start automatically on system boot
-- Restart automatically if it crashes
-- Run with the correct conda environment
-- Use gunicorn with 4 workers for optimal performance
-- Log to server_access.log and server_error.log files
+## Setup and Deployment
 
-## API Endpoints
-
-### Health Check
-```bash
-curl http://localhost:5000/health
-```
-
-### Query Endpoint
-```powershell
-$headers = @{ "Content-Type" = "application/json" }
-$body = @{
-    message = "List education projects"
-    source_lang = "english"
-    page = 1
-    page_size = 5
-} | ConvertTo-Json
-
-Invoke-WebRequest -Uri "http://localhost:5000/query" -Method Post -Headers $headers -Body $body
-```
-
-### Response Format
-```json
-{
-  "response": {
-    "results": [
-      {
-        "project_name": "Zomba School Construction Phase 1",
-        "district": "Zomba",
-        "project_sector": "Education",
-        "project_status": "Active",
-        "total_budget": {
-          "amount": 500000,
-          "formatted": "MWK 500,000.00"
-        },
-        "completion_percentage": 45
-      }
-    ],
-    "metadata": {
-      "total_results": 1,
-      "query_time": "2.5s",
-      "sql_query": "SELECT * FROM proj_dashboard WHERE LOWER(projectsector) = 'education'"
-    }
-  }
-}
-```
+For detailed setup and deployment instructions, see:
+- [Server Setup](docs/SERVER_SETUP.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Production Migration Plan](docs/PRODUCTION_MIGRATION_PLAN.md)
 
 ## API Usage
 
-The chatbot API is accessible at `http://154.0.164.254:5000/api/chat`. To interact with the API:
+The API can be used to query the system programmatically. See [API Usage Guide](docs/API_USAGE.md) for details.
 
-```bash
-curl -X POST http://154.0.164.254:5000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "What are the ongoing projects in Lilongwe?"}'
-```
+## Troubleshooting
 
-The API expects:
-- Method: POST
-- Content-Type: application/json
-- Request Body: JSON object with a "message" field containing the natural language query
+For common issues and solutions, see [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
 
-Example Response:
-```json
-{
-  "response": {
-    "answer": "Here are the ongoing projects in Lilongwe...",
-    "sql_query": "SELECT * FROM proj_dashboard WHERE district='Lilongwe' AND status='Ongoing'",
-    "results": [...]
-  }
-}
-```
+## Recent Updates
 
-## Testing
-
-Run the test suite:
-```bash
-pytest tests/
-```
-
-For testing specific queries:
-```bash
-python tests/test_tile_queries.py
-```
-
-## Recent Improvements
-
-The following improvements have been made to enhance the system's stability and performance:
-
-### Response Cleaning
-- Enhanced regex patterns in the `_clean_llm_response` method to better remove Python code and unnecessary text
-- Improved handling of code blocks, import statements, and other Python-specific syntax
-- Added patterns to remove phrases like "Additional suggestions," "Code improvements," and "Code refactoring"
-
-### Server Configuration
-- Increased worker timeout to 120 seconds to handle complex queries
-- Improved server restart process with the `start_server.sh` script
-- Enhanced error handling and logging for better troubleshooting
-
-### Testing Framework
-- Updated test queries to be more specific and not rely on context for follow-up queries
-- Increased client-side timeout in test scripts from 10 seconds to 30 seconds
-- Improved test coverage with specific test cases for different query types
+- Fixed frontend integration with proper relative URLs
+- Configured Nginx to correctly serve the application on dziwani.kwantu.support
+- Added proper SSL certificate for secure HTTPS access
+- Created robust startup script for production deployment
+- Fixed static file handling in server configuration
 
 ## Documentation
 
@@ -636,7 +534,6 @@ Server logs are available in:
 ## Testing the API
 
 You can test if the API is working correctly using:
-
 ```bash
 curl -X POST http://154.0.164.254:5000/api/chat -H "Content-Type: application/json" -d '{"message":"What health projects are in Machinga?"}'
 ```

@@ -1,273 +1,134 @@
-# Production Migration Plan for Malawi RAG SQL Chatbot
+# Production Migration Plan
 
-This document outlines the step-by-step process for migrating the Malawi RAG SQL Chatbot from the testing environment (http://154.0.164.254:5000/) to the production environment.
+This document outlines the steps that were taken to migrate the application to production and the fixes that were applied to ensure proper functioning.
 
-## Pre-Migration Checklist
+## Deployment Steps Completed
 
-- [ ] Confirm all features are working correctly in the testing environment
-- [ ] Backup the entire application and database
-- [ ] Document current configuration settings
-- [ ] Notify stakeholders of planned migration and expected downtime
+### 1. Server Setup
+- Installed required dependencies: Python, Nginx, Certbot
+- Configured conda environment with required packages
+- Configured Nginx as a reverse proxy
 
-## Domain and DNS Setup
+### 2. SSL Certificate Setup
+- Installed Certbot for SSL certificate management
+- Obtained SSL certificate for dziwani.kwantu.support
+- Configured Nginx to use the SSL certificate
+- Set up automatic renewal
 
-- [ ] Register a production domain (if not already done)
-- [ ] Configure DNS records to point to the production server
-- [ ] Set up SSL certificates for the production domain
-- [ ] Configure DNS A records for the new domain pointing to the production server IP
-- [ ] Set up HTTPS with Let's Encrypt or similar service
+### 3. Application Deployment
+- Created start_production.sh script for starting the application
+- Configured Gunicorn with multiple workers
+- Set up error logging and access logging
+- Configured automatic startup on reboot
 
-## Server Preparation
+### 4. Frontend Configuration
+- Updated main.js to use relative URLs for API requests
+- Fixed static file handling
+- Ensured proper error handling
 
-- [ ] Provision production server with adequate resources
-- [ ] Set up firewall rules (allow ports 80, 443, 5000)
-- [ ] Install required system packages:
-  ```bash
-  sudo apt update
-  sudo apt install -y build-essential python3-dev nginx supervisor
-  ```
-- [ ] Install and configure Miniconda (if not already installed)
-- [ ] Create and activate the conda environment:
-  ```bash
-  source /home/dj/miniconda/etc/profile.d/conda.sh
-  conda create -n malawi-rag-sql-chatbot python=3.10
-  conda activate malawi-rag-sql-chatbot
-  ```
+### 5. Nginx Configuration
+- Set up Nginx to proxy all requests to the FastAPI application
+- Configured SSL termination
+- Added security headers
+- Set up HTTP to HTTPS redirection
 
-## Application Deployment
+## Issues Fixed
 
-- [ ] Clone the repository to the production server:
-  ```bash
-  git clone [repository_url] /path/to/production/malawi-rag-sql-chatbot
-  ```
-- [ ] Install dependencies:
-  ```bash
-  cd /path/to/production/malawi-rag-sql-chatbot
-  conda activate malawi-rag-sql-chatbot
-  pip install -r requirements.txt
-  ```
-- [ ] Copy or configure environment variables (.env file)
-- [ ] Test the application locally on the production server
-- [ ] Update the start_server.sh script with production settings
+### 1. Static Files Not Loading
+- Problem: Static files (CSS and JS) were not being served correctly
+- Solution: Updated Nginx configuration to proxy all requests to FastAPI
+- Verification: Tested with curl commands to ensure files are accessible
 
-## Frontend Build Process (If Applicable)
+### 2. API URL Configuration
+- Problem: Frontend was using hardcoded API URLs
+- Solution: Updated main.js to use relative URLs (`API_BASE_URL = ''`)
+- Verification: Tested API calls to ensure they work correctly
 
-- [ ] Check if the application has a frontend that needs building (React, Vue, Angular, etc.)
-- [ ] Navigate to the frontend directory and install dependencies:
-  ```bash
-  cd /path/to/production/malawi-rag-sql-chatbot/frontend
-  npm ci
-  ```
-- [ ] Build the frontend for production:
-  ```bash
-  npm run build
-  ```
-- [ ] Verify the build output (typically in a `build/` or `dist/` directory)
-- [ ] Configure the backend to serve the static frontend files
+### 3. Nginx Configuration Conflicts
+- Problem: Conflicting server_name directives for dziwani.kwantu.support
+- Solution: Removed references to dziwani.kwantu.support from ai.kwantu.support.conf
+- Verification: Tested Nginx configuration with nginx -t
 
-*See the detailed instructions in [FRONTEND_AND_SYSTEMD.md](FRONTEND_AND_SYSTEMD.md)*
+### 4. Worker Timeout Issues
+- Problem: Worker processes timing out on complex queries
+- Solution: Increased timeout parameter in Gunicorn configuration
+- Verification: Tested with complex queries to ensure they complete successfully
 
-## Production Configuration
+### 5. Server Startup Reliability
+- Problem: Server not starting reliably after reboot
+- Solution: Created comprehensive start_production.sh script
+- Verification: Tested with manual restart and reboot simulation
 
-- [ ] Set up Nginx as a reverse proxy:
-  ```bash
-  sudo nano /etc/nginx/sites-available/malawi-rag-sql-chatbot
-  ```
-  
-  Add the following configuration:
-  ```nginx
-  server {
-      listen 80;
-      server_name your-production-domain.com;
-      
-      location / {
-          proxy_pass http://127.0.0.1:5000;
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-      }
-  }
-  ```
-  
-  Enable the site:
-  ```bash
-  sudo ln -s /etc/nginx/sites-available/malawi-rag-sql-chatbot /etc/nginx/sites-enabled/
-  sudo nginx -t
-  sudo systemctl reload nginx
-  ```
+## Current Configuration
 
-- [ ] Set up SSL with Certbot:
-  ```bash
-  sudo apt install certbot python3-certbot-nginx
-  sudo certbot --nginx -d your-production-domain.com
-  ```
+### 1. Server Details
+- Domain: dziwani.kwantu.support
+- Server IP: 154.0.164.254
+- Application Port: 5000
+- Web Server: Nginx
+- Application Server: Gunicorn with Uvicorn workers
 
-## Service Configuration (Choose One)
+### 2. File Locations
+- Application Directory: /home/dj/malawi-rag-sql-chatbot
+- Nginx Configuration: /etc/nginx/conf.d/dziwani.kwantu.support.conf
+- SSL Certificates: /etc/letsencrypt/live/dziwani.kwantu.support/
+- Logs: /home/dj/malawi-rag-sql-chatbot/server_access.log, server_error.log
 
-### Option 1: Systemd (Recommended for Production)
+### 3. Startup Process
+- Startup Script: /home/dj/malawi-rag-sql-chatbot/start_production.sh
+- Automatic Startup: Configured via crontab (@reboot)
 
-- [ ] Create a systemd service file:
-  ```bash
-  sudo nano /etc/systemd/system/malawi-rag-sql-chatbot.service
-  ```
-- [ ] Add appropriate configuration (see [FRONTEND_AND_SYSTEMD.md](FRONTEND_AND_SYSTEMD.md))
-- [ ] Enable and start the service:
-  ```bash
-  sudo systemctl daemon-reload
-  sudo systemctl enable malawi-rag-sql-chatbot
-  sudo systemctl start malawi-rag-sql-chatbot
-  ```
+## Verification Steps
 
-### Option 2: Supervisor
-  
-- [ ] Configure supervisor for process management:
-  ```bash
-  sudo nano /etc/supervisor/conf.d/malawi-rag-sql-chatbot.conf
-  ```
-  
-  Add the following configuration:
-  ```ini
-  [program:malawi-rag-sql-chatbot]
-  directory=/path/to/production/malawi-rag-sql-chatbot
-  command=/bin/bash -c "source /home/dj/miniconda/etc/profile.d/conda.sh && conda activate malawi-rag-sql-chatbot && gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000 --timeout 120 --access-logfile server_access.log --error-logfile server_error.log --log-level info"
-  autostart=true
-  autorestart=true
-  stopasgroup=true
-  killasgroup=true
-  user=[your_system_user]
-  stdout_logfile=/path/to/production/malawi-rag-sql-chatbot/supervisor_stdout.log
-  stderr_logfile=/path/to/production/malawi-rag-sql-chatbot/supervisor_stderr.log
-  ```
-  
-  Apply the configuration:
-  ```bash
-  sudo supervisorctl reread
-  sudo supervisorctl update
-  ```
+The following verification steps were completed to ensure the application is working correctly:
 
-### Option 3: Nohup (Simple but Less Robust)
+### 1. Static Files Accessibility
+```bash
+# Verify CSS file is accessible
+curl -s -I https://dziwani.kwantu.support/static/css/loading.css
 
-- [ ] Run with nohup:
-  ```bash
-  cd /path/to/production/malawi-rag-sql-chatbot
-  source /home/dj/miniconda/etc/profile.d/conda.sh
-  conda activate malawi-rag-sql-chatbot
-  nohup gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000 --timeout 120 --access-logfile server_access.log --error-logfile server_error.log --log-level info > nohup.out 2>&1 &
-  ```
+# Verify JS file is accessible
+curl -s -I https://dziwani.kwantu.support/static/js/main.js
+```
 
-## Security Enhancements
+### 2. API Functionality
+```bash
+# Test API health endpoint
+curl -s https://dziwani.kwantu.support/health
 
-- [ ] Set up rate limiting in Nginx:
-  ```nginx
-  # Add to the server block in Nginx configuration
-  limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
-  
-  location / {
-      limit_req zone=api_limit burst=20 nodelay;
-      # ... existing configuration
-  }
-  ```
+# Test chat endpoint
+curl -s -X POST https://dziwani.kwantu.support/api/rag-sql-chatbot/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello"}'
+```
 
-- [ ] Configure firewall to only allow necessary ports:
-  ```bash
-  sudo ufw allow 22
-  sudo ufw allow 80
-  sudo ufw allow 443
-  sudo ufw enable
-  ```
+### 3. Website Functionality
+- Accessed https://dziwani.kwantu.support in browser
+- Verified that the website loads correctly
+- Verified that the chat functionality works
+- Verified that loading indicators display correctly
+- Tested with various queries to ensure correct responses
 
-- [ ] Set up fail2ban to prevent brute force attacks:
-  ```bash
-  sudo apt install fail2ban
-  sudo systemctl enable fail2ban
-  sudo systemctl start fail2ban
-  ```
+## Maintenance Procedures
 
-## Launch Procedure
-
-- [ ] Stop the test server:
-  ```bash
-  pkill -f "gunicorn app.main:app"
-  ```
-
-- [ ] Start the production server using your chosen method (systemd, supervisor, or nohup)
-
-## Testing and Verification
-
-- [ ] Test the production URL with basic health check:
-  ```bash
-  curl -v https://your-production-domain.com/
-  ```
-
-- [ ] Test critical API endpoints:
-  ```bash
-  curl -X POST https://your-production-domain.com/ -H "Content-Type: application/json" -d '{"message": "test query"}'
-  ```
-
-- [ ] Verify logs for any errors:
-  ```bash
-  tail -n 100 server_error.log
-  tail -n 100 server_access.log
-  ```
-
-- [ ] Perform load testing (if applicable)
-
-## Monitoring and Maintenance
-
-- [ ] Set up application monitoring (Prometheus, Grafana, etc.)
-- [ ] Configure log rotation:
-  ```bash
-  sudo nano /etc/logrotate.d/malawi-rag-sql-chatbot
-  ```
-  
-  Add the following configuration:
-  ```
-  /path/to/production/malawi-rag-sql-chatbot/*.log {
-      daily
-      rotate 7
-      compress
-      delaycompress
-      missingok
-      notifempty
-      create 640 [user] [group]
-  }
-  ```
-
-- [ ] Create automated backup script for database and configuration
-
-## Rollback Plan
-
-In case of issues in production:
-
-- [ ] Stop the production services (using the appropriate method for your chosen service manager)
-- [ ] Restore from backup if needed
-- [ ] Redirect DNS temporarily back to testing server
-- [ ] Restart the testing server:
-  ```bash
-  cd /home/dj/malawi-rag-sql-chatbot
-  ./start_server.sh
-  ```
-
-## Post-Migration Checklist
-
-- [ ] Confirm all features are working in production
-- [ ] Monitor error logs for new issues
-- [ ] Update documentation with new production URL
-- [ ] Notify stakeholders of completed migration
-- [ ] Schedule regular maintenance and backup procedures
-
-## PowerShell Commands (Windows Admin)
-
-For Windows administrators, here are PowerShell equivalents for some of the commands:
-
-```powershell
+### 1. Monitoring
+```bash
 # Check if the server is running
-Get-Process | Where-Object {$_.ProcessName -like "*gunicorn*"}
+ps -ef | grep gunicorn | grep -v grep
 
-# Test the API endpoint
-Invoke-RestMethod -Uri "https://your-production-domain.com/" -Method Post -Headers @{"Content-Type"="application/json"} -Body '{"message": "test query"}'
+# Check logs
+tail -f server_access.log
+tail -f server_error.log
+```
 
-# Monitor logs
-Get-Content -Path "server_error.log" -Tail 100 -Wait
-``` 
+### 2. Updates
+```bash
+# Pull latest changes
+git pull origin main
+
+# Restart the server
+./start_production.sh
+```
+
+### 3. Troubleshooting
+For detailed troubleshooting steps, refer to [TROUBLESHOOTING.md](TROUBLESHOOTING.md). 

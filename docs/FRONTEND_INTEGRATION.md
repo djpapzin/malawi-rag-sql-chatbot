@@ -85,3 +85,27 @@ The API will return responses in the following format:
         source: string
     }
 }
+
+```
+
+## API Endpoint Configuration
+
+The frontend JavaScript is now configured to use relative URLs for API requests:
+
+```javascript
+// In frontend/static/js/main.js
+const API_BASE_URL = ''; // Empty string for relative URLs
+
+// API calls are made using:
+fetch(`${API_BASE_URL}/api/rag-sql-chatbot/chat`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message: userMessage })
+})
+```
+
+This ensures that the frontend will work correctly regardless of the domain it's served from.
+
+## Static Files Structure

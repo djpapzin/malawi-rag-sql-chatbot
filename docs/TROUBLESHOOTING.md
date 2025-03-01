@@ -20,7 +20,7 @@ cat nohup.out
 
 # Try starting in debug mode (this will show immediate errors)
 cd /home/dj/malawi-rag-sql-chatbot
-source /home/dj/miniconda/etc/profile.d/conda.sh
+source ~/miniconda/etc/profile.d/conda.sh
 conda activate malawi-rag-sql-chatbot
 python -m uvicorn app.main:app --reload --host localhost --port 8000
 ```
@@ -32,100 +32,71 @@ pkill -f "gunicorn app.main:app"
 
 # Start the server again
 cd /home/dj/malawi-rag-sql-chatbot
-./start_server.sh
+./start_production.sh
+```
+
+## Static Files Not Loading
+
+If static files (CSS, JS) are not loading correctly:
+
+1. Check browser console for errors (404, CORS issues)
+
+2. Verify that the files exist in the correct location:
+```bash
+# Check if the CSS file exists
+ls -la frontend/static/css/loading.css
+
+# Check if the JS file exists
+ls -la frontend/static/js/main.js
+```
+
+3. Verify the files are accessible:
+```bash
+# Test if CSS file is accessible
+curl -s -I https://dziwani.kwantu.support/static/css/loading.css | head
+
+# Test if JS file is accessible
+curl -s -I https://dziwani.kwantu.support/static/js/main.js | head
+```
+
+4. Check Nginx configuration:
+```bash
+# Verify that Nginx is properly configured
+sudo nginx -t
+
+# Check the configuration
+sudo cat /etc/nginx/conf.d/dziwani.kwantu.support.conf
+```
+
+5. Ensure FastAPI is correctly serving static files:
+```bash
+# In app/main.py, the static files should be mounted correctly
+# Example:
+# app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+```
+
+## API Connection Issues
+
+If the frontend is not connecting to the API:
+
+1. Check the main.js file to ensure it's using relative URLs:
+```bash
+# View the main.js file
+cat frontend/static/js/main.js | grep API_BASE_URL
+```
+
+2. Correct value should be:
+```javascript
+const API_BASE_URL = ''; // Empty string for relative URLs
+```
+
+3. Update if needed:
+```bash
+# Edit the file and replace the API_BASE_URL with ''
+# Then restart the server
+./start_production.sh
 ```
 
 ## Syntax Errors in Code
 If you encounter a syntax error like:
 ```
-SyntaxError: invalid syntax
-```
-
-1. Identify the file with the error from the logs
-2. Fix the syntax error
-3. Restart the server using `./start_server.sh`
-
-## Port Already in Use
-If you see an error like:
-```
-[Errno 98] Address already in use
-```
-
-```bash
-# Find what's using port 5000
-sudo lsof -i :5000
-
-# Kill the process
-sudo kill <PID>
-
-# Start the server again
-./start_server.sh
-```
-
-## Connection Reset Errors
-```bash
-# Check server status:
-ps -ef | grep gunicorn | grep -v grep
-
-# Restart server:
-pkill -f "gunicorn app.main:app"
-cd /home/dj/malawi-rag-sql-chatbot
-./start_server.sh
-```
-
-## Rate Limiting
-
-If you encounter the following error:
-```json
-{
-  "error": "Rate limit exceeded. Please wait 60 seconds before making new requests."
-}
-```
-
-This means you have made too many requests in a short period. Wait for 60 seconds before making new requests.
-
-## Worker Timeout Issues
-
-If you encounter worker timeout errors in the server logs like:
-```
-[2025-03-01 17:27:58 +0200] [4111263] [CRITICAL] WORKER TIMEOUT (pid:4111265)
-```
-
-This indicates that a worker process took too long to process a request and was terminated. This can happen with complex queries that require extensive processing.
-
-### Solution:
-
-1. Increase the worker timeout in the `start_server.sh` script:
-   ```bash
-   # Edit the start_server.sh file
-   # Change the timeout parameter
-   nohup gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000 --timeout 120 --access-logfile server_access.log --error-logfile server_error.log --log-level info > nohup.out 2>&1 &
-   ```
-
-2. Increase the client-side timeout in test scripts:
-   ```python
-   # In test_specific_queries.py or other test files
-   # Change the timeout parameter in requests.post calls
-   response = requests.post(url, json={"message": query}, timeout=30)
-   ```
-
-3. Restart the server after making these changes:
-   ```bash
-   ./start_server.sh
-   ```
-
-## Python Code in Responses
-
-If you see Python code or code blocks in the API responses:
-
-### Solution:
-
-The response cleaning function in `app/database/langchain_sql.py` may need enhancement. Update the `_clean_llm_response` method with more comprehensive regex patterns to remove:
-
-1. Code blocks (```python ... ```)
-2. Import statements (import ...)
-3. Function definitions (def ...)
-4. Print statements (print(...))
-5. Return statements (return ...)
-
-After updating the code, restart the server for changes to take effect.
