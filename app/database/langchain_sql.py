@@ -386,23 +386,27 @@ Just ask me what you'd like to know about these projects!"""
             # Fallback to basic queries
             if "count" in user_query.lower() or "how many" in user_query.lower():
                 # Extract potential filters
-                health_match = re.search(r'health', user_query.lower())
-                education_match = re.search(r'education', user_query.lower())
-                district_match = re.search(r'(?:in|at|for) (\w+)(?: district)?', user_query.lower())
-                
-                where_clauses = []
-                if health_match:
-                    where_clauses.append("LOWER(projectsector) LIKE '%health%'")
-                elif education_match:
-                    where_clauses.append("LOWER(projectsector) LIKE '%education%'")
+                try:
+                    health_match = re.search(r'health', user_query.lower() if user_query else '')
+                    education_match = re.search(r'education', user_query.lower() if user_query else '')
+                    district_match = re.search(r'(?:in|at|for) (\w+)(?: district)?', user_query.lower() if user_query else '')
                     
-                if district_match:
-                    district = district_match.group(1)
-                    where_clauses.append(f"LOWER(district) = '{district.lower()}'")
-                
-                where_clause = " AND ".join(where_clauses) if where_clauses else "1=1"
-                
-                return f"SELECT COUNT(*) as count FROM proj_dashboard WHERE {where_clause};", "count"
+                    where_clauses = []
+                    if health_match:
+                        where_clauses.append("LOWER(projectsector) LIKE '%health%'")
+                    elif education_match:
+                        where_clauses.append("LOWER(projectsector) LIKE '%education%'")
+                        
+                    if district_match and district_match.group(1):
+                        district = district_match.group(1)
+                        where_clauses.append(f"LOWER(district) = '{district.lower()}'")
+                    
+                    where_clause = " AND ".join(where_clauses) if where_clauses else "1=1"
+                    
+                    return f"SELECT COUNT(*) as count FROM proj_dashboard WHERE {where_clause};", "count"
+                except Exception as e:
+                    logger.error(f"Error generating fallback query: {str(e)}")
+                    return "", "general"
             else:
                 return self._get_basic_project_query(), "general"
 
