@@ -697,7 +697,7 @@ ORDER BY total_budget DESC;"""
                 }
             }
 
-    async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None) -> str:
+    async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None) -> Dict[str, Any]:
         """Generate a natural language response from query results."""
         try:
             logger.info(f"Generating natural response for user query: {user_query}")
@@ -711,6 +711,12 @@ ORDER BY total_budget DESC;"""
             
             start_time = time.time()
             query_time = f"{time.time() - start_time:.2f}s"
+            
+            # Check if this is a specific project query
+            is_specific_project = any(word in user_query.lower() for word in ['tell me about', 'specific', 'details of']) and 'project' in user_query.lower()
+            
+            # Check if this is a district query
+            is_district_query = 'district' in user_query.lower() and any(word in user_query.lower() for word in ['show', 'list', 'all projects in'])
             
             if is_count_query or has_count or 'which' in user_query.lower():
                 # For count queries, format response directly without LLM
@@ -742,7 +748,51 @@ ORDER BY total_budget DESC;"""
                             else:
                                 top_districts = sorted(districts)[:5]
                                 response += f" Projects are spread across {len(districts)} districts, including: {', '.join(top_districts)}."
+            
+            elif is_district_query:
+                # For district queries, format a clean response
+                district_name = next((word for word in user_query.lower().split() if word in [r.get('district', '').lower() for r in results]), "")
+                if district_name:
+                    district_name = district_name.capitalize()
+                    
+                count = len(results)
+                response = f"There are {count} projects in {district_name} district."
                 
+                if results:
+                    # Get unique sectors
+                    sectors = {r.get('project_sector', '') for r in results if r.get('project_sector')}
+                    
+                    if sectors:
+                        if len(sectors) <= 5:
+                            response += f" Projects are in the following sectors: {', '.join(sorted(sectors))}."
+                        else:
+                            top_sectors = sorted(sectors)[:5]
+                            response += f" Projects span {len(sectors)} sectors, including: {', '.join(top_sectors)}."
+                    
+                    # Add a sample project
+                    if results[0].get('project_name'):
+                        sample_project = results[0]
+                        budget = sample_project.get('total_budget', 0)
+                        status = sample_project.get('project_status', 'Unknown')
+                        response += f" One example is the {sample_project.get('project_name')} project ({status}) with a budget of MWK {budget:,.2f}."
+                
+            elif is_specific_project:
+                # For specific project queries, provide detailed information
+                if results and len(results) > 0:
+                    project = results[0]
+                    project_name = project.get('project_name', 'Unknown project')
+                    district = project.get('district', project.get('DISTRICT', 'Unknown location'))
+                    sector = project.get('project_sector', 'Unknown sector')
+                    status = project.get('project_status', 'Unknown status')
+                    budget = project.get('total_budget', 0)
+                    completion = project.get('completion_percentage', 0)
+                    
+                    response = f"The {project_name} is a {sector} project located in {district}. "
+                    response += f"It has a budget of MWK {budget:,.2f} and is currently {status} "
+                    response += f"with {completion}% completion."
+                else:
+                    response = "I couldn't find specific information about this project."
+            
             else:
                 # For non-count queries, use LLM but with strict instructions
                 explanation_prompt = f"""You are a helpful assistant for Malawi infrastructure projects. 
@@ -756,10 +806,15 @@ ORDER BY total_budget DESC;"""
                 2. If mentioning any amounts, use the EXACT values from the results
                 3. Do not perform calculations or generate numbers - use only the values provided
                 4. Keep the response brief and factual
+                5. DO NOT include any code, function definitions, or Python syntax in your response
+                6. Respond in plain natural language only
                 
                 Provide a natural language explanation of these results."""
                 
                 response = await self._get_llm_response(explanation_prompt)
+                
+                # Clean the response to remove any code blocks or function definitions
+                response = self._clean_llm_response(response)
                 
                 # Validate that the response uses the correct count
                 if str(len(results)) not in response:
@@ -786,7 +841,48 @@ ORDER BY total_budget DESC;"""
                 return f"I found {len(results)} matching projects with a total budget of MWK {total_budget:,.2f}."
             return "I found some matching projects in the database."
             
-    async def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str) -> Dict[str, Any]:
+    def _clean_llm_response(self, response: str) -> str:
+        """Clean the LLM response to remove code blocks, markdown, and other unwanted content."""
+        # Remove code blocks (both ``` and ``)
+        response = re.sub(r'```[\s\S]*?```', '', response)
+        response = re.sub(r'``[\s\S]*?``', '', response)
+        
+        # Remove function definitions
+        response = re.sub(r'def\s+\w+\s*\([^)]*\)\s*:', '', response)
+        
+        # Remove print statements
+        response = re.sub(r'print\s*\([^)]*\)', '', response)
+        
+        # Remove Python syntax elements
+        response = re.sub(r'if\s+.*?:', '', response)
+        response = re.sub(r'else\s*:', '', response)
+        response = re.sub(r'elif\s+.*?:', '', response)
+        response = re.sub(r'return\s+.*', '', response)
+        
+        # Remove f-string syntax
+        response = re.sub(r'f".*?"', '', response)
+        response = re.sub(r"f'.*?'", '', response)
+        
+        # Remove variable assignments
+        response = re.sub(r'\w+\s*=\s*.*', '', response)
+        
+        # Remove markdown formatting
+        response = re.sub(r'##+\s+.*', '', response)
+        
+        # Clean up extra whitespace and newlines
+        response = re.sub(r'\n{3,}', '\n\n', response)
+        response = re.sub(r'\s{2,}', ' ', response)
+        
+        # Final cleanup
+        response = response.strip()
+        
+        # If response is empty after cleaning, provide a fallback
+        if not response:
+            response = "I found some matching projects in the database."
+            
+        return response
+
+    def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str) -> Dict[str, Any]:
         """Format query results into a standardized response with natural language."""
         try:
             if not query_results:
@@ -821,57 +917,6 @@ ORDER BY total_budget DESC;"""
                     "sql_query": sql_query
                 }
             }
-
-    def _clean_llm_response(self, response: str) -> str:
-        """Clean the LLM response to remove code blocks, markdown, and other unwanted content."""
-        # Remove code blocks (both ```python and ``` style)
-        response = re.sub(r'```(?:python|sql)?(.*?)```', '', response, flags=re.DOTALL)
-        
-        # Remove inline code references
-        response = re.sub(r'`(.*?)`', '', response)
-        
-        # Remove phrases like "Here's the SQL query:" or "Here's how you could do it:"
-        response = re.sub(r"Here's (?:how|the|a) .*?:", '', response)
-        
-        # Remove phrases like "Additional suggestions", "Code improvements", "Code refactoring"
-        response = re.sub(r"(?:Additional|Further) (?:suggestions|improvements|refactoring|notes).*", '', response, flags=re.DOTALL)
-        
-        # Remove explicit Python references
-        response = re.sub(r"(?:import|def|return|class|print).*", '', response, flags=re.DOTALL)
-        
-        # Remove "Best regards" and all postscripts
-        response = re.sub(r"(?:Best regards|Regards|Sincerely|Yours).*", '', response, flags=re.DOTALL)
-        response = re.sub(r"P\.(?:S|P\.S)\..*", '', response, flags=re.DOTALL)
-        
-        # Remove "I hope this helps" and similar phrases
-        response = re.sub(r"(?:I hope this helps|Hope this helps|Let me know|Don't hesitate).*", '', response, flags=re.DOTALL)
-        
-        # Remove "Please note" and similar phrases
-        response = re.sub(r"(?:Please note|Note:).*", '', response, flags=re.DOTALL)
-        
-        # Remove "Also, remember" and similar phrases
-        response = re.sub(r"Also,.*", '', response, flags=re.DOTALL)
-        
-        # Remove "Lastly" and similar phrases
-        response = re.sub(r"Lastly,.*", '', response, flags=re.DOTALL)
-        
-        # Remove "This code will" and similar phrases
-        response = re.sub(r"This code will.*", '', response, flags=re.DOTALL)
-        
-        # Remove "You can" and similar phrases
-        response = re.sub(r"You can.*", '', response, flags=re.DOTALL)
-        
-        # Remove "If" statements
-        response = re.sub(r"If .*", '', response, flags=re.DOTALL)
-        
-        # Remove quotes around the response
-        response = re.sub(r'^"(.*)"$', r'\1', response.strip())
-        
-        # Clean up excessive newlines and whitespace
-        response = re.sub(r'\n{3,}', '\n\n', response)
-        response = response.strip()
-        
-        return response
 
     def _format_basic_response(self, query_results: List[Dict[str, Any]]) -> str:
         """Fallback method for basic response formatting."""
