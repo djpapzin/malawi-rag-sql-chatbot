@@ -803,48 +803,7 @@ Just ask me what you'd like to know about these projects!"""
                 return f"I found {len(results)} matching projects with a total budget of MWK {total_budget:,.2f}."
             return "I found some matching projects in the database."
             
-    def _clean_llm_response(self, response: str) -> str:
-        """Clean the LLM response to remove code blocks, markdown, and other unwanted content."""
-        # Remove code blocks (both ``` and ``)
-        response = re.sub(r'```[\s\S]*?```', '', response)
-        response = re.sub(r'``[\s\S]*?``', '', response)
-        
-        # Remove function definitions
-        response = re.sub(r'def\s+\w+\s*\([^)]*\)\s*:', '', response)
-        
-        # Remove print statements
-        response = re.sub(r'print\s*\([^)]*\)', '', response)
-        
-        # Remove Python syntax elements
-        response = re.sub(r'if\s+.*?:', '', response)
-        response = re.sub(r'else\s*:', '', response)
-        response = re.sub(r'elif\s+.*?:', '', response)
-        response = re.sub(r'return\s+.*', '', response)
-        
-        # Remove f-string syntax
-        response = re.sub(r'f".*?"', '', response)
-        response = re.sub(r"f'.*?'", '', response)
-        
-        # Remove variable assignments
-        response = re.sub(r'\w+\s*=\s*.*', '', response)
-        
-        # Remove markdown formatting
-        response = re.sub(r'##+\s+.*', '', response)
-        
-        # Clean up extra whitespace and newlines
-        response = re.sub(r'\n{3,}', '\n\n', response)
-        response = re.sub(r'\s{2,}', ' ', response)
-        
-        # Final cleanup
-        response = response.strip()
-        
-        # If response is empty after cleaning, provide a fallback
-        if not response:
-            response = "I found some matching projects in the database."
-            
-        return response
-
-    def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str, query_type: str = None) -> Dict[str, Any]:
+    async def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str, query_type: str = None) -> Dict[str, Any]:
         """Format query results into a standardized response with natural language."""
         try:
             if not query_results:
@@ -1167,6 +1126,47 @@ Example queries:
         ]
         query = query.lower().strip()
         return any(query.startswith(greeting) for greeting in greetings)
+
+    def _clean_llm_response(self, response: str) -> str:
+        """Clean the LLM response to remove code blocks, markdown, and other unwanted content."""
+        # Remove code blocks (both ``` and ``)
+        response = re.sub(r'```[\s\S]*?```', '', response)
+        response = re.sub(r'``[\s\S]*?``', '', response)
+        
+        # Remove function definitions
+        response = re.sub(r'def\s+\w+\s*\([^)]*\)\s*:', '', response)
+        
+        # Remove print statements
+        response = re.sub(r'print\s*\([^)]*\)', '', response)
+        
+        # Remove Python syntax elements
+        response = re.sub(r'if\s+.*?:', '', response)
+        response = re.sub(r'else\s*:', '', response)
+        response = re.sub(r'elif\s+.*?:', '', response)
+        response = re.sub(r'return\s+.*', '', response)
+        
+        # Remove f-string syntax
+        response = re.sub(r'f".*?"', '', response)
+        response = re.sub(r"f'.*?'", '', response)
+        
+        # Remove variable assignments
+        response = re.sub(r'\w+\s*=\s*.*', '', response)
+        
+        # Remove markdown formatting
+        response = re.sub(r'##+\s+.*', '', response)
+        
+        # Clean up extra whitespace and newlines
+        response = re.sub(r'\n{3,}', '\n\n', response)
+        response = re.sub(r'\s{2,}', ' ', response)
+        
+        # Final cleanup
+        response = response.strip()
+        
+        # If response is empty after cleaning, provide a fallback
+        if not response:
+            response = "I found some matching projects in the database."
+            
+        return response
 
 def get_greeting_response() -> Dict:
     """Return a friendly greeting response."""
