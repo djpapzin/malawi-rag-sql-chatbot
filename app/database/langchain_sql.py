@@ -333,116 +333,78 @@ Just ask me what you'd like to know about these projects!"""
         ORDER BY total_budget DESC;
         """.strip()
 
-    async def generate_sql_query(self, user_query: str) -> str:
+    async def generate_sql_query(self, user_query: str) -> Tuple[str, str]:
         """Generate a SQL query from a natural language query"""
         try:
-            # Check for specific project queries
-            project_name_patterns = [
-                r"tell me about ['\"](.+?)['\"]",
-                r"details? (?:for|about) ['\"](.+?)['\"]",
-                r"information (?:for|about) ['\"](.+?)['\"]",
-                r"show me ['\"](.+?)['\"]",
-                r"what (?:is|are) ['\"](.+?)['\"]",
-                # Additional patterns without quotes
-                r"tell me about (?:the )?project (?:called |named )?(.+?)(?:\s|$|\.)",
-                r"details? (?:for|about) (?:the )?project (?:called |named )?(.+?)(?:\s|$|\.)",
-                r"information (?:for|about) (?:the )?project (?:called |named )?(.+?)(?:\s|$|\.)",
-                r"show me (?:the )?project (?:called |named )?(.+?)(?:\s|$|\.)"
-            ]
-            
-            for pattern in project_name_patterns:
-                match = re.search(pattern, user_query.lower())
-                if match:
-                    project_name = match.group(1)
-                    logger.info(f"Detected specific project query for: {project_name}")
-                    return f"""
+            # Check if this is a greeting or general conversation
+            if self._is_greeting_or_general(user_query):
+                return "", "greeting"
+                
+            # Check if this is a specific project query
+            project_name_match = re.search(r'(?:about|details|information|tell me about)(?: the)? ([^?]+?)(?= project| in | with|$|\?)', user_query.lower())
+            if project_name_match:
+                project_name = project_name_match.group(1).strip()
+                if len(project_name) > 3:  # Ensure it's a meaningful project name
+                    sql_query = f"""
                     SELECT 
                         projectname as project_name,
                         district,
                         projectsector as project_sector,
                         projectstatus as project_status,
                         COALESCE(budget, 0) as total_budget,
-                        COALESCE(completionpercentage, 0) as completion_percentage,
-                        startdate,
-                        completiondata as completion_date
+                        COALESCE(completionpercentage, 0) as completion_percentage
                     FROM proj_dashboard 
-                    WHERE LOWER(projectname) LIKE '%{project_name.lower().replace("'", "''")}%'
+                    WHERE LOWER(projectname) LIKE '%{project_name}%'
                     LIMIT 1;
                     """
+                    return sql_query, "specific_project"
             
-            # Handle infrastructure budget query
-            if "infrastructure" in user_query.lower() and any(word in user_query.lower() for word in ["budget", "cost", "amount", "total"]):
-                return self._get_infrastructure_budget_query()
-            
-            # Handle basic project queries
-            if "lilongwe" in user_query.lower():
-                return self._get_basic_project_query(district="lilongwe")
-            if "completed" in user_query.lower() or "status" in user_query.lower():
-                return self._get_basic_project_query(status="completed")
-            
-            # Check if this is an aggregate query
-            is_aggregate = self._is_aggregate_query(user_query)
-            
-            # Get table info
-            table_info = self._get_table_info()
-            
-            # Prepare prompt based on query type
-            if is_aggregate:
-                prompt = f"""Generate a SQL query for this question about Malawi infrastructure projects:
-{user_query}
-
-Important rules:
-1. ALWAYS use COALESCE for numeric aggregates:
-   - COALESCE(SUM(budget), 0) as total_budget
-   - COALESCE(AVG(budget), 0) as avg_budget
-   - COUNT(*) for counting records
-2. For sector filtering, use: LOWER(projectsector) LIKE '%keyword%'
-3. For status filtering, use: LOWER(projectstatus) = 'status'
-4. Return ONLY the SQL query, no explanations
-
-Example query for total infrastructure budget:
-SELECT COALESCE(SUM(budget), 0) as total_budget 
-FROM proj_dashboard 
-WHERE LOWER(projectsector) LIKE '%infrastructure%';"""
+            # Prepare the prompt based on whether it's an aggregate query
+            if self._is_aggregate_query(user_query):
+                prompt = self._prepare_aggregate_prompt(user_query)
             else:
-                prompt = f"""Generate a SQL query for this question about Malawi infrastructure projects:
-{user_query}
-
-Important rules:
-1. ALWAYS use COALESCE for numeric fields:
-   - COALESCE(budget, 0) as total_budget
-   - COALESCE(completionpercentage, 0) as completion_percentage
-2. For text matching, use LIKE with wildcards
-3. Return ONLY the SQL query, no explanations
-
-Example query for infrastructure projects:
-SELECT 
-    projectname as project_name,
-    district,
-    projectsector as project_sector,
-    projectstatus as project_status,
-    COALESCE(budget, 0) as total_budget,
-    COALESCE(completionpercentage, 0) as completion_percentage
-FROM proj_dashboard 
-WHERE LOWER(projectsector) LIKE '%infrastructure%'
-ORDER BY total_budget DESC;"""
+                prompt = self._prepare_non_aggregate_prompt(user_query)
+                
+            # Get response from LLM
+            response = await self._get_llm_response(prompt)
             
-            # Get SQL query from LLM
-            sql_query = await self._get_llm_response(prompt)
+            # Extract SQL query from response
+            sql_query = self._extract_sql_from_text(response)
             
-            # Extract SQL if needed
-            if not sql_query.lower().startswith('select'):
-                sql_query = await self._extract_sql_from_text(sql_query)
+            # Apply transformations to the SQL query
+            sql_query = self._transform_sql_query(sql_query)
             
-            # Validate and transform query
-            sql_query = await self._validate_sql_query(sql_query)
+            # Validate the SQL query
+            self._validate_sql_query(sql_query)
             
-            return sql_query
+            return sql_query, "general"
             
-        except Exception as e:
+        except SQLQueryError as e:
             logger.error(f"Error generating SQL query: {str(e)}")
-            logger.error(traceback.format_exc())
-            raise
+            logger.error(f"Stage: {e.stage}, Details: {e.details}")
+            
+            # Fallback to basic queries
+            if "count" in user_query.lower() or "how many" in user_query.lower():
+                # Extract potential filters
+                health_match = re.search(r'health', user_query.lower())
+                education_match = re.search(r'education', user_query.lower())
+                district_match = re.search(r'(?:in|at|for) (\w+)(?: district)?', user_query.lower())
+                
+                where_clauses = []
+                if health_match:
+                    where_clauses.append("LOWER(projectsector) LIKE '%health%'")
+                elif education_match:
+                    where_clauses.append("LOWER(projectsector) LIKE '%education%'")
+                    
+                if district_match:
+                    district = district_match.group(1)
+                    where_clauses.append(f"LOWER(district) = '{district.lower()}'")
+                
+                where_clause = " AND ".join(where_clauses) if where_clauses else "1=1"
+                
+                return f"SELECT COUNT(*) as count FROM proj_dashboard WHERE {where_clause};", "count"
+            else:
+                return self._get_basic_project_query(), "general"
 
     def execute_query(self, query: str) -> List[Dict[str, Any]]:
         """Execute a SQL query and return the results"""
@@ -581,7 +543,7 @@ ORDER BY total_budget DESC;"""
             if intent == "SQL":
                 try:
                     # Generate and execute SQL query
-                    sql_query = await self.generate_sql_query(user_query)
+                    sql_query, query_type = await self.generate_sql_query(user_query)
                     logger.info(f"Generated SQL query: {sql_query}")
                     
                     with self.db_manager.get_connection() as conn:
@@ -602,7 +564,7 @@ ORDER BY total_budget DESC;"""
                     
                     return {
                         "response": {
-                            "query_type": "sql",
+                            "query_type": query_type,
                             "results": results,
                             "explanation": explanation,
                             "metadata": {
@@ -668,7 +630,7 @@ ORDER BY total_budget DESC;"""
             start_time = time.time()
             
             # Generate SQL query
-            sql_query = await self.generate_sql_query(user_query)
+            sql_query, query_type = await self.generate_sql_query(user_query)
             logger.info(f"Generated SQL query: {sql_query}")
             
             # Execute query
@@ -679,7 +641,7 @@ ORDER BY total_budget DESC;"""
             query_time = time.time() - start_time
             
             # Format response
-            return await self.format_response(results, sql_query, query_time, user_query)
+            return await self.format_response(results, sql_query, query_time, user_query, query_type)
             
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
@@ -697,7 +659,7 @@ ORDER BY total_budget DESC;"""
                 }
             }
 
-    async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None) -> Dict[str, Any]:
+    async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None, query_type: str = None) -> Dict[str, Any]:
         """Generate a natural language response from query results."""
         try:
             logger.info(f"Generating natural response for user query: {user_query}")
@@ -713,7 +675,7 @@ ORDER BY total_budget DESC;"""
             query_time = f"{time.time() - start_time:.2f}s"
             
             # Check if this is a specific project query
-            is_specific_project = any(word in user_query.lower() for word in ['tell me about', 'specific', 'details of']) and 'project' in user_query.lower()
+            is_specific_project = query_type == "specific_project"
             
             # Check if this is a district query
             is_district_query = 'district' in user_query.lower() and any(word in user_query.lower() for word in ['show', 'list', 'all projects in'])
@@ -882,7 +844,7 @@ ORDER BY total_budget DESC;"""
             
         return response
 
-    def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str) -> Dict[str, Any]:
+    def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str, query_type: str = None) -> Dict[str, Any]:
         """Format query results into a standardized response with natural language."""
         try:
             if not query_results:
@@ -899,7 +861,7 @@ ORDER BY total_budget DESC;"""
                     }
                 }
                 
-            natural_response = await self.generate_natural_response(query_results, user_query, sql_query)
+            natural_response = await self.generate_natural_response(query_results, user_query, sql_query, query_type)
             
             return natural_response
             
@@ -1018,7 +980,7 @@ ORDER BY total_budget DESC;"""
             
             # Generate SQL query
             try:
-                sql_query = self.generate_sql_query(user_query)
+                sql_query, query_type = self.generate_sql_query(user_query)
                 logger.info(f"Generated SQL query: {sql_query}")
             except SQLQueryError as e:
                 logger.error(f"SQL query generation error: {str(e)}")
@@ -1050,7 +1012,7 @@ ORDER BY total_budget DESC;"""
                 
                 return {
                     "response": {
-                        "query_type": "general",
+                        "query_type": query_type,
                         "results": results,
                         "metadata": {
                             "total_results": len(results),
