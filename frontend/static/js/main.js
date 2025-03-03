@@ -336,18 +336,34 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!chatMessages) return;
         
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'} ${isError ? 'error-message' : ''}`;
+        messageDiv.className = isUser ? 'message user' : 'message bot';
         
-        // Check if the message contains HTML-like content
-        if (typeof message === 'string' && (message.includes('<') && message.includes('>'))) {
-            // Create a safe version by escaping HTML
-            const safeMessage = document.createTextNode(message);
-            messageDiv.appendChild(safeMessage);
-        } else {
-            messageDiv.textContent = message;
+        if (isError) {
+            messageDiv.classList.add('error-message');
         }
         
+        // Force text color for user messages to ensure visibility
+        if (isUser) {
+            messageDiv.style.backgroundColor = '#1a73e8';
+            messageDiv.style.color = '#ffffff !important';
+        }
+        
+        // Create avatar
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.textContent = isUser ? 'U' : 'D';
+        
+        // Create message content
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        content.textContent = message;
+        
+        // Append elements
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(content);
         chatMessages.appendChild(messageDiv);
+        
+        // Scroll to bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 

@@ -138,8 +138,8 @@ h1 {
 
 .message.user {
     margin-left: auto;
-    background-color: #1a73e8;
-    color: #ffffff;
+    background-color: #1a73e8 !important;
+    color: #ffffff !important;
     font-weight: 500;
 }
 
@@ -152,10 +152,27 @@ h1 {
     font-weight: 400;
 }
 
-.message-icon {
-    font-size: 24px;
-    margin-right: 12px;
-    min-width: 24px;
+.avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #e0e0e0;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.message.user .avatar {
+    background-color: #0d5bdd;
+    color: white;
+}
+
+.message.bot .avatar {
+    background-color: #e5e7eb;
+    color: #4b5563;
 }
 
 .message-content {
@@ -176,28 +193,23 @@ h1 {
     background: rgba(255, 255, 255, 0.1);
 }
 
-.avatar {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 1rem;
+.message-content {
+    flex: 1;
 }
 
-.message.user .avatar {
-    background: #1d4ed8;
-    color: white;
+.message pre {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 0.25rem;
+    overflow-x: auto;
 }
 
-.message.bot .avatar {
-    background: #e5e7eb;
-    color: #4b5563;
+.dark-mode .message pre {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-/* Chat input styles - completely reset */
+/* Chat input styles */
 .chat-input-container {
     position: sticky;
     bottom: 0;
@@ -231,6 +243,8 @@ h1 {
     font-size: 1rem;
     margin-right: 0;
     box-sizing: border-box;
+    background-color: #ffffff;
+    color: #333333;
 }
 
 .chat-input:focus {
@@ -316,7 +330,7 @@ body.dark-mode {
 }
 
 .dark-mode .chat-input {
-    background-color: #303134;
+    background-color: #2f3338;
     color: #e8eaed;
     border-color: #5f6368;
 }
