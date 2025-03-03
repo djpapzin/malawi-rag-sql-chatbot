@@ -166,6 +166,14 @@ edge_total=$(grep -c "\"EdgeCase\"" $CSV_RESULTS_FILE)
 edge_passed=$(grep "\"EdgeCase\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
 edge_rate=$(echo "scale=2; $edge_passed / $edge_total * 100" | bc)
 
+# UI testing statistics (initially 0 since these are manual tests)
+ui_total=$(grep -c "\"UI\"" $CSV_RESULTS_FILE)
+ui_passed=$(grep "\"UI\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
+ui_rate=0
+if [ $ui_total -gt 0 ]; then
+  ui_rate=$(echo "scale=2; $ui_passed / $ui_total * 100" | bc)
+fi
+
 # Append summary to results file
 cat >> $RESULTS_FILE << EOL
 
@@ -184,6 +192,7 @@ cat >> $RESULTS_FILE << EOL
 - Status-Based Queries: $status_passed/$status_total (${status_rate}%)
 - Time-Based Queries: $time_passed/$time_total (${time_rate}%)
 - Edge Cases: $edge_passed/$edge_total (${edge_rate}%)
+- UI-Based Testing: $ui_passed/$ui_total (${ui_rate}%)
 
 ## Recommendations
 Based on the test results, here are some areas that may need improvement:
@@ -205,3 +214,4 @@ echo "- Budget-Related Queries: ${budget_rate}%"
 echo "- Status-Based Queries: ${status_rate}%"
 echo "- Time-Based Queries: ${time_rate}%"
 echo "- Edge Cases: ${edge_rate}%"
+echo "- UI-Based Testing: ${ui_rate}%"

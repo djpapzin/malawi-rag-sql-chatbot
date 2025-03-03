@@ -1,0 +1,429 @@
+ID,Query,Expected Result,Actual Result,Status,Category,Full Response
+"D01","Show me all projects in Dowa district","Dowa","Found 10 projects in Dowa district:
+Project 1:
+Name of project: Construction of Mndolera Bridge
+Fisc...","PASS","District","Found 10 projects in Dowa district:
+Project 1:
+Name of project: Construction of Mndolera Bridge
+Fiscal year: April 2024 / March 2025
+Location: Dowa
+Budget: MWK 255,273,780.00
+Status: None
+Project Sector: Roads and bridges
+Project 2:
+Name of project: Construction of Madzo Umoyo staff House and Completition of Madzo Maternity Wing
+Fiscal year: April 2023 / March 2024
+Location: Dowa
+Budget: MWK 186,657,970.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Health
+Project 3:
+Name of project: Construction of Dowa Turn Off Market
+Fiscal year: April 2024 / March 2025
+Location: Dowa
+Budget: MWK 160,000,000.00
+Status: None
+Project Sector: Commercial services
+Project 4:
+Name of project: Construction of  of Mtiti Bridge
+Fiscal year: April 2023 / March 2024
+Location: Dowa
+Budget: MWK 137,902,270.00
+Status: Works completed
+Project Sector: Roads and bridges
+Project 5:
+Name of project: Construction of Maweru Police Senior Staff House
+Fiscal year: April 2023 / March 2024
+Location: Dowa
+Budget: MWK 134,564,670.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Community security initiatives
+Project 6:
+Name of project: Construction of Chinkhwiri Police Unit Staff House
+Fiscal year: April 2023 / March 2024
+Location: Dowa
+Budget: MWK 130,759,790.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Community security initiatives
+Project 7:
+Name of project: Completion of Staff House
+Fiscal year: April 2024 / March 2025
+Location: Dowa
+Budget: MWK 128,000,000.00
+Status: None
+Project Sector: Education
+Project 8:
+Name of project: Construction of Chikudzo-Matekenya Bridges
+Fiscal year: April 2023 / March 2024
+Location: Dowa
+Budget: MWK 127,713,816.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Roads and bridges
+Project 9:
+Name of project: Construction of Dzoole Police Unit Staff House
+Fiscal year: April 2023 / March 2024
+Location: Dowa
+Budget: MWK 124,420,290.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Community security initiatives
+Project 10:
+Name of project: Construction of Chivala Police Unit Staff House 
+Fiscal year: April 2023 / March 2024
+Location: Dowa
+Budget: MWK 117,898,824.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Community security initiatives"
+"D02","Which projects are in Dowa?","Dowa","Found projects matching your query:
+Project Details","FAIL","District","Found projects matching your query:
+Project Details"
+"D03","List Dowa projects","Dowa","Found projects matching your query:
+Project Details","FAIL","District","Found projects matching your query:
+Project Details"
+"D04","What projects exist in Dowa?","Dowa","Found projects matching your query:
+Project Details","FAIL","District","Found projects matching your query:
+Project Details"
+"D05","Projects located in Dowa","Dowa","Found projects matching your query:
+Project Details","FAIL","District","Found projects matching your query:
+Project Details"
+"P01","Tell me about the Rehabilitation of Chimulango irrigation scheme","Chimulango","Found details for the requested project:
+Project Details","FAIL","Project","Found details for the requested project:
+Project Details"
+"P02","What is the Rehabilitation of Chimulango irrigation scheme?","Chimulango","Found projects matching your query:
+Project Details","FAIL","Project","Found projects matching your query:
+Project Details"
+"P03","Details of Rehabilitation of Chimulango irrigation scheme","Chimulango","Found details for the requested project:
+Project Details","FAIL","Project","Found details for the requested project:
+Project Details"
+"S01","Show me all health projects","health","Found 10 health sector projects:
+Project 1:
+Name of project: Maintanance of dispensary, construction...","PASS","Sector","Found 10 health sector projects:
+Project 1:
+Name of project: Maintanance of dispensary, construction of one staff house, construction of incinerator, installatio
+Fiscal year: April 2023 / March 2024
+Location: Nkhotakota
+Budget: MWK 35,577,086,000.00
+Status: Implementation: On track
+Project Sector: Health
+Project 2:
+Name of project: Rehabilitation of Mulanje District Hospital Paying Ward 
+Fiscal year: July 2021 / March 2022
+Location: Mulanje
+Budget: MWK 763,398,400.00
+Status: None
+Project Sector: Health
+Project 3:
+Name of project: KADIDI HEALTH CENTRE (DISPENSARY, STAFF HOUSE, WATER SYSTEM, INCENERATOR AND ELECTRICITY, VIP TOILET
+Fiscal year: April 2023 / March 2024
+Location: Blantyre
+Budget: MWK 750,000,000.00
+Status: None
+Project Sector: Health
+Project 4:
+Name of project: Kasungu District Hospital - KDH Paying Ward 
+Fiscal year: April 2023 / March 2024
+Location: Kasungu
+Budget: MWK 671,600,000.00
+Status: None
+Project Sector: Health
+Project 5:
+Name of project: Construction of Mmotola Health Post-Maternity Wing
+Fiscal year: April 2023 / March 2024
+Location: Mulanje
+Budget: MWK 504,323,500.00
+Status: None
+Project Sector: Health
+Project 6:
+Name of project: Construction of Mnema Umoyo House and Double VIP Latrines
+Fiscal year: April 2023 / March 2024
+Location: Salima
+Budget: MWK 321,656,320.00
+Status: None
+Project Sector: Health
+Project 7:
+Name of project: MONKEY-BAY HOSPITAL MALE WARD
+Fiscal year: April 2023 / March 2024
+Location: Mangochi
+Budget: MWK 317,921,900.00
+Status: Implementation: On track
+Project Sector: Health
+Project 8:
+Name of project: Construction of two staff houses at Ngerenge dispensary
+Fiscal year: April 2023 / March 2024
+Location: Karonga
+Budget: MWK 270,130,560.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Health
+Project 9:
+Name of project: Nkhunga Admission Wards
+Fiscal year: April 2022 / March 2023
+Location: Nkhotakota
+Budget: MWK 268,132,260.00
+Status: None
+Project Sector: Health
+Project 10:
+Name of project: Construction of Chinkhande Health Post Maternity Ward
+Fiscal year: April 2022 / March 2023
+Location: Ntchisi
+Budget: MWK 258,196,460.00
+Status: None
+Project Sector: Health"
+"S02","Which projects are in the health sector?","health","Found 10 health sector projects:
+Project 1:
+Name of project: Maintanance of dispensary, construction...","PASS","Sector","Found 10 health sector projects:
+Project 1:
+Name of project: Maintanance of dispensary, construction of one staff house, construction of incinerator, installatio
+Fiscal year: April 2023 / March 2024
+Location: Nkhotakota
+Budget: MWK 35,577,086,000.00
+Status: Implementation: On track
+Project Sector: Health
+Project 2:
+Name of project: Rehabilitation of Mulanje District Hospital Paying Ward 
+Fiscal year: July 2021 / March 2022
+Location: Mulanje
+Budget: MWK 763,398,400.00
+Status: None
+Project Sector: Health
+Project 3:
+Name of project: KADIDI HEALTH CENTRE (DISPENSARY, STAFF HOUSE, WATER SYSTEM, INCENERATOR AND ELECTRICITY, VIP TOILET
+Fiscal year: April 2023 / March 2024
+Location: Blantyre
+Budget: MWK 750,000,000.00
+Status: None
+Project Sector: Health
+Project 4:
+Name of project: Kasungu District Hospital - KDH Paying Ward 
+Fiscal year: April 2023 / March 2024
+Location: Kasungu
+Budget: MWK 671,600,000.00
+Status: None
+Project Sector: Health
+Project 5:
+Name of project: Construction of Mmotola Health Post-Maternity Wing
+Fiscal year: April 2023 / March 2024
+Location: Mulanje
+Budget: MWK 504,323,500.00
+Status: None
+Project Sector: Health
+Project 6:
+Name of project: Construction of Mnema Umoyo House and Double VIP Latrines
+Fiscal year: April 2023 / March 2024
+Location: Salima
+Budget: MWK 321,656,320.00
+Status: None
+Project Sector: Health
+Project 7:
+Name of project: MONKEY-BAY HOSPITAL MALE WARD
+Fiscal year: April 2023 / March 2024
+Location: Mangochi
+Budget: MWK 317,921,900.00
+Status: Implementation: On track
+Project Sector: Health
+Project 8:
+Name of project: Construction of two staff houses at Ngerenge dispensary
+Fiscal year: April 2023 / March 2024
+Location: Karonga
+Budget: MWK 270,130,560.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Health
+Project 9:
+Name of project: Nkhunga Admission Wards
+Fiscal year: April 2022 / March 2023
+Location: Nkhotakota
+Budget: MWK 268,132,260.00
+Status: None
+Project Sector: Health
+Project 10:
+Name of project: Construction of Chinkhande Health Post Maternity Ward
+Fiscal year: April 2022 / March 2023
+Location: Ntchisi
+Budget: MWK 258,196,460.00
+Status: None
+Project Sector: Health"
+"S03","List health sector projects","health","Found 10 health sector projects:
+Project 1:
+Name of project: Maintanance of dispensary, construction...","PASS","Sector","Found 10 health sector projects:
+Project 1:
+Name of project: Maintanance of dispensary, construction of one staff house, construction of incinerator, installatio
+Fiscal year: April 2023 / March 2024
+Location: Nkhotakota
+Budget: MWK 35,577,086,000.00
+Status: Implementation: On track
+Project Sector: Health
+Project 2:
+Name of project: Rehabilitation of Mulanje District Hospital Paying Ward 
+Fiscal year: July 2021 / March 2022
+Location: Mulanje
+Budget: MWK 763,398,400.00
+Status: None
+Project Sector: Health
+Project 3:
+Name of project: KADIDI HEALTH CENTRE (DISPENSARY, STAFF HOUSE, WATER SYSTEM, INCENERATOR AND ELECTRICITY, VIP TOILET
+Fiscal year: April 2023 / March 2024
+Location: Blantyre
+Budget: MWK 750,000,000.00
+Status: None
+Project Sector: Health
+Project 4:
+Name of project: Kasungu District Hospital - KDH Paying Ward 
+Fiscal year: April 2023 / March 2024
+Location: Kasungu
+Budget: MWK 671,600,000.00
+Status: None
+Project Sector: Health
+Project 5:
+Name of project: Construction of Mmotola Health Post-Maternity Wing
+Fiscal year: April 2023 / March 2024
+Location: Mulanje
+Budget: MWK 504,323,500.00
+Status: None
+Project Sector: Health
+Project 6:
+Name of project: Construction of Mnema Umoyo House and Double VIP Latrines
+Fiscal year: April 2023 / March 2024
+Location: Salima
+Budget: MWK 321,656,320.00
+Status: None
+Project Sector: Health
+Project 7:
+Name of project: MONKEY-BAY HOSPITAL MALE WARD
+Fiscal year: April 2023 / March 2024
+Location: Mangochi
+Budget: MWK 317,921,900.00
+Status: Implementation: On track
+Project Sector: Health
+Project 8:
+Name of project: Construction of two staff houses at Ngerenge dispensary
+Fiscal year: April 2023 / March 2024
+Location: Karonga
+Budget: MWK 270,130,560.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Health
+Project 9:
+Name of project: Nkhunga Admission Wards
+Fiscal year: April 2022 / March 2023
+Location: Nkhotakota
+Budget: MWK 268,132,260.00
+Status: None
+Project Sector: Health
+Project 10:
+Name of project: Construction of Chinkhande Health Post Maternity Ward
+Fiscal year: April 2022 / March 2023
+Location: Ntchisi
+Budget: MWK 258,196,460.00
+Status: None
+Project Sector: Health"
+"C01","Show me health projects in Dowa district","health","Found 10 health sector projects:
+Project 1:
+Name of project: Maintanance of dispensary, construction...","PASS","Combined","Found 10 health sector projects:
+Project 1:
+Name of project: Maintanance of dispensary, construction of one staff house, construction of incinerator, installatio
+Fiscal year: April 2023 / March 2024
+Location: Nkhotakota
+Budget: MWK 35,577,086,000.00
+Status: Implementation: On track
+Project Sector: Health
+Project 2:
+Name of project: Rehabilitation of Mulanje District Hospital Paying Ward 
+Fiscal year: July 2021 / March 2022
+Location: Mulanje
+Budget: MWK 763,398,400.00
+Status: None
+Project Sector: Health
+Project 3:
+Name of project: KADIDI HEALTH CENTRE (DISPENSARY, STAFF HOUSE, WATER SYSTEM, INCENERATOR AND ELECTRICITY, VIP TOILET
+Fiscal year: April 2023 / March 2024
+Location: Blantyre
+Budget: MWK 750,000,000.00
+Status: None
+Project Sector: Health
+Project 4:
+Name of project: Kasungu District Hospital - KDH Paying Ward 
+Fiscal year: April 2023 / March 2024
+Location: Kasungu
+Budget: MWK 671,600,000.00
+Status: None
+Project Sector: Health
+Project 5:
+Name of project: Construction of Mmotola Health Post-Maternity Wing
+Fiscal year: April 2023 / March 2024
+Location: Mulanje
+Budget: MWK 504,323,500.00
+Status: None
+Project Sector: Health
+Project 6:
+Name of project: Construction of Mnema Umoyo House and Double VIP Latrines
+Fiscal year: April 2023 / March 2024
+Location: Salima
+Budget: MWK 321,656,320.00
+Status: None
+Project Sector: Health
+Project 7:
+Name of project: MONKEY-BAY HOSPITAL MALE WARD
+Fiscal year: April 2023 / March 2024
+Location: Mangochi
+Budget: MWK 317,921,900.00
+Status: Implementation: On track
+Project Sector: Health
+Project 8:
+Name of project: Construction of two staff houses at Ngerenge dispensary
+Fiscal year: April 2023 / March 2024
+Location: Karonga
+Budget: MWK 270,130,560.00
+Status: Implementation: On track or Implementation: Delayed
+Project Sector: Health
+Project 9:
+Name of project: Nkhunga Admission Wards
+Fiscal year: April 2022 / March 2023
+Location: Nkhotakota
+Budget: MWK 268,132,260.00
+Status: None
+Project Sector: Health
+Project 10:
+Name of project: Construction of Chinkhande Health Post Maternity Ward
+Fiscal year: April 2022 / March 2023
+Location: Ntchisi
+Budget: MWK 258,196,460.00
+Status: None
+Project Sector: Health"
+"C02","Which education projects are in Lilongwe?","education","Found projects matching your query:
+Project Details","FAIL","Combined","Found projects matching your query:
+Project Details"
+"C03","List road projects in Mzuzu","road","Found projects matching your query:
+Project Details","FAIL","Combined","Found projects matching your query:
+Project Details"
+"B01","What is the total budget for all projects?","budget","Found projects matching your query:
+Project Details","FAIL","Budget","Found projects matching your query:
+Project Details"
+"B02","Show me the highest budget projects","budget","Found projects matching your query:
+Project Details","FAIL","Budget","Found projects matching your query:
+Project Details"
+"B03","Which district has the most project funding?","funding","Found projects matching your query:
+Project Details","FAIL","Budget","Found projects matching your query:
+Project Details"
+"ST01","Show me all completed projects","completed","Found projects matching your query:
+Project Details","FAIL","Status","Found projects matching your query:
+Project Details"
+"ST02","Which projects are currently in progress?","progress","Found projects matching your query:
+Project Details","FAIL","Status","Found projects matching your query:
+Project Details"
+"ST03","List delayed projects","delayed","Found projects matching your query:
+Project Details","FAIL","Status","Found projects matching your query:
+Project Details"
+"T01","Show me projects from 2023","2023","Found projects matching your query:
+Project Details","FAIL","Time","Found projects matching your query:
+Project Details"
+"T02","Which projects started this fiscal year?","fiscal","Found projects matching your query:
+Project Details","FAIL","Time","Found projects matching your query:
+Project Details"
+"T03","List projects ending in 2025","2025","Found projects matching your query:
+Project Details","FAIL","Time","Found projects matching your query:
+Project Details"
+"EC01","Show me projects in Dowa Distrct","Dowa","Found projects matching your query:
+Project Details","FAIL","EdgeCase","Found projects matching your query:
+Project Details"
+"EC02","Tell me about the Fictional Project X","not found","I couldn't find any project matching 'fictional'. Please check the project name and try again.","FAIL","EdgeCase","I couldn't find any project matching 'fictional'. Please check the project name and try again."
+"EC03","List projects in Hogwarts district","not found","Found 0 projects in Hogwarts district:","FAIL","EdgeCase","Found 0 projects in Hogwarts district:"
+"EC04","What about projects?","more specific","Found projects matching your query:
+Project Details","FAIL","EdgeCase","Found projects matching your query:
+Project Details"

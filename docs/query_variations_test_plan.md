@@ -184,6 +184,34 @@ Testing the chatbot's robustness with unusual or invalid queries.
 | EC09 | Very long query with excessive detail | Proper extraction of intent | | |
 | EC10 | Non-English query | Appropriate response | | |
 
+## 9. UI-Based Testing
+
+Testing the chatbot's functionality through the frontend interface to ensure proper integration and user experience.
+
+| ID | UI Interaction | Query/Action | Expected Result | Actual Result | Status |
+|----|---------------|--------------|-----------------|---------------|--------|
+| UI01 | Click on "Find project by sector" tile and see the results of what gets loaded | Which projects are there in the health sector? | Total number of health projects in the database, e.g. 219 | | |
+| UI02 | Click on "Find projects by district" tile and see the response that is generated | Show me All projects in Zomba District | Return a list of all projects in Zomba district with info like budget, etc | | |
+| UI03 | Click on "Find a specific project" tile and see the response generated | Tell me about the Nyandule Classroom Block project | Return specific details about the Nyandule Classroom Block project | | |
+| UI04 | Use the chat input field directly | What is the total budget for education projects in Lilongwe? | Return aggregated budget information for education projects in Lilongwe | | |
+| UI05 | Test responsive design on mobile device | Same queries as above | Interface should adapt to screen size while maintaining functionality | | |
+| UI06 | Test loading indicators | Submit a complex query requiring processing time | User should see appropriate loading indicators while waiting for response | | |
+| UI07 | Test error handling | Submit an intentionally malformed query | System should provide a helpful error message | | |
+| UI08 | Test chat history functionality | Submit multiple queries and check history | Previous queries and responses should be accessible | | |
+| UI09 | Test UI filters/dropdowns if available | Use any available UI filters | Results should be filtered according to selection | | |
+| UI10 | Test UI reset/clear functionality | Use clear/reset button if available | Chat history should be cleared | | |
+
+### UI Test Procedure
+
+1. Access the Dziwani chatbot frontend at the appropriate URL
+2. For each test case:
+   - Perform the specified interaction
+   - Record the actual response
+   - Compare with expected result
+   - Mark as PASS/FAIL
+3. Document any UI issues or inconsistencies
+4. Take screenshots of notable results or issues
+
 ## Test Execution Script
 
 ```bash
@@ -235,6 +263,7 @@ After running the tests, complete this analysis to identify patterns in successe
    - Status-Based Queries: ___%
    - Time-Based Queries: ___%
    - Edge Cases: ___%
+   - UI-Based Testing: ___%
 
 2. **Common Failure Patterns:**
    - Pattern 1: [Description]
