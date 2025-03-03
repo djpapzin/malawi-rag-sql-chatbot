@@ -1555,6 +1555,155 @@ Example queries:
             logger.error(f"Error formatting specific project: {str(e)}")
             return "Error: Unable to format project details"
 
+    async def process_paginated_query(self, user_query: str, limit: int = 10, offset: int = 0) -> Dict[str, Any]:
+        """Process a query with pagination parameters"""
+        start_time = time.time()
+        
+        try:
+            # Generate the SQL query
+            sql_query = await self._generate_sql_query(user_query)
+            
+            # Modify the query to include pagination
+            if not sql_query.lower().strip().endswith(";"):
+                sql_query += ";"
+                
+            # Remove existing LIMIT clause if present
+            sql_query = re.sub(r"\s+LIMIT\s+\d+\s*;", ";", sql_query)
+            
+            # Add new LIMIT and OFFSET clauses
+            sql_query = sql_query[:-1]  # Remove trailing semicolon
+            sql_query += f" LIMIT {limit} OFFSET {offset};"
+            
+            # Execute the query
+            logger.info(f"Executing paginated SQL query: {sql_query}")
+            results = await self._execute_query(sql_query)
+            
+            # Generate count query to get total results
+            count_query = self._generate_count_query(sql_query)
+            count_results = await self._execute_query(count_query)
+            total_results = count_results[0].get("count", len(results))
+            
+            # Format the response
+            response = await self._format_paginated_results(
+                results, user_query, sql_query, total_results, limit, offset
+            )
+            
+            return response
+        except Exception as e:
+            logger.error(f"Error processing paginated query: {str(e)}")
+            return {
+                "results": [{
+                    "type": "error",
+                    "message": f"Error processing paginated query: {str(e)}",
+                    "data": {}
+                }],
+                "metadata": {
+                    "total_results": 0,
+                    "query_time": f"{time.time() - start_time:.2f}s",
+                    "sql_query": ""
+                }
+            }
+
+    def _generate_count_query(self, sql_query: str) -> str:
+        """Generate a count query from a SELECT query"""
+        # Parse the original query
+        from_pos = sql_query.lower().find("from")
+        where_pos = sql_query.lower().find("where")
+        
+        if from_pos == -1:
+            return "SELECT COUNT(*) as count FROM proj_dashboard;"
+        
+        # Extract FROM clause and beyond
+        if where_pos != -1:
+            from_clause = sql_query[from_pos:where_pos]
+            where_clause = sql_query[where_pos:]
+            
+            # Remove ORDER BY, LIMIT and OFFSET clauses
+            order_pos = where_clause.lower().find("order by")
+            limit_pos = where_clause.lower().find("limit")
+            
+            if order_pos != -1:
+                where_clause = where_clause[:order_pos]
+            elif limit_pos != -1:
+                where_clause = where_clause[:limit_pos]
+            
+            return f"SELECT COUNT(*) as count {from_clause} {where_clause};"
+        
+        # No WHERE clause
+        remaining = sql_query[from_pos:]
+        order_pos = remaining.lower().find("order by")
+        limit_pos = remaining.lower().find("limit")
+        
+        if order_pos != -1:
+            remaining = remaining[:order_pos]
+        elif limit_pos != -1:
+            remaining = remaining[:limit_pos]
+        
+        return f"SELECT COUNT(*) as count {remaining};"
+
+    async def _format_paginated_results(
+        self,
+        results: List[Dict[str, Any]],
+        user_query: str,
+        sql_query: str,
+        total_results: int,
+        limit: int,
+        offset: int
+    ) -> Dict[str, Any]:
+        """Format paginated results with metadata"""
+        current_page = (offset // limit) + 1
+        total_pages = (total_results + limit - 1) // limit
+        start_index = offset + 1
+        end_index = min(offset + limit, total_results)
+        
+        formatted_results = []
+        
+        # Add header message
+        if offset == 0:
+            message = f"Found {total_results} results. Showing {start_index}-{end_index}:"
+        else:
+            message = f"Showing results {start_index}-{end_index} of {total_results}:"
+            
+        formatted_results.append({
+            "type": "text",
+            "message": message,
+            "data": {}
+        })
+        
+        # Format the results as a table
+        if results:
+            # Get headers from the first result
+            headers = list(results[0].keys())
+            
+            formatted_results.append({
+                "type": "table",
+                "message": "Project Details",
+                "data": {
+                    "headers": headers,
+                    "rows": results
+                }
+            })
+        
+        return {
+            "results": formatted_results,
+            "metadata": {
+                "total_results": total_results,
+                "current_page": current_page,
+                "total_pages": total_pages,
+                "page_size": limit,
+                "query_time": f"{time.time() - self.start_time:.2f}s",
+                "sql_query": sql_query
+            },
+            "pagination": {
+                "has_more": current_page < total_pages,
+                "has_previous": current_page > 1,
+                "current_page": current_page,
+                "total_pages": total_pages,
+                "next_page_command": "show more" if current_page < total_pages else None,
+                "prev_page_command": "previous page" if current_page > 1 else None
+            }
+        }
+
 async def get_greeting_response() -> Dict:
     """Return a friendly greeting response."""
     return {

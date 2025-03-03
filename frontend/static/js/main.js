@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const queryTime = document.querySelector('#query-time');
     const totalResults = document.querySelector('#total-results');
     const toggleDetailsBtn = document.querySelector('#toggle-details');
+    const themeToggle = document.querySelector('#theme-toggle');
     const loadingIndicator = document.createElement('div');
     loadingIndicator.className = 'loading-indicator';
     loadingIndicator.innerHTML = '<div class="spinner"></div>';
@@ -27,6 +28,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // State
     let isLoading = false;
     let isQueryDetailsExpanded = false;
+    
+    // Theme handling
+    function initTheme() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    }
+    
+    // Initialize theme on page load
+    initTheme();
+    
+    // Theme toggle functionality
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            
+            // Save preference to localStorage
+            if (document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+            } else {
+                localStorage.setItem('theme', 'light');
+            }
+        });
+    }
 
     function showLoading() {
         isLoading = true;
@@ -128,13 +155,18 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage(message, true);
         
         try {
+            // Get session ID from the last bot message if it exists
+            const lastBotMessage = chatMessages.querySelector('.bot-message:last-of-type');
+            const sessionId = lastBotMessage?.dataset.sessionId;
+            
             const response = await fetch(`/api/rag-sql-chatbot/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: message
+                    message: message,
+                    session_id: sessionId
                 })
             });
             
@@ -151,6 +183,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Handle the results
             if (data.results && data.results.length > 0) {
+                const messageContainer = document.createElement('div');
+                messageContainer.className = 'bot-message-container';
+                
+                // Store session ID if provided
+                if (data.pagination && data.pagination.session_id) {
+                    messageContainer.dataset.sessionId = data.pagination.session_id;
+                }
+                
                 data.results.forEach(result => {
                     if (result.type === 'text') {
                         // Check if message is a string or an object
@@ -179,15 +219,24 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     } else if (result.type === 'table') {
-                        appendTable(result.message, result.data);
+                        appendTable(result.message, result.data, messageContainer);
                     } else if (result.type === 'list') {
-                        appendList(result.message, result.data);
+                        appendList(result.message, result.data, messageContainer);
                     } else if (result.type === 'project_details') {
-                        appendProjectDetails(result.message, result.data);
+                        appendProjectDetails(result.message, result.data, messageContainer);
                     } else if (result.type === 'error') {
                         appendMessage(`Error: ${result.message}`, false, true);
                     }
                 });
+                
+                // Add pagination controls if needed
+                if (data.pagination) {
+                    const paginationDiv = createPaginationControls(data.pagination);
+                    messageContainer.appendChild(paginationDiv);
+                }
+                
+                chatMessages.appendChild(messageContainer);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             } else {
                 appendMessage("I couldn't find any projects matching your criteria. Please try a different query.");
             }
@@ -198,6 +247,50 @@ document.addEventListener('DOMContentLoaded', function() {
         } finally {
             hideLoading();
         }
+    }
+
+    function createPaginationControls(pagination) {
+        const paginationDiv = document.createElement('div');
+        paginationDiv.className = 'pagination-controls';
+        
+        // Add page info
+        const pageInfo = document.createElement('span');
+        pageInfo.className = 'pagination-info';
+        pageInfo.textContent = `Page ${pagination.current_page} of ${pagination.total_pages}`;
+        paginationDiv.appendChild(pageInfo);
+        
+        // Add navigation buttons
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'pagination-buttons';
+        
+        if (pagination.has_previous) {
+            const prevButton = document.createElement('button');
+            prevButton.className = 'pagination-button';
+            prevButton.textContent = '← Previous';
+            prevButton.onclick = () => {
+                if (chatInput && !isLoading) {
+                    chatInput.value = pagination.prev_page_command;
+                    chatForm.dispatchEvent(new Event('submit'));
+                }
+            };
+            buttonContainer.appendChild(prevButton);
+        }
+        
+        if (pagination.has_more) {
+            const nextButton = document.createElement('button');
+            nextButton.className = 'pagination-button';
+            nextButton.textContent = 'Next →';
+            nextButton.onclick = () => {
+                if (chatInput && !isLoading) {
+                    chatInput.value = pagination.next_page_command;
+                    chatForm.dispatchEvent(new Event('submit'));
+                }
+            };
+            buttonContainer.appendChild(nextButton);
+        }
+        
+        paginationDiv.appendChild(buttonContainer);
+        return paginationDiv;
     }
 
     function extractMessageContent(messageObj) {
@@ -258,61 +351,56 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function appendTable(title, data) {
-        if (!chatMessages || !data || !data.headers || !data.rows) return;
+    function appendTable(title, data, container = null) {
+        const tableDiv = document.createElement('div');
+        tableDiv.className = 'table-container';
         
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message bot-message table-message';
-        
-        // Add title if provided
         if (title) {
             const titleElement = document.createElement('h3');
-            titleElement.className = 'table-title';
             titleElement.textContent = title;
-            messageDiv.appendChild(titleElement);
+            tableDiv.appendChild(titleElement);
         }
         
-        // Create table
-        const table = document.createElement('table');
-        table.className = 'data-table';
-        
-        // Create header row
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-        
-        data.headers.forEach(header => {
-            const th = document.createElement('th');
-            th.textContent = header;
-            headerRow.appendChild(th);
-        });
-        
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-        
-        // Create table body
-        const tbody = document.createElement('tbody');
-        
-        // Add data rows
-        data.rows.forEach(row => {
-            const tr = document.createElement('tr');
+        if (data && data.headers && data.rows) {
+            const table = document.createElement('table');
+            table.className = 'results-table';
             
+            // Create header
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
             data.headers.forEach(header => {
-                const td = document.createElement('td');
-                td.textContent = row[header] || '';
-                tr.appendChild(td);
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
             });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
             
-            tbody.appendChild(tr);
-        });
+            // Create body
+            const tbody = document.createElement('tbody');
+            data.rows.forEach(row => {
+                const tr = document.createElement('tr');
+                data.headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.textContent = row[header] || '';
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            
+            tableDiv.appendChild(table);
+        }
         
-        table.appendChild(tbody);
-        messageDiv.appendChild(table);
-        
-        chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (container) {
+            container.appendChild(tableDiv);
+        } else if (chatMessages) {
+            chatMessages.appendChild(tableDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
 
-    function appendList(title, data) {
+    function appendList(title, data, container = null) {
         if (!chatMessages || !data || !data.fields || !data.values) return;
         
         const messageDiv = document.createElement('div');
@@ -348,11 +436,15 @@ document.addEventListener('DOMContentLoaded', function() {
             messageDiv.appendChild(projectDiv);
         });
         
-        chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (container) {
+            container.appendChild(messageDiv);
+        } else if (chatMessages) {
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
 
-    function appendProjectDetails(title, data) {
+    function appendProjectDetails(title, data, container = null) {
         if (!chatMessages || !data || !data.project) return;
         
         const messageDiv = document.createElement('div');
@@ -363,6 +455,7 @@ document.addEventListener('DOMContentLoaded', function() {
         detailsContainer.className = 'project-details-container';
         detailsContainer.style.display = 'block'; // Force block display for Chrome
         detailsContainer.style.width = '100%';    // Force width for Chrome
+        detailsContainer.style.backgroundColor = '#f8f9fa !important'; // Force background color
         
         // Add title if provided
         if (title) {
@@ -377,6 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
         projectCard.className = 'project-card';
         projectCard.style.display = 'block'; // Force block display for Chrome
         projectCard.style.width = '100%';    // Force width for Chrome
+        projectCard.style.backgroundColor = '#fff !important'; // Force background color
         
         // Add project number
         const projectNumber = document.createElement('h4');
@@ -399,20 +493,31 @@ document.addEventListener('DOMContentLoaded', function() {
             fieldName.textContent = field + ':';
             fieldName.style.flexShrink = '0';  // Prevent shrinking in Chrome
             fieldName.style.width = '140px';   // Fixed width for field names
+            fieldName.style.color = '#666 !important'; // Force text color with !important
+            fieldName.style.fontWeight = '600 !important'; // Force font weight
             
             const fieldValue = document.createElement('span');
             fieldValue.className = 'field-value';
             fieldValue.textContent = project[field] || 'Unknown';
             fieldValue.style.flexGrow = '1';   // Allow growing in Chrome
+            fieldValue.style.color = '#333 !important'; // Force text color with !important
             
             fieldDiv.appendChild(fieldName);
             fieldDiv.appendChild(fieldValue);
             projectCard.appendChild(fieldDiv);
         });
         
+        // Add a CSS class to ensure visibility in both light and dark modes
+        messageDiv.classList.add('light-mode-content');
+        
         detailsContainer.appendChild(projectCard);
         messageDiv.appendChild(detailsContainer);
-        chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        if (container) {
+            container.appendChild(messageDiv);
+        } else if (chatMessages) {
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
 });

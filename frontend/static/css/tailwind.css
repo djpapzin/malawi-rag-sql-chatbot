@@ -154,7 +154,7 @@
 }
 
 .project-details-container {
-  background-color: #f8f9fa;
+  background-color: #f8f9fa !important;
   border-radius: 8px;
   padding: 0;
   margin-bottom: 10px;
@@ -175,7 +175,7 @@
 }
 
 .project-card {
-  background-color: #fff;
+  background-color: #fff !important;
   border-radius: 0;
   padding: 15px;
   margin-top: 0;
@@ -207,14 +207,14 @@
 }
 
 .field-name {
-  font-weight: 600;
-  color: #666;
+  font-weight: 600 !important;
+  color: #666 !important;
   width: 140px;
   flex-shrink: 0;
 }
 
 .field-value {
-  color: #333;
+  color: #333 !important;
   flex-grow: 1;
 }
 

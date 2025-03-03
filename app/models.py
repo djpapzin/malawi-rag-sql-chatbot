@@ -74,6 +74,7 @@ class QuerySource(BaseModel):
 class ChatRequest(BaseModel):
     """Request model for chat endpoint"""
     message: str
+    session_id: Optional[str] = None
 
 class ResultData(BaseModel):
     """Model for result data"""

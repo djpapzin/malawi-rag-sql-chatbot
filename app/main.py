@@ -17,6 +17,7 @@ from app.models import (
 from app.database.langchain_sql import LangChainSQLIntegration
 from app.llm.response_handler import ResponseHandler
 from app.llm.conversation_store import ConversationStore
+from app.session_manager import SessionManager
 import os
 from dotenv import load_dotenv
 import time
@@ -73,6 +74,7 @@ db_manager = DatabaseManager()
 sql_chain = LangChainSQLIntegration()
 response_handler = ResponseHandler()
 conversation_store = ConversationStore()
+session_manager = SessionManager()  # Initialize SessionManager
 logger.info("Initialized components")
 
 # Include routers with correct prefix for rag-sql-chatbot
@@ -210,20 +212,111 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
     try:
         logger.info(f"Processing chat request with message: {request.message}")
         
-        # Process the query and return results directly
+        # Check if this is a pagination request
+        session_id = request.session_id if hasattr(request, 'session_id') else None
+        is_pagination = False
+        page = 1
+        
+        # Check for pagination commands
+        pagination_commands = ["show more", "next page", "previous page", "page"]
+        for cmd in pagination_commands:
+            if cmd in request.message.lower():
+                is_pagination = True
+                break
+        
+        # Extract page number if specified
+        if "page" in request.message.lower():
+            page_match = re.search(r"page\s+(\d+)", request.message.lower())
+            if page_match:
+                try:
+                    page = int(page_match.group(1))
+                except ValueError:
+                    pass
+        
+        # Handle pagination request
+        if is_pagination and session_id:
+            session = session_manager.get_session(session_id)
+            if not session:
+                return {
+                    "results": [{
+                        "type": "error",
+                        "message": "Your session has expired. Please try your original query again.",
+                        "data": {}
+                    }],
+                    "metadata": {"total_results": 0}
+                }
+            
+            # Handle "next page" and "show more"
+            if "next page" in request.message.lower() or "show more" in request.message.lower():
+                page = session["current_page"] + 1
+            
+            # Handle "previous page"
+            if "previous page" in request.message.lower():
+                page = max(1, session["current_page"] - 1)
+            
+            # Get results for the requested page
+            page_data = session_manager.get_page_results(session_id, page)
+            if page_data:
+                # Update current page in session
+                session_manager.update_session(session_id, {"current_page": page})
+                return page_data
+            
+            # If we need to fetch more data, fall through to regular query processing
+            # but with pagination parameters
+            request.message = session["original_query"]
+        
+        # Process the regular query
         response = await sql_chain.process_query(request.message)
+        
+        # For new queries (non-pagination), create a session and store results
+        if not is_pagination and isinstance(response, dict) and "results" in response:
+            # Extract results data
+            results_data = []
+            total_results = 0
+            
+            for item in response["results"]:
+                if item.get("type") == "table" and "data" in item:
+                    results_data.extend(item["data"].get("rows", []))
+                    total_results = len(item["data"].get("rows", []))
+            
+            if results_data and total_results > 10:
+                # Create new session
+                new_session_id = session_manager.create_session(request.message)
+                session_manager.store_results(
+                    new_session_id,
+                    results_data,
+                    total_results,
+                    response.get("metadata", {}).get("sql_query", "")
+                )
+                
+                # Add pagination metadata
+                response["pagination"] = {
+                    "session_id": new_session_id,
+                    "has_more": total_results > 10,
+                    "current_page": 1,
+                    "total_pages": (total_results + 9) // 10,
+                    "next_page_command": "show more"
+                }
+                
+                # Limit initial response to 10 results
+                for item in response["results"]:
+                    if item.get("type") == "table" and "data" in item:
+                        item["data"]["rows"] = item["data"]["rows"][:10]
+        
         return response
         
     except Exception as e:
         logger.error(f"Error processing chat: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         return {
-            "response": {
-                "query_type": "error",
-                "results": [],
-                "metadata": {
-                    "error": str(e)
-                }
+            "results": [{
+                "type": "error",
+                "message": f"An error occurred while processing your query: {str(e)}",
+                "data": {}
+            }],
+            "metadata": {
+                "total_results": 0,
+                "query_time": "0.00s"
             }
         }
 
