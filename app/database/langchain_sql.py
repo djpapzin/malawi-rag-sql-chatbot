@@ -1561,7 +1561,7 @@ async def get_greeting_response() -> Dict:
         "response": {
             "query_type": "chat",
             "results": [{
-                "message": ("Hello! I'm Dwizani, your infrastructure projects assistant. "
+                "message": ("Hello! I'm Dziwani, your infrastructure projects assistant. "
                       "I can help you find information about infrastructure projects in Malawi. "
                       "You can ask me questions like:\n"
                       "- What projects are in Lilongwe?\n"
