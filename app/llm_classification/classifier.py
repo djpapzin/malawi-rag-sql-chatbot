@@ -14,6 +14,7 @@ import asyncio
 from pydantic import BaseModel, Field
 from enum import Enum
 import time
+from fuzzywuzzy import fuzz
 
 # Import Together API client
 from together import Together
@@ -52,6 +53,31 @@ class QueryClassification(BaseModel):
 class LLMClassifier:
     """LLM-based query classifier"""
     
+    MALAWI_DISTRICTS = [
+        "Balaka", "Blantyre", "Chikwawa", "Chiradzulu", "Chitipa", "Dedza", 
+        "Dowa", "Karonga", "Kasungu", "Likoma", "Lilongwe", "Machinga", 
+        "Mangochi", "Mchinji", "Mulanje", "Mwanza", "Mzimba", "Neno", 
+        "Nkhata Bay", "Nkhotakota", "Nsanje", "Ntcheu", "Ntchisi", "Phalombe", 
+        "Rumphi", "Salima", "Thyolo", "Zomba"
+    ]
+    
+    DISTRICT_PATTERNS = [
+        # Base patterns for explicit district mentions
+        r"\b(projects?|works|developments?|initiatives?)\b.*\b(in|around|for|of)\s+([\w\s]+?)(\s+district)?\b",
+        
+        # Patterns for questions and commands
+        r"\b((list|show|find|what|tell|give).*\b(in|from|about)\s+([A-Z][\w\s]+))(\s+district)?\b",
+        
+        # Patterns for district-first mentions
+        r"\b([A-Z][\w\s]+?)\s+(projects?|developments?|infrastructure|activities|works|initiatives)\b",
+        
+        # Patterns for ongoing/current activities
+        r"\b(ongoing|current|existing)\s+.*\b(in|around|at)\s+([\w\s]+)\b",
+        
+        # Patterns for general queries about locations
+        r"\b(what'?s\s+happening|what\s+is\s+happening|status)\s+.*\b(in|around|at)\s+([\w\s]+)\b"
+    ]
+    
     def __init__(self):
         """Initialize the classifier"""
         # Get model from environment variables
@@ -68,45 +94,64 @@ class LLMClassifier:
         # Initialize Together client
         self.client = Together()
         
-        # Known entities for validation
-        self._initialize_known_entities()
-        
         logger.info(f"Initialized LLM Classifier with model: {self.model}")
     
-    def _initialize_known_entities(self):
-        """Initialize lists of known entities for validation"""
-        # Known districts in Malawi
-        self.known_districts = [
-            "Balaka", "Blantyre", "Chikwawa", "Chiradzulu", "Chitipa", "Dedza", 
-            "Dowa", "Karonga", "Kasungu", "Likoma", "Lilongwe", "Machinga", 
-            "Mangochi", "Mchinji", "Mulanje", "Mwanza", "Mzimba", "Neno", 
-            "Nkhata Bay", "Nkhotakota", "Nsanje", "Ntcheu", "Ntchisi", "Phalombe", 
-            "Rumphi", "Salima", "Thyolo", "Zomba"
-        ]
+    def match_district(self, input_name, min_ratio=75):
+        """
+        Find matching district names using fuzzy string matching.
+        Args:
+            input_name (str): Input district name to match
+            min_ratio (int): Minimum similarity ratio (0-100) to consider a match
+        Returns:
+            list: List of matching district names
+        """
+        matches = []
+        for district in self.MALAWI_DISTRICTS:
+            if fuzz.ratio(input_name.lower(), district.lower()) > min_ratio:
+                matches.append(district)
+        return matches
+    
+    def extract_district(self, text):
+        """
+        Enhanced district extraction with fuzzy matching support.
+        Args:
+            text (str): Input text to extract district from
+        Returns:
+            str: Matched district name or None
+        """
+        # Try exact pattern matching first
+        for pattern in self.DISTRICT_PATTERNS:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                # Extract the district name from the appropriate group
+                district_name = match.group(3) if len(match.groups()) >= 3 else match.group(1)
+                district_name = district_name.strip()
+                
+                # Try fuzzy matching with the extracted name
+                matches = self.match_district(district_name)
+                if matches:
+                    return matches[0]  # Return the best match
+                    
+        # If no pattern match, try direct fuzzy matching with words
+        words = text.split()
+        for word in words:
+            if word[0].isupper():  # Only try matching capitalized words
+                matches = self.match_district(word)
+                if matches:
+                    return matches[0]
         
-        # Known sectors
-        self.known_sectors = [
-            "education", "health", "water", "sanitation", "transport", 
-            "agriculture", "energy", "infrastructure", "environment", 
-            "governance", "social protection", "tourism", "trade", "industry"
-        ]
-        
-        # Known project statuses
-        self.known_statuses = [
-            "planned", "approved", "in progress", "ongoing", "completed", 
-            "delayed", "cancelled", "suspended"
-        ]
+        return None
     
     def _validate_district(self, district: str) -> str:
         """Validate and normalize district name"""
         district = district.strip().title()
         
         # Exact match
-        if district in self.known_districts:
+        if district in self.MALAWI_DISTRICTS:
             return district
         
         # Fuzzy match (simple implementation)
-        for known_district in self.known_districts:
+        for known_district in self.MALAWI_DISTRICTS:
             if district in known_district or known_district in district:
                 return known_district
             
@@ -147,11 +192,15 @@ class LLMClassifier:
                 return value
         
         # Exact match
-        if sector in self.known_sectors:
+        if sector in ["education", "health", "water", "sanitation", "transport", 
+            "agriculture", "energy", "infrastructure", "environment", 
+            "governance", "social protection", "tourism", "trade", "industry"]:
             return sector
         
         # Fuzzy match
-        for known_sector in self.known_sectors:
+        for known_sector in ["education", "health", "water", "sanitation", "transport", 
+            "agriculture", "energy", "infrastructure", "environment", 
+            "governance", "social protection", "tourism", "trade", "industry"]:
             if sector in known_sector or known_sector in sector:
                 return known_sector
         
@@ -190,11 +239,13 @@ class LLMClassifier:
             return status_mapping[status]
         
         # Exact match
-        if status in self.known_statuses:
+        if status in ["planned", "approved", "in progress", "ongoing", "completed", 
+            "delayed", "cancelled", "suspended"]:
             return status
         
         # Fuzzy match
-        for known_status in self.known_statuses:
+        for known_status in ["planned", "approved", "in progress", "ongoing", "completed", 
+            "delayed", "cancelled", "suspended"]:
             if status in known_status or known_status in status:
                 return known_status
         

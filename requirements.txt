@@ -30,6 +30,8 @@ azure-ai-translation-text==1.0.1
 python-multipart==0.0.20
 pydantic==2.6.1
 typing-extensions==4.12.2
+fuzzywuzzy==0.18.0
+python-Levenshtein==0.23.0  # For better performance with fuzzywuzzy
 
 # Testing
 pytest>=8.2.0

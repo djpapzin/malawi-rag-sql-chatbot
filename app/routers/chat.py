@@ -37,102 +37,83 @@ async def chat(request: Request):
     Chat endpoint for RAG SQL Chatbot
     """
     try:
-        # Parse request body
+        # Get request body
         body = await request.json()
+        message = body.get("message")
         
-        # Check if message is in the request body
-        if "message" not in body:
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "results": [{
-                        "type": "error",
-                        "message": "Message field is required in the request body",
+        if not message:
+            raise HTTPException(status_code=400, detail="Message is required")
+            
+        # Initialize services
+        query_service = QueryClassificationService()
+        
+        # Classify query
+        classification = await query_service.classify_query(message)
+        
+        # Generate SQL based on classification
+        sql_query = query_service.generate_sql_from_classification(classification)
+        
+        # Execute query and format results
+        results = []
+        async with get_db_connection() as conn:
+            # Execute query
+            start_time = time.time()
+            records = await conn.fetch(sql_query)
+            query_time = f"{time.time() - start_time:.2f}s"
+            
+            if not records:
+                if classification["type"] == "district_query":
+                    district = classification["parameters"]["district"]
+                    results.append({
+                        "type": "text",
+                        "message": f"No projects found in {district} district.",
                         "data": {}
-                    }],
-                    "metadata": {
-                        "total_results": 0,
-                        "query_time": "0.00s",
-                        "sql_query": ""
-                    }
-                },
-                headers={
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "POST, OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type"
-                }
-            )
-        
-        user_message = body["message"]
-        
-        # Check if the message is empty
-        if not user_message or user_message.strip() == "":
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "results": [{
-                        "type": "error",
-                        "message": "Message cannot be empty",
+                    })
+                else:
+                    results.append({
+                        "type": "text",
+                        "message": "No results found for your query.",
                         "data": {}
-                    }],
-                    "metadata": {
-                        "total_results": 0,
-                        "query_time": "0.00s",
-                        "sql_query": ""
-                    }
-                },
-                headers={
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "POST, OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type"
-                }
-            )
+                    })
+            else:
+                if classification["type"] == "district_query":
+                    district = classification["parameters"]["district"]
+                    results.append({
+                        "type": "text",
+                        "message": f"Found {len(records)} projects in {district} district:",
+                        "data": {}
+                    })
+                else:
+                    results.append({
+                        "type": "text",
+                        "message": "Found projects matching your query:",
+                        "data": {}
+                    })
+                
+                # Format results
+                for record in records:
+                    results.append({
+                        "type": "text",
+                        "message": format_project_details(record),
+                        "data": {}
+                    })
         
-        # Process the message
-        start_time = time.time()
-        
-        # Initialize the SQL chain
-        sql_chain = LangChainSQLIntegration()
-        
-        # Run the query and await the response
-        response = await sql_chain.process_query(user_message)
-        
-        # Calculate query time
-        query_time = time.time() - start_time
-        
-        # Ensure response has the correct structure
-        if not isinstance(response, dict):
-            response = {
-                "results": [{
-                    "type": "text",
-                    "message": str(response),
-                    "data": {}
-                }],
-                "metadata": {
-                    "total_results": 1,
-                    "query_time": f"{query_time:.2f}s",
-                    "sql_query": ""
-                }
-            }
-        elif "metadata" not in response:
-            response["metadata"] = {
-                "total_results": len(response.get("results", [])),
-                "query_time": f"{query_time:.2f}s",
-                "sql_query": ""
-            }
-        else:
-            response["metadata"]["query_time"] = f"{query_time:.2f}s"
-        
-        # Return the response
         return JSONResponse(
-            content=response,
+            content={
+                "results": results,
+                "metadata": {
+                    "total_results": len(records) if records else 0,
+                    "query_time": query_time,
+                    "sql_query": sql_query
+                }
+            },
             headers={
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "POST, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type"
             }
         )
-    
+        
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}")
         logger.error(traceback.format_exc())

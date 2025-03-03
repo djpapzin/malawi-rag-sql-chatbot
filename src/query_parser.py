@@ -1,5 +1,76 @@
 import re
 from typing import Optional
+from difflib import get_close_matches
+
+# Complete list of Malawi districts
+MALAWI_DISTRICTS = [
+    'Balaka', 'Blantyre', 'Chikwawa', 'Chiradzulu', 'Chitipa', 'Dedza', 
+    'Dowa', 'Karonga', 'Kasungu', 'Likoma', 'Lilongwe', 'Machinga', 
+    'Mangochi', 'Mchinji', 'Mulanje', 'Mwanza', 'Mzimba', 'Neno', 
+    'Nkhata Bay', 'Nkhotakota', 'Nsanje', 'Ntcheu', 'Ntchisi', 'Phalombe', 
+    'Rumphi', 'Salima', 'Thyolo', 'Zomba'
+]
+
+# Common variations and typos in district names
+DISTRICT_VARIATIONS = {
+    "nkhatabay": "Nkhata Bay",
+    "nkata bay": "Nkhata Bay",
+    "nkhotacota": "Nkhotakota",
+    "lilongway": "Lilongwe",
+    "blantire": "Blantyre",
+    "blantrye": "Blantyre",
+    "zomba city": "Zomba",
+    "mzuzu": "Mzimba",  # Mzuzu is in Mzimba district
+}
+
+def extract_district_from_query(query: str) -> Optional[str]:
+    """Extract district name from a query using enhanced pattern matching."""
+    query = query.lower().strip()
+    
+    # Expanded patterns for district queries
+    district_patterns = [
+        r'(?:projects|list).* (?:in|located in|based in|for) ([A-Za-z\s\-]+?)(?: district)?(?:\s|$|\.|\?)',
+        r'([A-Za-z\s\-]+?) (?:district|region).* projects',
+        r'show (?:me|all|the) projects.* (?:in|for|at) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
+        r'which projects are (?:in|located in|based in) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
+        r'what projects are (?:in|located in|being implemented in) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
+        r'tell me about ([A-Za-z\s\-]+?) (?:district)? projects',
+        r'projects (?:in|from|of) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
+        r'([A-Za-z\s\-]+?) projects',
+        r'(?:all)? projects (?:in|for) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
+        r'(?:infrastructure|development) (?:in|for|at) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
+    ]
+    
+    # Try each pattern
+    for pattern in district_patterns:
+        match = re.search(pattern, query)
+        if match:
+            district_name = match.group(1).strip()
+            return clean_district_name(district_name)
+    
+    # If no match found through patterns, check for direct district mentions
+    for district in MALAWI_DISTRICTS:
+        if district.lower() in query:
+            return district
+    
+    return None
+
+def clean_district_name(district_name: str) -> str:
+    """Clean and normalize a district name."""
+    district_name = district_name.strip().title()
+    normalized_key = district_name.lower().replace(" ", "")
+    if normalized_key in DISTRICT_VARIATIONS:
+        return DISTRICT_VARIATIONS[normalized_key]
+    return district_name
+
+def validate_district(district_name: str) -> Optional[str]:
+    """Validate a district name against the list of known districts."""
+    if district_name in MALAWI_DISTRICTS:
+        return district_name
+    matches = get_close_matches(district_name, MALAWI_DISTRICTS, n=1, cutoff=0.7)
+    if matches:
+        return matches[0]
+    return None
 
 def parse_query(query: str) -> dict:
     """Parse the input query and return the appropriate SQL query components."""
@@ -15,6 +86,13 @@ def parse_query(query: str) -> dict:
     
     conditions = []
     order_by = []
+    
+    # Check for district first
+    district_name = extract_district_from_query(query)
+    if district_name:
+        validated_district = validate_district(district_name)
+        if validated_district:
+            conditions.append(f"LOWER(DISTRICT) LIKE '%{validated_district.lower()}%'")
     
     # Determine query type and select appropriate columns
     if re.search(r'\b(progress|status)\b', query, re.IGNORECASE):
@@ -76,65 +154,16 @@ def parse_query(query: str) -> dict:
         conditions.append(f"UPPER(PROJECTCODE) = '{project_code}'")
         order_by.append("1")
     
-    # Expanded patterns for district queries
-    district_patterns = [
-        r'(?:projects|list).* (?:in|located in|based in|for) ([A-Za-z\s\-]+?)(?: district)?(?:\s|$|\.|\?)',
-        r'([A-Za-z\s\-]+?) (?:district|region).* projects',
-        r'show (?:me|all|the) projects.* (?:in|for|at) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
-        r'which projects are (?:in|located in|based in) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
-        r'what projects are (?:in|located in|being implemented in) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
-        r'tell me about ([A-Za-z\s\-]+?) (?:district)? projects',
-        r'projects (?:in|from|of) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
-        r'([A-Za-z\s\-]+?) projects',
-        r'(?:all)? projects (?:in|for) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
-        r'(?:infrastructure|development) (?:in|for|at) ([A-Za-z\s\-]+?)(?:\s|$|\.|\?)',
-    ]
-
-    # Try each pattern
-    for pattern in district_patterns:
-        match = re.search(pattern, query)
-        if match:
-            district_name = match.group(1).strip()
-            return clean_district_name(district_name)
-
-    # If no match found through patterns, check for direct district mentions
-    for district in MALAWI_DISTRICTS:
-        if district.lower() in query:
-            return district
-
-    return None
-
-# Function to clean and normalize district names
-def clean_district_name(district_name: str) -> str:
-    district_name = district_name.strip().title()
-    normalized_key = district_name.lower().replace(" ", "")
-    if normalized_key in DISTRICT_VARIATIONS:
-        return DISTRICT_VARIATIONS[normalized_key]
-    return district_name
-
-# Function to validate district names
-def validate_district(district_name: str) -> Optional[str]:
-    if district_name in MALAWI_DISTRICTS:
-        return district_name
-    matches = get_close_matches(district_name, MALAWI_DISTRICTS, n=1, cutoff=0.7)
-    if matches:
-        return matches[0]
-    return None
-
-# Add district extraction and validation to the parse_query function
-    district_name = extract_district_from_query(query)
-    if district_name:
-        validated_district = validate_district(district_name)
-        if validated_district:
-            conditions.append(f"LOWER(DISTRICT) LIKE '%{validated_district.lower()}%'")
-    
     # Build the final query
     sql_query = base_query
     if conditions:
         sql_query += f" AND ({' OR '.join(conditions)})"
     if order_by:
         sql_query += f" ORDER BY {', '.join(order_by)}"
-        sql_query += " LIMIT 5"  # Only add LIMIT after ORDER BY
+    else:
+        sql_query += " ORDER BY TOTALBUDGET DESC"  # Default ordering
+    
+    sql_query += " LIMIT 10"  # Always limit results
     
     return {
         "query": sql_query,

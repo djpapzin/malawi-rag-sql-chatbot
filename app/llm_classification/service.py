@@ -13,6 +13,38 @@ from .hybrid_classifier import HybridClassifier, QueryClassification, QueryType,
 
 logger = logging.getLogger(__name__)
 
+DISTRICT_CLASSIFICATION_PROMPT = """
+When analyzing queries about districts in Malawi:
+
+1. Location Recognition:
+   - Treat standalone capitalized words as potential district names
+   - Consider both explicit ("Dowa district") and implicit ("in Dowa") references
+   - Handle variations in district name formatting
+
+2. Query Types:
+   - Direct questions: "Which projects are in Dowa?"
+   - Commands: "Show Dowa developments"
+   - Status queries: "What's happening in Dowa?"
+   - Activity focused: "Current works in Dowa"
+
+3. Contextual Terms:
+   - Projects, developments, works, initiatives, activities
+   - Infrastructure, construction, rehabilitation
+   - Current, ongoing, planned, completed
+
+4. Response Format:
+   - Always include district name in the response
+   - List matching projects with their details
+   - Sort by relevance or budget as appropriate
+
+Example Variations:
+- "Which projects are in Dowa?"
+- "Show me Dowa developments"
+- "List projects from Dowa district"
+- "What's happening in Dowa?"
+- "Dowa infrastructure initiatives"
+"""
+
 class QueryClassificationService:
     """
     Service to handle query classification and integration with existing codebase
@@ -21,30 +53,54 @@ class QueryClassificationService:
     def __init__(self):
         """Initialize the classification service"""
         self.classifier = HybridClassifier()
+        self.base_prompt = "Base prompt for classification"
         logger.info("Initialized Query Classification Service")
     
-    async def classify_query(self, query: str) -> QueryClassification:
+    async def classify_query(self, query: str) -> dict:
         """
-        Classify a query using the hybrid classifier
+        Enhanced query classification with improved district detection.
+        """
+        # Add the district classification prompt to the context
+        context = f"{self.base_prompt}\n{DISTRICT_CLASSIFICATION_PROMPT}\n\nQuery: {query}"
         
-        Args:
-            query: The natural language query to classify
-            
-        Returns:
-            QueryClassification object with query type and parameters
-        """
-        return await self.classifier.classify_query(query)
+        # Get district using enhanced fuzzy matching
+        district = extract_district(query)
+        
+        # Adjust classification based on district presence
+        if district:
+            return {
+                "type": "district_query",
+                "parameters": {
+                    "district": district,
+                    "confidence": 0.9 if "district" in query.lower() else 0.8
+                }
+            }
+        
+        # Continue with other classification logic
+        result = await self.classifier.classify_query(query)
+        return result
     
-    def generate_sql_from_classification(self, classification: QueryClassification) -> str:
-        """
-        Generate SQL query based on classification result
+    def generate_sql_from_classification(self, classification: dict) -> str:
+        """Generate SQL query based on classification"""
+        if classification["type"] == "district_query":
+            district = classification["parameters"]["district"]
+            return f"""
+                    SELECT 
+                        projectname as project_name,
+                        fiscalyear as fiscal_year,
+                        district as location,
+                        budget as total_budget,
+                        projectstatus as status,
+                        projectsector as project_sector
+                    FROM 
+                        proj_dashboard 
+                    WHERE 
+                        LOWER(district) LIKE '%{district.lower()}%'
+                    ORDER BY 
+                        budget DESC
+                    LIMIT 10;
+                    """
         
-        Args:
-            classification: The query classification result
-            
-        Returns:
-            SQL query string
-        """
         # Base SQL query
         sql = """
         SELECT * FROM proj_dashboard
@@ -208,3 +264,10 @@ class QueryClassificationService:
             explanation = "I'm not sure what you're asking about. Could you please rephrase your question?"
         
         return explanation
+
+def extract_district(query: str) -> str:
+    """Extract district name from query using regex patterns and fuzzy matching"""
+    from .classifier import LLMClassifier
+    
+    classifier = LLMClassifier()
+    return classifier.extract_district(query)

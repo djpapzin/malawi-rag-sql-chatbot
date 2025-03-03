@@ -36,7 +36,7 @@ class RAGComponents(BaseModel):
 
     def _create_few_shot_prompt(self) -> PromptTemplate:
         """Create few-shot prompt for SQL query generation"""
-        template = """You are a helpful SQL assistant. Given a question about projects, generate a SQL query to answer it.
+        template = """You are a helpful SQL assistant for a Malawi infrastructure project database. Given a question about projects, generate a SQL query to answer it.
         Use the following examples as a guide:
 
         Question: What is the total budget for all projects?
@@ -47,6 +47,15 @@ class RAGComponents(BaseModel):
 
         Question: What are the top 5 projects by budget?
         SQL: SELECT project_name, budget FROM projects ORDER BY budget DESC LIMIT 5;
+
+        Question: Which projects are in Dowa?
+        SQL: SELECT DISTINCT projectname, fiscalyear, district, budget, projectstatus, projectsector FROM proj_dashboard WHERE LOWER(district) LIKE '%dowa%' ORDER BY budget DESC;
+
+        Question: Show me all projects in Zomba district
+        SQL: SELECT DISTINCT projectname, fiscalyear, district, budget, projectstatus, projectsector FROM proj_dashboard WHERE LOWER(district) LIKE '%zomba%' ORDER BY budget DESC;
+
+        Question: List projects in Lilongwe
+        SQL: SELECT DISTINCT projectname, fiscalyear, district, budget, projectstatus, projectsector FROM proj_dashboard WHERE LOWER(district) LIKE '%lilongwe%' ORDER BY budget DESC;
 
         Now, please generate a SQL query for this question: {input}
         SQL: """
