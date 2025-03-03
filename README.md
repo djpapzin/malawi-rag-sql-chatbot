@@ -1,6 +1,6 @@
-# Dwizani - Infrastructure Transparency Chatbot
+# Dziwani - Infrastructure Transparency Chatbot
 
-A specialized chatbot for querying and exploring Malawi's infrastructure projects database. Named "Dwizani" (meaning "what you should know" in Chichewa), this tool provides a natural language interface to access detailed information about infrastructure projects, their status, and related statistics.
+A specialized chatbot for querying and exploring Malawi's infrastructure projects database. Named "Dziwani" (meaning "what you should know" in Chichewa), this tool provides a natural language interface to access detailed information about infrastructure projects, their status, and related statistics.
 
 ## Features
 
@@ -25,7 +25,7 @@ A specialized chatbot for querying and exploring Malawi's infrastructure project
 
 ### Frontend Components
 
-The frontend of Dwizani uses a lightweight, server-side rendered approach:
+The frontend of Dziwani uses a lightweight, server-side rendered approach:
 
 - **Technology Stack**:
   - HTML with Jinja2 Templates
@@ -536,4 +536,3 @@ Server logs are available in:
 You can test if the API is working correctly using:
 ```bash
 curl -X POST http://154.0.164.254:5000/api/chat -H "Content-Type: application/json" -d '{"message":"What health projects are in Machinga?"}'
-```
