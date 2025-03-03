@@ -11,6 +11,9 @@ import os
 import json
 import sqlite3
 import pandas as pd
+# Import the new LLM classification module
+from ..llm_classification.service import QueryClassificationService
+from ..llm_classification.classifier import QueryType
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +109,9 @@ class LangChainSQLIntegration:
             
             # Initialize database manager
             self.db_manager = DatabaseManager()
+            
+            # Initialize the query classification service
+            self.query_classifier = QueryClassificationService()
             
             # Test the API connection
             models = self.client.models.list()
@@ -387,363 +393,6 @@ Just ask me what you'd like to know about these projects!"""
                 valid_districts = ['Dowa', 'Lilongwe', 'Mwanza', 'Karonga']  # Add full list
                 if district_name not in valid_districts:
                     return "", "district_query"
-                
-                sql_query = f"""
-                SELECT 
-                    projectname as project_name,
-                    fiscalyear as fiscal_year,
-                    district as location,
-                    budget as total_budget,
-                    projectstatus as status,
-                    projectsector as project_sector
-                FROM 
-                    proj_dashboard 
-                WHERE 
-                    LOWER(district) = LOWER('{district_name}')
-                ORDER BY 
-                    budget DESC
-                LIMIT 10;
-                """
-                return sql_query.strip(), "district_query"
-            
-            # Check if this is a specific project query
-            project_name_match = re.search(r'(?:about|tell me about|information on|details of|details about)(?: the)? ([a-zA-Z0-9\s\-]+?)(?:\s+project|\s*$)', user_query.lower())
-            if project_name_match:
-                project_name = project_name_match.group(1).strip()
-                sql_query = f"""
-                SELECT 
-                    projectname as project_name,
-                    fiscalyear as fiscal_year,
-                    district as location,
-                    budget as total_budget,
-                    projectstatus as status,
-                    projectsector as project_sector
-                FROM 
-                    proj_dashboard 
-                WHERE 
-                    LOWER(projectname) LIKE '%{project_name}%'
-                LIMIT 1;
-                """
-                return sql_query.strip(), "project_query"
-            
-            # Default to a general query
-            sql_query = """
-            SELECT 
-                projectname as project_name,
-                fiscalyear as fiscal_year,
-                district as location,
-                budget as total_budget,
-                projectstatus as status,
-                projectsector as project_sector
-            FROM 
-                proj_dashboard 
-            ORDER BY 
-                budget DESC
-            LIMIT 10;
-            """
-            return sql_query.strip(), "general"
-            
-        except Exception as e:
-            logger.error(f"Error generating SQL query: {str(e)}")
-            raise SQLQueryError(f"Failed to generate SQL query: {str(e)}")
-
-    async def execute_query(self, query: str) -> List[Dict[str, Any]]:
-        """Execute a SQL query and return results as a list of dictionaries"""
-        try:
-            with self.db_manager.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query)
-                columns = [desc[0] for desc in cursor.description]
-                results = []
-                for row in cursor.fetchall():
-                    result = {}
-                    for i, value in enumerate(row):
-                        result[columns[i]] = value
-                    results.append(result)
-                return results
-        except Exception as e:
-            logger.error(f"Error executing query: {str(e)}")
-            logger.error(f"Query was: {query}")
-            raise SQLQueryError(f"Database error: {str(e)}", query, "execution")
-
-    async def get_answer(self, user_query: str) -> Dict[str, Any]:
-        """Get answer for user query"""
-        try:
-            # First, detect query intent
-            intent_prompt = """You are an expert at understanding user intent for a Malawi infrastructure projects database. The database contains ONLY the following information:
-            - Project names and locations (districts)
-            - Project sectors (Infrastructure, Education, etc.)
-            - Project status (Active, Completed, etc.)
-            - Project budgets and completion percentages
-            - Project start and completion dates
-
-            Given this user query, determine if it is:
-            1. A GREETING (e.g., hello, hi, hey)
-            2. A GENERAL QUESTION about what the system can do
-            3. A SPECIFIC QUESTION about projects that needs SQL (ONLY if it asks about data we actually have)
-            4. OTHER (if it asks about data we don't have, like ages, names of people, etc.)
-            
-            Respond with just one word: GREETING, GENERAL, SQL, or OTHER.
-            
-            User query: {query}"""
-            
-            # First try LLM-based intent detection
-            intent = await self._get_llm_response(intent_prompt.format(query=user_query)).strip().upper()
-            logger.info(f"LLM detected intent: {intent} for query: {user_query}")
-            
-            # If no clear intent, try pattern matching
-            if intent not in ["GREETING", "GENERAL", "SQL", "OTHER"]:
-                if re.search(r'\b(hi|hello|hey|greetings|howdy)\b', user_query.lower()):
-                    intent = "GREETING"
-                elif re.search(r'\b(what|how|tell me about|explain|help|can you|able to)\b', user_query.lower()):
-                    intent = "GENERAL"
-                else:
-                    intent = "OTHER"
-                logger.info(f"Pattern matching detected intent: {intent}")
-            
-            # Handle greetings
-            if intent == "GREETING":
-                greeting_response = await get_greeting_response()
-                return greeting_response
-                
-            # Handle general questions about system capabilities
-            if intent == "GENERAL":
-                capabilities_prompt = """You are a helpful assistant for a Malawi infrastructure projects database. The user wants to know what kind of information they can query. Explain the following capabilities:
-                
-                1. Project Information:
-                   - Search by project name or district
-                   - View project sectors and status
-                   - Check completion percentages
-                   
-                2. Financial Data:
-                   - Query project budgets
-                   - Get total budgets by district/sector
-                   - Compare project costs
-                   
-                3. Status and Progress:
-                   - Find active/completed projects
-                   - Check project timelines
-                   - View completion rates
-                   
-                4. Analytics:
-                   - Get project counts by district
-                   - Calculate average budgets
-                   - Find largest/smallest projects
-                
-                The user asked: {query}
-                Provide a helpful response about these capabilities.""".format(query=user_query)
-                
-                response = await self._get_llm_response(capabilities_prompt)
-                return {
-                    "response": {
-                        "query_type": "chat",
-                        "results": [{"type": "help", "message": response}],
-                        "metadata": {
-                            "total_results": 1,
-                            "query_time": "0.1s",
-                            "sql_query": ""
-                        }
-                    }
-                }
-            
-            # Handle SQL queries
-            if intent == "SQL":
-                try:
-                    # Generate and execute SQL query
-                    sql_query, query_type = await self.generate_sql_query(user_query)
-                    logger.info(f"Generated SQL query: {sql_query}")
-                    
-                    with self.db_manager.get_connection() as conn:
-                        cursor = conn.cursor()
-                        cursor.execute(sql_query)
-                        results = [dict(row) for row in cursor.fetchall()]
-                        
-                    # Get a natural language explanation of the results
-                    explanation_prompt = f"""You are a helpful assistant for Malawi infrastructure projects. 
-                    The user asked: "{user_query}"
-                    The query returned {len(results)} results.
-                    
-                    First result: {str(results[0]) if results else 'No results'}
-                    
-                    Provide a brief, natural language explanation of these results."""
-                    
-                    explanation = await self._get_llm_response(explanation_prompt)
-                    
-                    return {
-                        "response": {
-                            "query_type": query_type,
-                            "results": results,
-                            "explanation": explanation,
-                            "metadata": {
-                                "total_results": len(results),
-                                "query_time": "0.1s",
-                                "sql_query": sql_query
-                            }
-                        }
-                    }
-                except Exception as e:
-                    logger.error(f"SQL generation/execution failed: {str(e)}")
-                    raise
-            
-            # Handle other types of queries
-            response = await self._get_llm_response(
-                f"""You are a helpful assistant for Malawi infrastructure projects database. 
-                The user asked: "{user_query}"
-                This seems to be an unsupported type of query. Explain what kinds of questions they can ask instead, focusing on:
-                - Project information (names, locations, sectors)
-                - Financial data (budgets, costs)
-                - Status updates (completion %, timelines)
-                - Statistics and analytics
-                
-                Provide a helpful response."""
-            )
-            
-            return {
-                "response": {
-                    "query_type": "chat",
-                    "results": [{"type": "other", "message": response}],
-                    "metadata": {
-                        "total_results": 1,
-                        "query_time": "0.1s",
-                        "sql_query": ""
-                    }
-                }
-            }
-                
-        except Exception as e:
-            logger.error(f"Error getting answer: {str(e)}")
-            logger.error(traceback.format_exc())
-            raise ValueError(f"Failed to get answer: {str(e)}")
-
-    async def process_query(self, user_query: str) -> Dict[str, Any]:
-        """Process a natural language query"""
-        try:
-            # Check if it's a greeting
-            if self._is_greeting_or_general(user_query):
-                return {
-                    "results": [{
-                        "type": "text",
-                        "message": await get_greeting_response(),
-                        "data": {}
-                    }],
-                    "metadata": {
-                        "total_results": 1,
-                        "query_time": "0.00s",
-                        "sql_query": ""
-                    }
-                }
-
-            # Start timing
-            start_time = time.time()
-            
-            # Check for health sector query
-            if re.search(r'(?:health sector|healthcare|health projects)', user_query.lower()):
-                # Special query for health sector projects
-                sql_query = """
-                SELECT 
-                    projectname as project_name,
-                    fiscalyear as fiscal_year,
-                    district as location,
-                    budget as total_budget,
-                    projectstatus as status,
-                    projectsector as project_sector
-                FROM 
-                    proj_dashboard 
-                WHERE 
-                    LOWER(projectsector) LIKE '%health%' OR LOWER(projectsector) LIKE '%medical%' OR LOWER(projectsector) LIKE '%hospital%'
-                ORDER BY 
-                    budget DESC
-                LIMIT 10;
-                """
-                query_type = "health_sector"
-                
-                try:
-                    # Execute the query
-                    results = await self.execute_query(sql_query)
-                    query_time = time.time() - start_time
-                    
-                    # Format the results as a list of projects with fields and values
-                    formatted_results = []
-                    
-                    # Add introduction text
-                    formatted_results.append({
-                        "type": "text",
-                        "message": f"Found {len(results)} health sector projects:",
-                        "data": {}
-                    })
-                    
-                    # Add each project as a separate text message
-                    for i, project in enumerate(results):
-                        project_message = f"Project {i+1}:\n"
-                        project_message += f"Name of project: {project.get('project_name', 'Unknown')}\n"
-                        project_message += f"Fiscal year: {project.get('fiscal_year', 'Unknown')}\n"
-                        project_message += f"Location: {project.get('location', 'Unknown')}\n"
-                        project_message += f"Budget: MWK {float(project.get('total_budget', 0)):,.2f}\n"
-                        project_message += f"Status: {project.get('status', 'Unknown')}\n"
-                        project_message += f"Project Sector: {project.get('project_sector', 'Unknown')}"
-                        
-                        formatted_results.append({
-                            "type": "text",
-                            "message": project_message,
-                            "data": {}
-                        })
-                    
-                    return {
-                        "results": formatted_results,
-                        "metadata": {
-                            "total_results": len(results),
-                            "query_time": f"{query_time:.2f}s",
-                            "sql_query": sql_query
-                        }
-                    }
-                except Exception as e:
-                    logger.error(f"Error executing health sector query: {str(e)}")
-                    return {
-                        "results": [{
-                            "type": "error",
-                            "message": f"Error executing health sector query: {str(e)}",
-                            "data": {}
-                        }],
-                        "metadata": {
-                            "total_results": 0,
-                            "query_time": f"{time.time() - start_time:.2f}s",
-                            "sql_query": sql_query
-                        }
-                    }
-            
-            # Check for district queries with multiple patterns
-            district_patterns = [
-                r'(?:projects|list).* (?:in|located in|based in|for) (\w+)(?: district)?',
-                r'(\w+) (?:district|region).* projects',
-                r'show (?:me|all) projects.* (\w+)'
-            ]
-            
-            district_name = None
-            for pattern in district_patterns:
-                match = re.search(pattern, user_query.lower())
-                if match:
-                    # Extract district name from different capture groups
-                    district_name = next((g for g in match.groups() if g is not None), None)
-                    if district_name:
-                        district_name = district_name.strip().title()
-                        break
-            
-            if district_name:
-                # Validate against known districts
-                valid_districts = ['Dowa', 'Lilongwe', 'Mwanza', 'Karonga']  # Add full list
-                if district_name not in valid_districts:
-                    return {
-                        "results": [{
-                            "type": "error",
-                            "message": f"'{district_name}' is not a recognized district. Valid options: {', '.join(valid_districts)}",
-                            "data": {}
-                        }],
-                        "metadata": {
-                            "total_results": 0,
-                            "query_time": f"{time.time() - start_time:.2f}s",
-                            "sql_query": ""
-                        }
-                    }
                 
                 sql_query = f"""
                 SELECT 
@@ -1096,7 +745,7 @@ Just ask me what you'd like to know about these projects!"""
                 5. DO NOT include any code, function definitions, or Python syntax in your response
                 6. Respond in plain natural language only
                 
-                Provide a natural language explanation of these results."""
+                Provide a brief, natural language explanation of these results."""
                 
                 response = await self._get_llm_response(explanation_prompt)
                 
@@ -1210,6 +859,394 @@ Just ask me what you'd like to know about these projects!"""
                 }
             }
 
+    async def execute_query(self, query: str) -> List[Dict[str, Any]]:
+        """Execute a SQL query and return results as a list of dictionaries"""
+        try:
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                columns = [desc[0] for desc in cursor.description]
+                results = []
+                for row in cursor.fetchall():
+                    result = {}
+                    for i, value in enumerate(row):
+                        result[columns[i]] = value
+                    results.append(result)
+                return results
+        except Exception as e:
+            logger.error(f"Error executing query: {str(e)}")
+            logger.error(f"Query was: {query}")
+            raise SQLQueryError(f"Database error: {str(e)}", query, "execution")
+
+    async def get_answer(self, user_query: str) -> Dict[str, Any]:
+        """Get answer for user query"""
+        try:
+            # First, detect query intent
+            intent_prompt = """You are an expert at understanding user intent for a Malawi infrastructure projects database. The database contains ONLY the following information:
+            - Project names and locations (districts)
+            - Project sectors (Infrastructure, Education, etc.)
+            - Project status (Active, Completed, etc.)
+            - Project budgets and completion percentages
+            - Project start and completion dates
+
+            Given this user query, determine if it is:
+            1. A GREETING (e.g., hello, hi, hey)
+            2. A GENERAL QUESTION about what the system can do
+            3. A SPECIFIC QUESTION about projects that needs SQL (ONLY if it asks about data we actually have)
+            4. OTHER (if it asks about data we don't have, like ages, names of people, etc.)
+            
+            Respond with just one word: GREETING, GENERAL, SQL, or OTHER.
+            
+            User query: {query}"""
+            
+            # First try LLM-based intent detection
+            intent = await self._get_llm_response(intent_prompt.format(query=user_query)).strip().upper()
+            logger.info(f"LLM detected intent: {intent} for query: {user_query}")
+            
+            # If no clear intent, try pattern matching
+            if intent not in ["GREETING", "GENERAL", "SQL", "OTHER"]:
+                if re.search(r'\b(hi|hello|hey|greetings|howdy)\b', user_query.lower()):
+                    intent = "GREETING"
+                elif re.search(r'\b(what|how|tell me about|explain|help|can you|able to)\b', user_query.lower()):
+                    intent = "GENERAL"
+                else:
+                    intent = "OTHER"
+                logger.info(f"Pattern matching detected intent: {intent}")
+            
+            # Handle greetings
+            if intent == "GREETING":
+                greeting_response = await get_greeting_response()
+                return greeting_response
+                
+            # Handle general questions about system capabilities
+            if intent == "GENERAL":
+                capabilities_prompt = """You are a helpful assistant for a Malawi infrastructure projects database. The user wants to know what kind of information they can query. Explain the following capabilities:
+                
+                1. Project Information:
+                   - Search by project name or district
+                   - View project sectors and status
+                   - Check completion percentages
+                   
+                2. Financial Information:
+                   - Query project budgets
+                   - Get total budgets by district/sector
+                   - Compare project costs
+                   
+                3. Status and Progress:
+                   - Find active/completed projects
+                   - Check project timelines
+                   - View completion rates
+                   
+                4. Analytics:
+                   - Get project counts by district
+                   - Calculate average budgets
+                   - Find largest/smallest projects
+                
+                The user asked: {query}
+                Provide a helpful response about these capabilities.""".format(query=user_query)
+                
+                response = await self._get_llm_response(capabilities_prompt)
+                return {
+                    "response": {
+                        "query_type": "chat",
+                        "results": [{"type": "help", "message": response}],
+                        "metadata": {
+                            "total_results": 1,
+                            "query_time": "0.1s",
+                            "sql_query": ""
+                        }
+                    }
+                }
+            
+            # Handle SQL queries
+            if intent == "SQL":
+                try:
+                    # Generate and execute SQL query
+                    sql_query, query_type = await self.generate_sql_query(user_query)
+                    logger.info(f"Generated SQL query: {sql_query}")
+                    
+                    with self.db_manager.get_connection() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(sql_query)
+                        results = [dict(row) for row in cursor.fetchall()]
+                        
+                    # Get a natural language explanation of the results
+                    explanation_prompt = f"""You are a helpful assistant for Malawi infrastructure projects. 
+                    The user asked: "{user_query}"
+                    The query returned {len(results)} results.
+                    
+                    First result: {str(results[0]) if results else 'No results'}
+                    
+                    Provide a brief, natural language explanation of these results."""
+                    
+                    explanation = await self._get_llm_response(explanation_prompt)
+                    
+                    return {
+                        "response": {
+                            "query_type": query_type,
+                            "results": results,
+                            "explanation": explanation,
+                            "metadata": {
+                                "total_results": len(results),
+                                "query_time": "0.1s",
+                                "sql_query": sql_query
+                            }
+                        }
+                    }
+                except Exception as e:
+                    logger.error(f"SQL generation/execution failed: {str(e)}")
+                    raise
+            
+            # Handle other types of queries
+            response = await self._get_llm_response(
+                f"""You are a helpful assistant for Malawi infrastructure projects database. 
+                The user asked: "{user_query}"
+                This seems to be an unsupported type of query. Explain what kinds of questions they can ask instead, focusing on:
+                - Project information (names, locations, sectors)
+                - Financial data (budgets, costs)
+                - Status updates (completion %, timelines)
+                - Statistics and analytics
+                
+                Provide a helpful response."""
+            )
+            
+            return {
+                "response": {
+                    "query_type": "chat",
+                    "results": [{"type": "other", "message": response}],
+                    "metadata": {
+                        "total_results": 1,
+                        "query_time": "0.1s",
+                        "sql_query": ""
+                    }
+                }
+            }
+                
+        except Exception as e:
+            logger.error(f"Error getting answer: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise ValueError(f"Failed to get answer: {str(e)}")
+
+    async def process_query(self, user_query: str) -> Dict[str, Any]:
+        """Process a natural language query using the hybrid LLM classifier"""
+        try:
+            # Check if it's a greeting
+            if self._is_greeting_or_general(user_query):
+                return {
+                    "results": [{
+                        "type": "text",
+                        "message": await get_greeting_response(),
+                        "data": {}
+                    }],
+                    "metadata": {
+                        "total_results": 1,
+                        "query_time": "0.00s",
+                        "sql_query": ""
+                    }
+                }
+
+            # Start timing
+            start_time = time.time()
+            
+            # Use the LLM classifier to classify the query
+            logger.info(f"Classifying query with LLM: {user_query}")
+            classification = await self.query_classifier.classify_query(user_query)
+            logger.info(f"Query classified as {classification.query_type} with confidence {classification.confidence}")
+            logger.info(f"Extracted parameters: {classification.parameters}")
+            
+            # Generate SQL query based on classification
+            sql_query = self.query_classifier.generate_sql_from_classification(classification)
+            explanation = self.query_classifier.generate_explanation_from_classification(classification)
+            
+            # Special handling for specific query types
+            if classification.query_type == QueryType.PROJECT and classification.parameters.projects:
+                # For project-specific queries, limit to 1 result
+                project_name = classification.parameters.projects[0]
+                sql_query = f"""
+                SELECT 
+                    projectname as project_name,
+                    fiscalyear as fiscal_year,
+                    district as location,
+                    budget as total_budget,
+                    projectstatus as status,
+                    projectsector as project_sector
+                FROM 
+                    proj_dashboard 
+                WHERE 
+                    LOWER(projectname) LIKE '%{project_name.lower()}%'
+                LIMIT 1;
+                """
+                
+                try:
+                    # Execute the query
+                    results = await self.execute_query(sql_query)
+                    query_time = time.time() - start_time
+                    
+                    if not results:
+                        return {
+                            "results": [{
+                                "type": "text",
+                                "message": f"I couldn't find any project matching '{project_name}'. Please check the project name and try again.",
+                                "data": {}
+                            }],
+                            "metadata": {
+                                "total_results": 0,
+                                "query_time": f"{query_time:.2f}s",
+                                "sql_query": sql_query
+                            }
+                        }
+                    
+                    # Format the results for a specific project
+                    project = results[0]
+                    
+                    # Format the budget as currency
+                    budget_value = project.get('total_budget', 0)
+                    if budget_value:
+                        try:
+                            formatted_budget = f"MWK {float(budget_value):,.2f}"
+                        except (ValueError, TypeError):
+                            formatted_budget = f"MWK {budget_value}"
+                    else:
+                        formatted_budget = "Unknown"
+                    
+                    # Create a formatted project object
+                    formatted_project = {
+                        "Name of project": project.get("project_name", "Unknown"),
+                        "Fiscal year": project.get("fiscal_year", "Unknown"),
+                        "Location": project.get("location", "Unknown"),
+                        "Budget": formatted_budget,
+                        "Status": project.get("status", "Unknown"),
+                        "Project Sector": project.get("project_sector", "Unknown")
+                    }
+                    
+                    return {
+                        "results": [{
+                            "type": "text",
+                            "message": explanation,
+                            "data": {}
+                        }, {
+                            "type": "project_details",
+                            "message": "Project Details",
+                            "data": {
+                                "project": formatted_project
+                            }
+                        }],
+                        "metadata": {
+                            "total_results": 1,
+                            "query_time": f"{query_time:.2f}s",
+                            "sql_query": sql_query
+                        }
+                    }
+                except Exception as e:
+                    logger.error(f"Error executing project query: {str(e)}")
+                    return {
+                        "results": [{
+                            "type": "error",
+                            "message": f"Error executing project query: {str(e)}",
+                            "data": {}
+                        }],
+                        "metadata": {
+                            "total_results": 0,
+                            "query_time": f"{time.time() - start_time:.2f}s",
+                            "sql_query": sql_query
+                        }
+                    }
+            
+            # Execute query for all other query types
+            try:
+                results = await self.execute_query(sql_query)
+                query_time = time.time() - start_time
+                
+                # Format the results as a list of projects with fields and values
+                formatted_results = []
+                
+                # Add introduction text with the explanation from the classifier
+                formatted_results.append({
+                    "type": "text",
+                    "message": f"{explanation} Found {len(results)} results.",
+                    "data": {}
+                })
+                
+                # Add each project as a separate text message
+                for i, project in enumerate(results):
+                    if i >= 10:  # Limit to 10 results for display
+                        formatted_results.append({
+                            "type": "text",
+                            "message": f"... and {len(results) - 10} more results.",
+                            "data": {}
+                        })
+                        break
+                        
+                    project_message = f"Project {i+1}:\n"
+                    project_message += f"Name of project: {project.get('project_name', 'Unknown')}\n"
+                    project_message += f"Fiscal year: {project.get('fiscal_year', 'Unknown')}\n"
+                    project_message += f"Location: {project.get('location', 'Unknown')}\n"
+                    
+                    # Format the budget as currency
+                    budget_value = project.get('total_budget', 0)
+                    if budget_value:
+                        try:
+                            formatted_budget = f"MWK {float(budget_value):,.2f}"
+                        except (ValueError, TypeError):
+                            formatted_budget = f"MWK {budget_value}"
+                    else:
+                        formatted_budget = "Unknown"
+                        
+                    project_message += f"Budget: {formatted_budget}\n"
+                    project_message += f"Status: {project.get('status', 'Unknown')}\n"
+                    project_message += f"Project Sector: {project.get('project_sector', 'Unknown')}"
+                    
+                    formatted_results.append({
+                        "type": "text",
+                        "message": project_message,
+                        "data": {}
+                    })
+                
+                return {
+                    "results": formatted_results,
+                    "metadata": {
+                        "total_results": len(results),
+                        "query_time": f"{query_time:.2f}s",
+                        "sql_query": sql_query,
+                        "classification": {
+                            "query_type": classification.query_type.value,
+                            "confidence": classification.confidence,
+                            "processing_time": classification.processing_time
+                        }
+                    }
+                }
+                
+            except Exception as e:
+                logger.error(f"Query execution error: {str(e)}")
+                return {
+                    "results": [{
+                        "type": "error",
+                        "message": f"Error executing query: {str(e)}",
+                        "data": {}
+                    }],
+                    "metadata": {
+                        "total_results": 0,
+                        "query_time": f"{time.time() - start_time:.2f}s",
+                        "sql_query": sql_query
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(f"Error in process_query: {str(e)}")
+            logger.error(traceback.format_exc())
+            return {
+                "results": [{
+                    "type": "error",
+                    "message": f"An unexpected error occurred: {str(e)}",
+                    "data": {}
+                }],
+                "metadata": {
+                    "total_results": 0,
+                    "query_time": "0.0s",
+                    "error": str(e)
+                }
+            }
+
     async def execute_query_from_natural_language(self, user_query: str) -> Dict[str, Any]:
         """Execute a query from natural language and return results"""
         try:
@@ -1254,7 +1291,6 @@ Just ask me what you'd like to know about these projects!"""
             try:
                 results = await self.execute_query(sql_query)
                 query_time = time.time() - start_time
-                logger.info(f"Query executed in {query_time:.2f}s, found {len(results)} results")
                 
                 # Format response using the format_response function
                 return await self.format_response(results, sql_query, query_time, user_query, query_type)
@@ -1486,7 +1522,6 @@ Example queries:
         except Exception as e:
             logger.error(f"Error transforming SQL query: {str(e)}")
             logger.error(f"Query: {sql_query}")
-            logger.error(traceback.format_exc())
             return ""
             
     def _is_greeting_or_general(self, query: str) -> bool:
