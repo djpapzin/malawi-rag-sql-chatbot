@@ -1,9 +1,8 @@
 # Test Results Report
 
 ## Test Summary
-✅ All tests passed successfully
+✅ Test passed successfully
 - `test_health_sector_query`: PASSED
-- `test_budget_verification`: PASSED
 
 ## Detailed Results
 

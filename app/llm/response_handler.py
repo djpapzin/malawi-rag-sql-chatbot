@@ -65,10 +65,37 @@ class ResponseHandler:
         Returns:
             Formatted response dictionary
         """
+        # Clean up results to remove debugging info
+        cleaned_results = []
+        for result in results:
+            if isinstance(result, dict) and "message" in result:
+                # Remove debugging notes and empty arrays
+                message = result["message"]
+                # Remove content after "Note:" if present
+                if "\nNote:" in message:
+                    message = message.split("\nNote:")[0]
+                # Remove repeated "Hope this helps" messages
+                if "\nHope this helps" in message:
+                    message = message.split("\nHope this helps")[0]
+                # Remove empty arrays
+                message = message.replace("[]", "")
+                # Remove extra whitespace
+                message = "\n".join(line for line in message.split("\n") if line.strip())
+                # Remove quotes if present
+                message = message.strip('"')
+                
+                cleaned_results.append({
+                    "type": result.get("type", "text"),
+                    "message": message,
+                    "data": result.get("data", {})
+                })
+            else:
+                cleaned_results.append(result)
+                
         return {
             "response": {
                 "query_type": query_type,
-                "results": results,
+                "results": cleaned_results,
                 "metadata": metadata
             }
         }

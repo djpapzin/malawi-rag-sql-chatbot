@@ -58,45 +58,71 @@ document.addEventListener('DOMContentLoaded', function() {
             sqlQueryText.textContent = metadata.sql_query;
         }
         
-        // Update metadata
+        // Update query time
         if (queryTime) {
             queryTime.textContent = metadata.query_time || '0s';
         }
+        
+        // Update total results
         if (totalResults) {
             totalResults.textContent = metadata.total_results || '0';
         }
     }
 
-    function toggleQueryDetails() {
-        isQueryDetailsExpanded = !isQueryDetailsExpanded;
-        
-        if (queryDetailsContent) {
-            queryDetailsContent.classList.toggle('expanded', isQueryDetailsExpanded);
-        }
-        
-        if (toggleDetailsBtn) {
+    // Toggle query details panel
+    if (toggleDetailsBtn) {
+        toggleDetailsBtn.addEventListener('click', () => {
+            isQueryDetailsExpanded = !isQueryDetailsExpanded;
+            if (queryDetailsContent) {
+                queryDetailsContent.style.display = isQueryDetailsExpanded ? 'block' : 'none';
+            }
             const toggleIcon = toggleDetailsBtn.querySelector('.toggle-icon');
             if (toggleIcon) {
-                toggleIcon.textContent = isQueryDetailsExpanded ? '▼' : '▲';
+                toggleIcon.textContent = isQueryDetailsExpanded ? '▲' : '▼';
             }
-        }
+        });
     }
 
-    async function sendMessage(e) {
-        if (e) e.preventDefault();
-        if (isLoading) return;
-        
-        const message = chatInput?.value?.trim();
-        if (!message) return;
-        
-        showLoading();
-        
-        // Clear input
-        if (chatInput) chatInput.value = '';
+    // Handle example query clicks
+    const exampleQueries = document.querySelectorAll('.example-query');
+    exampleQueries.forEach(query => {
+        query.addEventListener('click', () => {
+            const queryText = query.textContent;
+            if (chatInput) {
+                chatInput.value = queryText;
+                
+                // Show the chat view
+                if (initialView) initialView.style.display = 'none';
+                if (chatView) chatView.style.display = 'block';
+                
+                // Send the query
+                sendMessage(queryText);
+            }
+        });
+    });
 
-        // Show chat view and hide initial view
-        if (initialView) initialView.style.display = 'none';
-        if (chatView) chatView.style.display = 'block';
+    // Handle form submission
+    if (chatForm) {
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = chatInput.value.trim();
+            if (!message) return;
+            
+            // Show the chat view
+            if (initialView) initialView.style.display = 'none';
+            if (chatView) chatView.style.display = 'block';
+            
+            // Clear input
+            chatInput.value = '';
+            
+            // Send message
+            await sendMessage(message);
+        });
+    }
+
+    async function sendMessage(message) {
+        if (isLoading) return;
+        showLoading();
         
         // Add user message
         appendMessage(message, true);
@@ -127,7 +153,39 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.results && data.results.length > 0) {
                 data.results.forEach(result => {
                     if (result.type === 'text') {
-                        appendMessage(result.message);
+                        // Check if message is a string or an object
+                        if (typeof result.message === 'string') {
+                            appendMessage(result.message);
+                        } else if (result.message && result.message.response) {
+                            // Handle nested response format
+                            const response = result.message.response;
+                            if (response.results && response.results.length > 0) {
+                                response.results.forEach(item => {
+                                    if (item.message) {
+                                        appendMessage(item.message);
+                                    }
+                                });
+                            } else if (typeof response === 'string') {
+                                appendMessage(response);
+                            }
+                        } else if (result.message) {
+                            // Try to extract any message content
+                            const messageContent = extractMessageContent(result.message);
+                            if (messageContent) {
+                                appendMessage(messageContent);
+                            } else {
+                                console.warn('Unrecognized message format:', result.message);
+                                appendMessage("Received a response in an unexpected format.");
+                            }
+                        }
+                    } else if (result.type === 'table') {
+                        appendTable(result.message, result.data);
+                    } else if (result.type === 'list') {
+                        appendList(result.message, result.data);
+                    } else if (result.type === 'project_details') {
+                        appendProjectDetails(result.message, result.data);
+                    } else if (result.type === 'error') {
+                        appendMessage(`Error: ${result.message}`, false, true);
                     }
                 });
             } else {
@@ -136,38 +194,216 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Error:', error);
-            appendMessage(`Sorry, there was an error processing your request. Server error: ${error.message}`);
+            appendMessage(`Sorry, there was an error processing your request. ${error.message}`);
         } finally {
             hideLoading();
         }
     }
 
-    function appendMessage(message, isUser = false) {
+    function extractMessageContent(messageObj) {
+        // Try to extract message content from various possible formats
+        if (typeof messageObj === 'string') {
+            return messageObj;
+        }
+        
+        if (messageObj.message) {
+            return messageObj.message;
+        }
+        
+        if (messageObj.response && typeof messageObj.response === 'string') {
+            return messageObj.response;
+        }
+        
+        if (messageObj.response && messageObj.response.results) {
+            const results = messageObj.response.results;
+            if (Array.isArray(results) && results.length > 0) {
+                const messages = results
+                    .filter(r => r.message)
+                    .map(r => r.message);
+                if (messages.length > 0) {
+                    return messages.join('\n');
+                }
+            }
+        }
+        
+        // If we can't extract a specific message, stringify the object
+        // but limit its size to avoid overwhelming the UI
+        try {
+            const jsonStr = JSON.stringify(messageObj);
+            if (jsonStr.length > 500) {
+                return jsonStr.substring(0, 500) + '... (truncated)';
+            }
+            return jsonStr;
+        } catch (e) {
+            return "Received a complex response that couldn't be displayed.";
+        }
+    }
+
+    function appendMessage(message, isUser = false, isError = false) {
         if (!chatMessages) return;
         
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
-        messageDiv.textContent = message;
-        chatMessages.appendChild(messageDiv);
+        messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'} ${isError ? 'error-message' : ''}`;
         
-        // Scroll to bottom
+        // Check if the message contains HTML-like content
+        if (typeof message === 'string' && (message.includes('<') && message.includes('>'))) {
+            // Create a safe version by escaping HTML
+            const safeMessage = document.createTextNode(message);
+            messageDiv.appendChild(safeMessage);
+        } else {
+            messageDiv.textContent = message;
+        }
+        
+        chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Event Listeners
-    chatForm?.addEventListener('submit', sendMessage);
-    
-    // Add click handlers to guidance tiles
-    const exampleQueries = document.querySelectorAll('.example-query');
-    exampleQueries?.forEach(query => {
-        query.addEventListener('click', () => {
-            if (chatInput) {
-                chatInput.value = query.textContent;
-                chatForm?.dispatchEvent(new Event('submit'));
-            }
+    function appendTable(title, data) {
+        if (!chatMessages || !data || !data.headers || !data.rows) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message table-message';
+        
+        // Add title if provided
+        if (title) {
+            const titleElement = document.createElement('h3');
+            titleElement.className = 'table-title';
+            titleElement.textContent = title;
+            messageDiv.appendChild(titleElement);
+        }
+        
+        // Create table
+        const table = document.createElement('table');
+        table.className = 'data-table';
+        
+        // Create header row
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        data.headers.forEach(header => {
+            const th = document.createElement('th');
+            th.textContent = header;
+            headerRow.appendChild(th);
         });
-    });
+        
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Create table body
+        const tbody = document.createElement('tbody');
+        
+        // Add data rows
+        data.rows.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            data.headers.forEach(header => {
+                const td = document.createElement('td');
+                td.textContent = row[header] || '';
+                tr.appendChild(td);
+            });
+            
+            tbody.appendChild(tr);
+        });
+        
+        table.appendChild(tbody);
+        messageDiv.appendChild(table);
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 
-    // Add click handler for toggle details button
-    toggleDetailsBtn?.addEventListener('click', toggleQueryDetails);
+    function appendList(title, data) {
+        if (!chatMessages || !data || !data.fields || !data.values) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message list-message';
+        
+        // Add title if provided
+        if (title) {
+            const titleElement = document.createElement('h3');
+            titleElement.className = 'list-title';
+            titleElement.textContent = title;
+            messageDiv.appendChild(titleElement);
+        }
+        
+        // Create list for each project
+        data.values.forEach((project, index) => {
+            const projectDiv = document.createElement('div');
+            projectDiv.className = 'project-item';
+            
+            const projectTitle = document.createElement('h4');
+            projectTitle.textContent = `Project ${index + 1}`;
+            projectDiv.appendChild(projectTitle);
+            
+            const detailsList = document.createElement('ul');
+            detailsList.className = 'project-details-list';
+            
+            data.fields.forEach(field => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `<strong>${field}:</strong> ${project[field] || 'Unknown'}`;
+                detailsList.appendChild(listItem);
+            });
+            
+            projectDiv.appendChild(detailsList);
+            messageDiv.appendChild(projectDiv);
+        });
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function appendProjectDetails(title, data) {
+        if (!chatMessages || !data || !data.project) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message project-details-message';
+        
+        // Create the project details container
+        const detailsContainer = document.createElement('div');
+        detailsContainer.className = 'project-details-container';
+        
+        // Add title if provided
+        if (title) {
+            const titleElement = document.createElement('h3');
+            titleElement.className = 'project-details-title';
+            titleElement.textContent = title;
+            detailsContainer.appendChild(titleElement);
+        }
+        
+        // Create the project card
+        const projectCard = document.createElement('div');
+        projectCard.className = 'project-card';
+        
+        // Add project number
+        const projectNumber = document.createElement('h4');
+        projectNumber.className = 'project-number';
+        projectNumber.textContent = 'Project 1';
+        projectCard.appendChild(projectNumber);
+        
+        // Add project details
+        const project = data.project;
+        const fields = Object.keys(project);
+        
+        fields.forEach(field => {
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'project-field';
+            
+            const fieldName = document.createElement('span');
+            fieldName.className = 'field-name';
+            fieldName.textContent = field + ':';
+            
+            const fieldValue = document.createElement('span');
+            fieldValue.className = 'field-value';
+            fieldValue.textContent = project[field] || 'Unknown';
+            
+            fieldDiv.appendChild(fieldName);
+            fieldDiv.appendChild(fieldValue);
+            projectCard.appendChild(fieldDiv);
+        });
+        
+        detailsContainer.appendChild(projectCard);
+        messageDiv.appendChild(detailsContainer);
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 });

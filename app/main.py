@@ -20,6 +20,7 @@ from app.llm.conversation_store import ConversationStore
 import os
 from dotenv import load_dotenv
 import time
+import re
 
 # Load environment variables
 load_dotenv()
@@ -69,7 +70,7 @@ app.add_middleware(
 
 # Initialize components
 db_manager = DatabaseManager()
-langchain_sql = LangChainSQLIntegration()
+sql_chain = LangChainSQLIntegration()
 response_handler = ResponseHandler()
 conversation_store = ConversationStore()
 logger.info("Initialized components")
@@ -110,27 +111,126 @@ async def simplified_health_check():
         "message": "API is running"
     }
 
+@app.post(f"{API_PREFIX}/rag-sql-chatbot/query")
+async def rag_sql_chatbot_query(request: ChatRequest):
+    """
+    Process a natural language query about Malawi infrastructure projects using RAG and SQL.
+    """
+    try:
+        logger.info(f"Received query: {request.message}")
+        
+        # Process the query
+        response = await sql_chain.process_query(request.message)
+        
+        # Check if response has the expected structure
+        if isinstance(response, dict):
+            if "results" in response:
+                # New response format
+                return response
+            elif "response" in response:
+                # Old response format - convert to new format
+                old_response = response["response"]
+                
+                # Extract results and metadata
+                results = old_response.get("results", [])
+                metadata = old_response.get("metadata", {})
+                query_type = old_response.get("query_type", "general")
+                
+                # Format the results for the frontend
+                formatted_results = []
+                
+                if results:
+                    # Add a text result with summary
+                    formatted_results.append({
+                        "type": "text",
+                        "message": f"Found {len(results)} projects matching your query.",
+                        "data": {}
+                    })
+                    
+                    # Add the data as a table
+                    if results and len(results) > 0:
+                        # Get headers from the first result
+                        first_result = results[0]
+                        headers = list(first_result.keys())
+                        
+                        formatted_results.append({
+                            "type": "table",
+                            "message": "Project Details",
+                            "data": {
+                                "headers": headers,
+                                "rows": results
+                            }
+                        })
+                else:
+                    # No results found
+                    formatted_results.append({
+                        "type": "text",
+                        "message": "No projects found matching your criteria.",
+                        "data": {}
+                    })
+                
+                # Return in the new format
+                return {
+                    "results": formatted_results,
+                    "metadata": metadata
+                }
+        
+        # Fallback for unexpected response format
+        logger.warning(f"Unexpected response format: {response}")
+        return {
+            "results": [{
+                "type": "text",
+                "message": "I processed your query but received an unexpected response format.",
+                "data": {}
+            }],
+            "metadata": {
+                "total_results": 0,
+                "query_time": "0.00s"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error processing query: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return {
+            "results": [{
+                "type": "error",
+                "message": f"An error occurred while processing your query: {str(e)}",
+                "data": {}
+            }],
+            "metadata": {
+                "total_results": 0,
+                "query_time": "0.00s"
+            }
+        }
+
 @app.post(f"{API_PREFIX}/rag-sql-chatbot/chat")
 async def chat(request: ChatRequest) -> Dict[str, Any]:
     """Process a chat message and return a response."""
     try:
+        logger.info(f"Processing chat request with message: {request.message}")
+        
         # Process the query and return results directly
-        # The process_query method now returns the exact format expected by tests
-        return await langchain_sql.process_query(request.message)
+        response = await sql_chain.process_query(request.message)
+        return response
         
     except Exception as e:
-        logger.error(f"Error processing chat request: {str(e)}")
-        logger.error(traceback.format_exc())
+        logger.error(f"Error processing chat: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return {
-            "results": [{
-                "type": "error",
-                "message": "I encountered an error processing your request. Please try again.",
-                "data": {"error": str(e)}
-            }],
-            "metadata": {
-                "total_results": 0,
-                "query_time": "0.00s",
-                "sql_query": "",
-                "error": str(e)
+            "response": {
+                "query_type": "error",
+                "results": [],
+                "metadata": {
+                    "error": str(e)
+                }
             }
         }
+
+# Mount the frontend static files
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5000)

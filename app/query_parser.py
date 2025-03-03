@@ -40,28 +40,32 @@ class QueryParser:
         # First try to find quoted project names (both single and double quotes)
         quoted_patterns = [
             r"'([^']+)'",  # Single quotes
-            r'"([^"]+)"'   # Double quotes
+            r'"([^"]+)"',  # Double quotes
+            r"about\s+(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)",
+            r"show\s+(?:me\s+)?(?:the\s+)?(?:details?\s+(?:about|for|of)\s+)?(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)",
+            r"what\s+is\s+(?:the\s+)?(?:status|budget|progress)\s+(?:of|for)\s+(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)",
+            r"tell\s+me\s+about\s+(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)"
         ]
         
         for pattern in quoted_patterns:
-            match = re.search(pattern, text)
+            match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 project_name = match.group(1).strip()
                 # Remove any trailing periods or other punctuation
                 project_name = re.sub(r'[.,;!?]+$', '', project_name)
                 # Remove project/construction keywords if they appear at the end
-                project_name = re.sub(r'\s+(?:project|construction)$', '', project_name, flags=re.IGNORECASE)
+                project_name = re.sub(r'\s+(?:project|construction|building)$', '', project_name, flags=re.IGNORECASE)
+                # Remove common prefixes
+                project_name = re.sub(r'^(?:the|a|an)\s+', '', project_name, flags=re.IGNORECASE)
                 return project_name, True
             
         # Then try to find unquoted project names after specific phrases
         phrases = [
-            r"about\s+(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)",
-            r"show\s+(?:me\s+)?(?:the\s+)?(?:details?\s+(?:about|for|of)\s+)?(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)",
-            r"what\s+is\s+(?:the\s+)?(?:status|budget|progress)\s+(?:of|for)\s+(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)",
             r"about\s+(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)",
             r"show\s+(?:me\s+)?(?:the\s+)?(?:details?\s+(?:about|for|of)\s+)?(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)",
             r"what\s+is\s+(?:the\s+)?(?:status|budget)\s+(?:of|for)\s+(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)",
-            r"tell\s+me\s+about\s+(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)"
+            r"tell\s+me\s+about\s+(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)",
+            r"(?:find|search|locate)\s+(?:for\s+)?(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)"
         ]
         
         for phrase in phrases:
@@ -71,7 +75,9 @@ class QueryParser:
                 # Remove any trailing periods or other punctuation
                 project_name = re.sub(r'[.,;!?]+$', '', project_name)
                 # Remove project/construction keywords if they appear at the end
-                project_name = re.sub(r'\s+(?:project|construction)$', '', project_name, flags=re.IGNORECASE)
+                project_name = re.sub(r'\s+(?:project|construction|building)$', '', project_name, flags=re.IGNORECASE)
+                # Remove common prefixes
+                project_name = re.sub(r'^(?:the|a|an)\s+', '', project_name, flags=re.IGNORECASE)
                 return project_name, False
                 
         return "", False

@@ -305,13 +305,13 @@ h1 {
         background-color: #202124;
     }
 
-    .bot-message {
+    .message.bot {
         background-color: #303134;
         color: #e8eaed;
         border-color: #5f6368;
     }
 
-    .user-message {
+    .message.user {
         background-color: #1a73e8;
         color: #ffffff;
     }
