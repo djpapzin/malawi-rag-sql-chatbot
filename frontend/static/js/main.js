@@ -361,6 +361,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create the project details container
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'project-details-container';
+        detailsContainer.style.display = 'block'; // Force block display for Chrome
+        detailsContainer.style.width = '100%';    // Force width for Chrome
         
         // Add title if provided
         if (title) {
@@ -373,6 +375,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create the project card
         const projectCard = document.createElement('div');
         projectCard.className = 'project-card';
+        projectCard.style.display = 'block'; // Force block display for Chrome
+        projectCard.style.width = '100%';    // Force width for Chrome
         
         // Add project number
         const projectNumber = document.createElement('h4');
@@ -387,14 +391,19 @@ document.addEventListener('DOMContentLoaded', function() {
         fields.forEach(field => {
             const fieldDiv = document.createElement('div');
             fieldDiv.className = 'project-field';
+            fieldDiv.style.display = 'flex';  // Force flex display for Chrome
+            fieldDiv.style.width = '100%';    // Force width for Chrome
             
             const fieldName = document.createElement('span');
             fieldName.className = 'field-name';
             fieldName.textContent = field + ':';
+            fieldName.style.flexShrink = '0';  // Prevent shrinking in Chrome
+            fieldName.style.width = '140px';   // Fixed width for field names
             
             const fieldValue = document.createElement('span');
             fieldValue.className = 'field-value';
             fieldValue.textContent = project[field] || 'Unknown';
+            fieldValue.style.flexGrow = '1';   // Allow growing in Chrome
             
             fieldDiv.appendChild(fieldName);
             fieldDiv.appendChild(fieldValue);
