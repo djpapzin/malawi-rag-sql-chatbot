@@ -50,13 +50,15 @@ run_test() {
   
   # Simple pass/fail determination (can be enhanced)
   if [[ "$result" == *"$expected"* ]]; then
-    status=" PASS"
+    md_status="PASS"
+    csv_status="PASS"
   else
-    status=" FAIL"
+    md_status="FAIL"
+    csv_status="FAIL"
   fi
   
   # Add result to the markdown file
-  echo "| $id | \"$query\" | $expected | $short_result | $status |" >> $RESULTS_FILE
+  echo "| $id | \"$query\" | $expected | $short_result | $md_status |" >> $RESULTS_FILE
   
   # Escape quotes and commas for CSV
   csv_query=$(echo "$query" | sed 's/"/""/g')
@@ -65,7 +67,7 @@ run_test() {
   csv_full_response=$(echo "$result" | sed 's/"/""/g')
   
   # Add result to the CSV file
-  echo "\"$id\",\"$csv_query\",\"$csv_expected\",\"$csv_result\",\"$status\",\"$category\",\"$csv_full_response\"" >> $CSV_RESULTS_FILE
+  echo "\"$id\",\"$csv_query\",\"$csv_expected\",\"$csv_result\",\"$csv_status\",\"$category\",\"$csv_full_response\"" >> $CSV_RESULTS_FILE
   
   # Wait before next test to avoid overwhelming the server
   sleep $DELAY_BETWEEN_TESTS
@@ -124,50 +126,51 @@ run_test "EC04" "What about projects?" "more specific" "EdgeCase"
 
 echo "Testing complete! Results saved to $RESULTS_FILE and $CSV_RESULTS_FILE"
 
-# Generate summary statistics
-total=$(grep -c "^|" $RESULTS_FILE)
-passed=$(grep -c " PASS" $RESULTS_FILE)
-failed=$(grep -c " FAIL" $RESULTS_FILE)
-pass_rate=$(echo "scale=2; $passed / ($total - 1) * 100" | bc)
+# Generate summary statistics from CSV file which is more reliable
+total=$(grep -c "^\"" $CSV_RESULTS_FILE) 
+total=$((total - 1))  # Subtract header row
+passed=$(grep -c "\"PASS\"" $CSV_RESULTS_FILE)
+failed=$((total - passed))
+pass_rate=$(echo "scale=2; $passed / $total * 100" | bc)
 
 # Calculate category-specific statistics
 district_total=$(grep -c "\"District\"" $CSV_RESULTS_FILE)
-district_passed=$(grep "\"District\"" $CSV_RESULTS_FILE | grep -c " PASS")
+district_passed=$(grep "\"District\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
 district_rate=$(echo "scale=2; $district_passed / $district_total * 100" | bc)
 
 project_total=$(grep -c "\"Project\"" $CSV_RESULTS_FILE)
-project_passed=$(grep "\"Project\"" $CSV_RESULTS_FILE | grep -c " PASS")
+project_passed=$(grep "\"Project\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
 project_rate=$(echo "scale=2; $project_passed / $project_total * 100" | bc)
 
 sector_total=$(grep -c "\"Sector\"" $CSV_RESULTS_FILE)
-sector_passed=$(grep "\"Sector\"" $CSV_RESULTS_FILE | grep -c " PASS")
+sector_passed=$(grep "\"Sector\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
 sector_rate=$(echo "scale=2; $sector_passed / $sector_total * 100" | bc)
 
 combined_total=$(grep -c "\"Combined\"" $CSV_RESULTS_FILE)
-combined_passed=$(grep "\"Combined\"" $CSV_RESULTS_FILE | grep -c " PASS")
+combined_passed=$(grep "\"Combined\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
 combined_rate=$(echo "scale=2; $combined_passed / $combined_total * 100" | bc)
 
 budget_total=$(grep -c "\"Budget\"" $CSV_RESULTS_FILE)
-budget_passed=$(grep "\"Budget\"" $CSV_RESULTS_FILE | grep -c " PASS")
+budget_passed=$(grep "\"Budget\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
 budget_rate=$(echo "scale=2; $budget_passed / $budget_total * 100" | bc)
 
 status_total=$(grep -c "\"Status\"" $CSV_RESULTS_FILE)
-status_passed=$(grep "\"Status\"" $CSV_RESULTS_FILE | grep -c " PASS")
+status_passed=$(grep "\"Status\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
 status_rate=$(echo "scale=2; $status_passed / $status_total * 100" | bc)
 
 time_total=$(grep -c "\"Time\"" $CSV_RESULTS_FILE)
-time_passed=$(grep "\"Time\"" $CSV_RESULTS_FILE | grep -c " PASS")
+time_passed=$(grep "\"Time\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
 time_rate=$(echo "scale=2; $time_passed / $time_total * 100" | bc)
 
 edge_total=$(grep -c "\"EdgeCase\"" $CSV_RESULTS_FILE)
-edge_passed=$(grep "\"EdgeCase\"" $CSV_RESULTS_FILE | grep -c " PASS")
+edge_passed=$(grep "\"EdgeCase\"" $CSV_RESULTS_FILE | grep -c "\"PASS\"")
 edge_rate=$(echo "scale=2; $edge_passed / $edge_total * 100" | bc)
 
 # Append summary to results file
 cat >> $RESULTS_FILE << EOL
 
 ## Test Summary
-- Total Tests: $(($total - 1))
+- Total Tests: $total
 - Passed: $passed
 - Failed: $failed
 - Pass Rate: ${pass_rate}%
@@ -188,7 +191,7 @@ Based on the test results, here are some areas that may need improvement:
 EOL
 
 echo "Summary statistics:"
-echo "- Total Tests: $(($total - 1))"
+echo "- Total Tests: $total"
 echo "- Passed: $passed"
 echo "- Failed: $failed"
 echo "- Pass Rate: ${pass_rate}%"
