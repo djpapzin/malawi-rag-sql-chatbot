@@ -97,18 +97,31 @@ class SessionManager:
             # We need to fetch more results
             return None
             
+        # Format the results as table data
+        formatted_results = [{
+            "type": "table",
+            "message": f"Projects (Page {page} of {total_pages})",
+            "data": {
+                "headers": ["Project Name", "District", "Fiscal Year", "Budget", "Status", "Sector"],
+                "rows": page_results
+            }
+        }]
+            
         return {
-            "results": page_results,
+            "results": formatted_results,
             "metadata": {
                 "total_results": total_results,
-                "current_page": page,
-                "total_pages": total_pages,
-                "page_size": page_size,
+                "query_time": "0.00s",
                 "sql_query": session["sql_query"]
             },
             "pagination": {
+                "session_id": session_id,
                 "has_more": page < total_pages,
-                "has_previous": page > 1
+                "has_previous": page > 1,
+                "current_page": page,
+                "total_pages": total_pages,
+                "next_page_command": "next page",
+                "prev_page_command": "previous page"
             }
         }
     

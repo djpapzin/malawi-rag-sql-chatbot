@@ -213,7 +213,7 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
         logger.info(f"Processing chat request with message: {request.message}")
         
         # Check if this is a pagination request
-        session_id = request.session_id if hasattr(request, 'session_id') else None
+        session_id = request.session_id
         is_pagination = False
         page = 1
         
@@ -293,9 +293,11 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
                 response["pagination"] = {
                     "session_id": new_session_id,
                     "has_more": total_results > 10,
+                    "has_previous": False,
                     "current_page": 1,
                     "total_pages": (total_results + 9) // 10,
-                    "next_page_command": "show more"
+                    "next_page_command": "show more",
+                    "prev_page_command": "previous page"
                 }
                 
                 # Limit initial response to 10 results

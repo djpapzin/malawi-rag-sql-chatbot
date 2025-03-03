@@ -139,8 +139,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (initialView) initialView.style.display = 'none';
             if (chatView) chatView.style.display = 'block';
             
-            // Clear input
+            // Clear input - ensure this happens
             chatInput.value = '';
+            
+            // Force focus back to the input
+            setTimeout(() => {
+                chatInput.focus();
+            }, 0);
             
             // Send message
             await sendMessage(message);
@@ -156,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             // Get session ID from the last bot message if it exists
-            const lastBotMessage = chatMessages.querySelector('.bot-message:last-of-type');
+            const lastBotMessage = chatMessages.querySelector('.bot-message-container:last-of-type');
             const sessionId = lastBotMessage?.dataset.sessionId;
             
             const response = await fetch(`/api/rag-sql-chatbot/chat`, {
@@ -174,6 +179,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(`Server error: ${response.status}`);
             }
 
+            // Ensure input is cleared again after API call
+            if (chatInput) {
+                chatInput.value = '';
+            }
+            
             const data = await response.json();
             
             // Update query details panel with metadata
@@ -195,27 +205,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (result.type === 'text') {
                         // Check if message is a string or an object
                         if (typeof result.message === 'string') {
-                            appendMessage(result.message);
+                            appendMessage(result.message, false, false, messageContainer);
                         } else if (result.message && result.message.response) {
                             // Handle nested response format
                             const response = result.message.response;
                             if (response.results && response.results.length > 0) {
                                 response.results.forEach(item => {
                                     if (item.message) {
-                                        appendMessage(item.message);
+                                        appendMessage(item.message, false, false, messageContainer);
                                     }
                                 });
                             } else if (typeof response === 'string') {
-                                appendMessage(response);
+                                appendMessage(response, false, false, messageContainer);
                             }
                         } else if (result.message) {
                             // Try to extract any message content
                             const messageContent = extractMessageContent(result.message);
                             if (messageContent) {
-                                appendMessage(messageContent);
+                                appendMessage(messageContent, false, false, messageContainer);
                             } else {
                                 console.warn('Unrecognized message format:', result.message);
-                                appendMessage("Received a response in an unexpected format.");
+                                appendMessage("Received a response in an unexpected format.", false, false, messageContainer);
                             }
                         }
                     } else if (result.type === 'table') {
@@ -225,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else if (result.type === 'project_details') {
                         appendProjectDetails(result.message, result.data, messageContainer);
                     } else if (result.type === 'error') {
-                        appendMessage(`Error: ${result.message}`, false, true);
+                        appendMessage(`Error: ${result.message}`, false, true, messageContainer);
                     }
                 });
                 
@@ -269,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
             prevButton.textContent = '← Previous';
             prevButton.onclick = () => {
                 if (chatInput && !isLoading) {
-                    chatInput.value = pagination.prev_page_command;
+                    chatInput.value = pagination.prev_page_command || "previous page";
                     chatForm.dispatchEvent(new Event('submit'));
                 }
             };
@@ -282,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
             nextButton.textContent = 'Next →';
             nextButton.onclick = () => {
                 if (chatInput && !isLoading) {
-                    chatInput.value = pagination.next_page_command;
+                    chatInput.value = pagination.next_page_command || "next page";
                     chatForm.dispatchEvent(new Event('submit'));
                 }
             };
@@ -332,39 +342,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function appendMessage(message, isUser = false, isError = false) {
-        if (!chatMessages) return;
+    function appendMessage(message, isUser = false, isError = false, container = null) {
+        if (!chatMessages && !container) return;
         
         const messageDiv = document.createElement('div');
         messageDiv.className = isUser ? 'message user' : 'message bot';
-        
         if (isError) {
             messageDiv.classList.add('error-message');
-        }
-        
-        // Force text color for user messages to ensure visibility
-        if (isUser) {
-            messageDiv.style.backgroundColor = '#1a73e8';
-            messageDiv.style.color = '#ffffff !important';
         }
         
         // Create avatar
         const avatar = document.createElement('div');
         avatar.className = 'avatar';
-        avatar.textContent = isUser ? 'U' : 'D';
+        avatar.innerHTML = isUser ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>';
         
-        // Create message content
+        // Create content
         const content = document.createElement('div');
         content.className = 'message-content';
+        content.style.fontWeight = isUser ? '500' : '400';
+        content.style.color = isUser ? '#ffffff' : (document.body.classList.contains('dark-mode') ? '#e8eaed' : '#202124');
         content.textContent = message;
         
         // Append elements
         messageDiv.appendChild(avatar);
         messageDiv.appendChild(content);
-        chatMessages.appendChild(messageDiv);
         
-        // Scroll to bottom
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        // Append to container or chat messages
+        if (container) {
+            container.appendChild(messageDiv);
+        } else {
+            chatMessages.appendChild(messageDiv);
+        }
+        
+        // Scroll to bottom if appending to chat messages
+        if (!container) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
 
     function appendTable(title, data, container = null) {
@@ -464,69 +477,154 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!chatMessages || !data || !data.project) return;
         
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message bot-message project-details-message';
+        messageDiv.className = 'message bot';
+        
+        // Apply styling based on theme
+        const isDarkMode = document.body.classList.contains('dark-mode');
         
         // Create the project details container
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'project-details-container';
-        detailsContainer.style.display = 'block'; // Force block display for Chrome
-        detailsContainer.style.width = '100%';    // Force width for Chrome
-        detailsContainer.style.backgroundColor = '#f8f9fa !important'; // Force background color
+        detailsContainer.style.display = 'block';
+        detailsContainer.style.width = '100%';
+        detailsContainer.style.backgroundColor = isDarkMode ? '#303134' : '#f8f9fa';
+        detailsContainer.style.color = isDarkMode ? '#e8eaed' : '#202124';
+        detailsContainer.style.borderRadius = '8px';
+        detailsContainer.style.padding = '15px';
+        detailsContainer.style.marginTop = '10px';
         
         // Add title if provided
         if (title) {
             const titleElement = document.createElement('h3');
             titleElement.className = 'project-details-title';
             titleElement.textContent = title;
+            titleElement.style.fontSize = '18px';
+            titleElement.style.fontWeight = 'bold';
+            titleElement.style.marginBottom = '10px';
+            titleElement.style.color = isDarkMode ? '#e8eaed' : '#202124';
             detailsContainer.appendChild(titleElement);
         }
         
         // Create the project card
         const projectCard = document.createElement('div');
         projectCard.className = 'project-card';
-        projectCard.style.display = 'block'; // Force block display for Chrome
-        projectCard.style.width = '100%';    // Force width for Chrome
-        projectCard.style.backgroundColor = '#fff !important'; // Force background color
+        projectCard.style.display = 'block';
+        projectCard.style.width = '100%';
+        projectCard.style.backgroundColor = isDarkMode ? '#3c4043' : '#ffffff';
+        projectCard.style.borderRadius = '6px';
+        projectCard.style.padding = '12px';
+        projectCard.style.boxShadow = isDarkMode ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.1)';
         
-        // Add project number
-        const projectNumber = document.createElement('h4');
-        projectNumber.className = 'project-number';
-        projectNumber.textContent = 'Project 1';
-        projectCard.appendChild(projectNumber);
+        // Add project title instead of number
+        const projectTitle = document.createElement('h4');
+        projectTitle.className = 'project-title';
+        projectTitle.textContent = data.project['Name of project'] || data.project.project_name || 'Project Details';
+        projectTitle.style.fontSize = '16px';
+        projectTitle.style.fontWeight = 'bold';
+        projectTitle.style.marginBottom = '10px';
+        projectTitle.style.color = isDarkMode ? '#8ab4f8' : '#1a73e8';
+        projectCard.appendChild(projectTitle);
         
         // Add project details
         const project = data.project;
-        const fields = Object.keys(project);
         
-        fields.forEach(field => {
+        // Define field display order and formatting
+        const fieldOrder = [
+            'Name of project', 
+            'project_name',
+            'Fiscal year', 
+            'fiscal_year',
+            'Location', 
+            'location',
+            'Budget', 
+            'total_budget',
+            'Status', 
+            'status',
+            'Project Sector', 
+            'project_sector'
+        ];
+        
+        // Field display names (for formatting)
+        const fieldDisplayNames = {
+            'project_name': 'Project Name',
+            'fiscal_year': 'Fiscal Year',
+            'location': 'Location',
+            'total_budget': 'Budget',
+            'status': 'Status',
+            'project_sector': 'Project Sector'
+        };
+        
+        // Track which fields have been displayed to avoid duplicates
+        const displayedFields = new Set();
+        
+        // First display fields in the preferred order
+        fieldOrder.forEach(field => {
+            if (project[field] && !displayedFields.has(field.toLowerCase())) {
+                addFieldToCard(field);
+                displayedFields.add(field.toLowerCase());
+            }
+        });
+        
+        // Then add any remaining fields not in the preferred order
+        Object.keys(project).forEach(field => {
+            if (!displayedFields.has(field.toLowerCase())) {
+                addFieldToCard(field);
+                displayedFields.add(field.toLowerCase());
+            }
+        });
+        
+        function addFieldToCard(field) {
             const fieldDiv = document.createElement('div');
             fieldDiv.className = 'project-field';
-            fieldDiv.style.display = 'flex';  // Force flex display for Chrome
-            fieldDiv.style.width = '100%';    // Force width for Chrome
+            fieldDiv.style.display = 'flex';
+            fieldDiv.style.width = '100%';
+            fieldDiv.style.marginBottom = '8px';
             
             const fieldName = document.createElement('span');
             fieldName.className = 'field-name';
-            fieldName.textContent = field + ':';
-            fieldName.style.flexShrink = '0';  // Prevent shrinking in Chrome
-            fieldName.style.width = '140px';   // Fixed width for field names
-            fieldName.style.color = '#666 !important'; // Force text color with !important
-            fieldName.style.fontWeight = '600 !important'; // Force font weight
+            
+            // Use the display name if available, otherwise format the field name
+            const displayName = fieldDisplayNames[field] || field;
+            fieldName.textContent = displayName + ':';
+            
+            fieldName.style.flexShrink = '0';
+            fieldName.style.width = '140px';
+            fieldName.style.color = isDarkMode ? '#a8c7fa' : '#1967d2';
+            fieldName.style.fontWeight = '600';
             
             const fieldValue = document.createElement('span');
             fieldValue.className = 'field-value';
-            fieldValue.textContent = project[field] || 'Unknown';
-            fieldValue.style.flexGrow = '1';   // Allow growing in Chrome
-            fieldValue.style.color = '#333 !important'; // Force text color with !important
+            
+            // Format the value based on field type
+            let displayValue = project[field];
+            
+            // Format budget values
+            if (field.toLowerCase().includes('budget') && !isNaN(displayValue)) {
+                displayValue = parseFloat(displayValue).toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'MWK',
+                    maximumFractionDigits: 0
+                });
+            }
+            
+            fieldValue.textContent = displayValue || 'Unknown';
+            fieldValue.style.flexGrow = '1';
+            fieldValue.style.color = isDarkMode ? '#e8eaed' : '#202124';
             
             fieldDiv.appendChild(fieldName);
             fieldDiv.appendChild(fieldValue);
             projectCard.appendChild(fieldDiv);
-        });
+        }
         
-        // Add a CSS class to ensure visibility in both light and dark modes
-        messageDiv.classList.add('light-mode-content');
+        // Create avatar
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.textContent = 'D';
         
         detailsContainer.appendChild(projectCard);
+        
+        // Append elements
+        messageDiv.appendChild(avatar);
         messageDiv.appendChild(detailsContainer);
         
         if (container) {

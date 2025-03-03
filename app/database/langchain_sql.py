@@ -365,10 +365,29 @@ Just ask me what you'd like to know about these projects!"""
                 """
                 return sql_query.strip(), "health_sector"
             
-            # Check for district query
-            district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-            if district_match:
-                district_name = district_match.group(1).strip()
+            # Check for district queries with multiple patterns
+            district_patterns = [
+                r'(?:projects|list).* (?:in|located in|based in|for) (\w+)(?: district)?',
+                r'(\w+) (?:district|region).* projects',
+                r'show (?:me|all) projects.* (\w+)'
+            ]
+            
+            district_name = None
+            for pattern in district_patterns:
+                match = re.search(pattern, user_query.lower())
+                if match:
+                    # Extract district name from different capture groups
+                    district_name = next((g for g in match.groups() if g is not None), None)
+                    if district_name:
+                        district_name = district_name.strip().title()
+                        break
+            
+            if district_name:
+                # Validate against known districts
+                valid_districts = ['Dowa', 'Lilongwe', 'Mwanza', 'Karonga']  # Add full list
+                if district_name not in valid_districts:
+                    return "", "district_query"
+                
                 sql_query = f"""
                 SELECT 
                     projectname as project_name,
@@ -380,7 +399,7 @@ Just ask me what you'd like to know about these projects!"""
                 FROM 
                     proj_dashboard 
                 WHERE 
-                    LOWER(district) LIKE '%{district_name}%'
+                    LOWER(district) = LOWER('{district_name}')
                 ORDER BY 
                     budget DESC
                 LIMIT 10;
@@ -692,10 +711,40 @@ Just ask me what you'd like to know about these projects!"""
                         }
                     }
             
-            # Check for district query
-            district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-            if district_match:
-                district_name = district_match.group(1).strip()
+            # Check for district queries with multiple patterns
+            district_patterns = [
+                r'(?:projects|list).* (?:in|located in|based in|for) (\w+)(?: district)?',
+                r'(\w+) (?:district|region).* projects',
+                r'show (?:me|all) projects.* (\w+)'
+            ]
+            
+            district_name = None
+            for pattern in district_patterns:
+                match = re.search(pattern, user_query.lower())
+                if match:
+                    # Extract district name from different capture groups
+                    district_name = next((g for g in match.groups() if g is not None), None)
+                    if district_name:
+                        district_name = district_name.strip().title()
+                        break
+            
+            if district_name:
+                # Validate against known districts
+                valid_districts = ['Dowa', 'Lilongwe', 'Mwanza', 'Karonga']  # Add full list
+                if district_name not in valid_districts:
+                    return {
+                        "results": [{
+                            "type": "error",
+                            "message": f"'{district_name}' is not a recognized district. Valid options: {', '.join(valid_districts)}",
+                            "data": {}
+                        }],
+                        "metadata": {
+                            "total_results": 0,
+                            "query_time": f"{time.time() - start_time:.2f}s",
+                            "sql_query": ""
+                        }
+                    }
+                
                 sql_query = f"""
                 SELECT 
                     projectname as project_name,
@@ -707,7 +756,7 @@ Just ask me what you'd like to know about these projects!"""
                 FROM 
                     proj_dashboard 
                 WHERE 
-                    LOWER(district) LIKE '%{district_name}%'
+                    LOWER(district) = LOWER('{district_name}')
                 ORDER BY 
                     budget DESC
                 LIMIT 10;
@@ -725,7 +774,7 @@ Just ask me what you'd like to know about these projects!"""
                     # Add introduction text
                     formatted_results.append({
                         "type": "text",
-                        "message": f"Found {len(results)} projects in {district_name.title()} district:",
+                        "message": f"Found {len(results)} projects in {district_name} district:",
                         "data": {}
                     })
                     
