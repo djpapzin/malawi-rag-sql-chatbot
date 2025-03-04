@@ -90,18 +90,45 @@ class QueryClassificationService:
     
     def generate_sql_from_classification(self, classification: QueryClassification) -> str:
         """Generate SQL query based on classification"""
-        # Base SQL query
-        sql = """
-        SELECT 
-            projectname as project_name,
-            fiscalyear as fiscal_year,
-            district as location,
-            budget as total_budget,
-            projectstatus as status,
-            projectsector as project_sector
-        FROM 
-            proj_dashboard
-        """
+        # Base SQL query with all fields for specific queries
+        if classification.parameters.projects:
+            sql = """
+            SELECT 
+                projectname as project_name,
+                projectcode as project_code,
+                projectsector as project_sector,
+                projectstatus as status,
+                stage,
+                region,
+                district as location,
+                traditionalauthority,
+                budget as total_budget,
+                expendituretodate as total_expenditure,
+                fundingsource as funding_source,
+                startdate as start_date,
+                completionestidate as completion_date,
+                lastvisit as last_monitoring_visit,
+                completionpercentage as completion_progress,
+                contractorname as contractor,
+                signingdate as contract_signing_date,
+                projectdesc as description,
+                fiscalyear as fiscal_year
+            FROM 
+                proj_dashboard
+            """
+        else:
+            # Use basic fields for general queries
+            sql = """
+            SELECT 
+                projectname as project_name,
+                fiscalyear as fiscal_year,
+                district as location,
+                budget as total_budget,
+                projectstatus as status,
+                projectsector as project_sector
+            FROM 
+                proj_dashboard
+            """
         
         # List to collect WHERE clauses
         where_clauses = []
@@ -153,31 +180,44 @@ class QueryClassificationService:
         if classification.parameters.status:
             status_conditions = []
             for status in classification.parameters.status:
-                if status.lower() == "completed":
-                    status_conditions.append("LOWER(status) LIKE '%completed%' OR LOWER(status) LIKE '%finished%'")
-                elif status.lower() == "ongoing":
-                    status_conditions.append("LOWER(status) LIKE '%ongoing%' OR LOWER(status) LIKE '%progress%' OR LOWER(status) LIKE '%active%'")
-                elif status.lower() == "planned":
-                    status_conditions.append("LOWER(status) LIKE '%planned%' OR LOWER(status) LIKE '%proposed%' OR LOWER(status) LIKE '%future%'")
-                else:
-                    status_conditions.append(f"LOWER(status) LIKE '%{status.lower()}%'")
+                status_conditions.append(f"LOWER(projectstatus) LIKE '%{status.lower()}%'")
             where_clauses.append(f"({' OR '.join(status_conditions)})")
         
-        # Add time filter
+        # Add time range filter
         if classification.parameters.time_range["start"] is not None:
             where_clauses.append(f"startdate >= '{classification.parameters.time_range['start']}'")
         if classification.parameters.time_range["end"] is not None:
-            where_clauses.append(f"enddate <= '{classification.parameters.time_range['end']}'")
+            where_clauses.append(f"completionestidate <= '{classification.parameters.time_range['end']}'")
         
         # Combine WHERE clauses
         if where_clauses:
-            sql += f" WHERE {' AND '.join(where_clauses)}"
+            sql += "\nWHERE " + " AND ".join(where_clauses)
         
         # Add ORDER BY clause
-        sql += " ORDER BY total_budget DESC"
-        
-        # Add LIMIT clause
-        sql += " LIMIT 10"
+        if classification.parameters.projects:
+            # For specific project queries, prioritize exact matches
+            sql += """
+            ORDER BY 
+                CASE 
+                    WHEN LOWER(projectname) = LOWER(?) THEN 1
+                    WHEN LOWER(projectname) LIKE LOWER(?) THEN 2
+                    ELSE 3
+                END,
+                budget DESC
+            LIMIT 1
+            """
+        else:
+            # For general queries, sort by budget and status
+            sql += """
+            ORDER BY 
+                budget DESC,
+                CASE 
+                    WHEN LOWER(projectstatus) LIKE '%ongoing%' THEN 1
+                    WHEN LOWER(projectstatus) LIKE '%completed%' THEN 2
+                    ELSE 3
+                END
+            LIMIT 10
+            """
         
         return sql
     

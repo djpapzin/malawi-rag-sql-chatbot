@@ -30,20 +30,38 @@ class ResponseGenerator:
             'PROJECTSECTOR'     # Project Sector
         ]
         
-        # Define standard field order for specific queries (12 fields as per spec)
+        # Define standard field order for specific queries (all fields)
         self.specific_field_order = [
+            # Core Information
             'PROJECTNAME',              # Name of project
-            'FISCALYEAR',              # Fiscal year
-            'DISTRICT',                # Location
-            'TOTALBUDGET',             # Budget
-            'PROJECTSTATUS',           # Status
-            'CONTRACTORNAME',          # Contractor name
-            'STARTDATE',               # Contract start date
-            'TOTALEXPENDITURETODATE',  # Expenditure to date
-            'PROJECTSECTOR',           # Sector
-            'FUNDINGSOURCE',           # Source of funding
             'PROJECTCODE',             # Project code
-            'LASTVISIT'                # Date of last Council monitoring visit
+            'PROJECTSECTOR',           # Sector
+            'PROJECTSTATUS',           # Status
+            'STAGE',                   # Project stage
+            
+            # Location Information
+            'REGION',                  # Region
+            'DISTRICT',                # Location
+            'TRADITIONALAUTHORITY',    # Traditional Authority
+            
+            # Financial Information
+            'TOTALBUDGET',             # Budget
+            'TOTALEXPENDITURETODATE',  # Expenditure to date
+            'FUNDINGSOURCE',           # Source of funding
+            
+            # Timeline Information
+            'STARTDATE',               # Contract start date
+            'COMPLETIONESTIDATE',      # Estimated completion date
+            'LASTVISIT',               # Date of last Council monitoring visit
+            'COMPLETIONPERCENTAGE',    # Completion percentage
+            
+            # Contractor Information
+            'CONTRACTORNAME',          # Contractor name
+            'SIGNINGDATE',             # Contract signing date
+            
+            # Additional Information
+            'PROJECTDESC',             # Project description
+            'FISCALYEAR'               # Fiscal year
         ]
         
     def _format_value(self, value: Any) -> str:
@@ -194,8 +212,6 @@ class ResponseGenerator:
     def _format_specific_project(self, project: pd.Series, is_code_query: bool = False) -> str:
         """Format a specific project's details according to specification"""
         try:
-            start_time = datetime.now()
-            
             # Format all values first
             formatted_values = {}
             for field in self.specific_field_order:
@@ -204,34 +220,74 @@ class ResponseGenerator:
                     formatted_values[field] = (
                         self._format_currency(value) if field in self.currency_columns
                         else self._format_date(value) if field in self.date_columns
+                        else self._format_percentage(value) if field == 'COMPLETIONPERCENTAGE'
                         else self._format_value(value)
                     )
             
-            # Build response with user-friendly field names
-            field_display_names = {
-                'PROJECTNAME': 'Name of project',
-                'FISCALYEAR': 'Fiscal year',
-                'DISTRICT': 'Location',
-                'TOTALBUDGET': 'Budget',
-                'PROJECTSTATUS': 'Status',
-                'CONTRACTORNAME': 'Contractor name',
-                'STARTDATE': 'Contract start date',
-                'TOTALEXPENDITURETODATE': 'Expenditure to date',
-                'PROJECTSECTOR': 'Sector',
-                'FUNDINGSOURCE': 'Source of funding',
-                'PROJECTCODE': 'Project code',
-                'LASTVISIT': 'Date of last Council monitoring visit'
+            # Build response with sections
+            sections = {
+                "Core Information": ['PROJECTNAME', 'PROJECTCODE', 'PROJECTSECTOR', 'PROJECTSTATUS', 'STAGE'],
+                "Location": ['REGION', 'DISTRICT', 'TRADITIONALAUTHORITY'],
+                "Financial Details": ['TOTALBUDGET', 'TOTALEXPENDITURETODATE', 'FUNDINGSOURCE'],
+                "Timeline": ['STARTDATE', 'COMPLETIONESTIDATE', 'LASTVISIT', 'COMPLETIONPERCENTAGE'],
+                "Contractor Details": ['CONTRACTORNAME', 'SIGNINGDATE'],
+                "Additional Information": ['PROJECTDESC', 'FISCALYEAR']
             }
             
-            details = []
-            for field in self.specific_field_order:
-                display_name = field_display_names.get(field, field)
-                value = formatted_values.get(field, self.NULL_VALUE)
-                details.append(f"- {display_name}: {value}")
+            # User-friendly field names
+            field_display_names = {
+                'PROJECTNAME': 'Project Name',
+                'PROJECTCODE': 'Project Code',
+                'PROJECTSECTOR': 'Sector',
+                'PROJECTSTATUS': 'Status',
+                'STAGE': 'Current Stage',
+                'REGION': 'Region',
+                'DISTRICT': 'District',
+                'TRADITIONALAUTHORITY': 'Traditional Authority',
+                'TOTALBUDGET': 'Total Budget',
+                'TOTALEXPENDITURETODATE': 'Expenditure to Date',
+                'FUNDINGSOURCE': 'Source of Funding',
+                'STARTDATE': 'Start Date',
+                'COMPLETIONESTIDATE': 'Estimated Completion Date',
+                'LASTVISIT': 'Last Council Monitoring Visit',
+                'COMPLETIONPERCENTAGE': 'Completion Progress',
+                'CONTRACTORNAME': 'Contractor',
+                'SIGNINGDATE': 'Contract Signing Date',
+                'PROJECTDESC': 'Description',
+                'FISCALYEAR': 'Fiscal Year'
+            }
             
-            response = f"Project Details:\n\n" + "\n".join(details)
+            # Build the response section by section
+            response_parts = []
             
-            return response
+            # Add project name as header
+            project_name = formatted_values.get('PROJECTNAME', 'Project Details')
+            response_parts.append(f"# {project_name}")
+            response_parts.append("")  # Empty line after header
+            
+            # Add each section
+            for section_name, fields in sections.items():
+                section_content = []
+                for field in fields:
+                    if field in formatted_values:
+                        display_name = field_display_names.get(field, field)
+                        value = formatted_values[field]
+                        
+                        # Special handling for project description
+                        if field == 'PROJECTDESC':
+                            if value != self.NULL_VALUE:
+                                section_content.append(f"{value}")
+                            continue
+                            
+                        section_content.append(f"- {display_name}: {value}")
+                
+                # Only add section if it has content
+                if section_content:
+                    response_parts.append(f"## {section_name}")
+                    response_parts.extend(section_content)
+                    response_parts.append("")  # Empty line after section
+            
+            return "\n".join(response_parts).strip()
             
         except Exception as e:
             logger.error(f"Error formatting specific project: {str(e)}")

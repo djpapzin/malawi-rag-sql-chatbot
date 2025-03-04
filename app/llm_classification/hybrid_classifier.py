@@ -35,6 +35,14 @@ class HybridClassifier:
     
     def _compile_patterns(self):
         """Compile regex patterns for different query types"""
+        # Project patterns (add these first)
+        self.project_patterns = [
+            re.compile(r'(?:tell|show|give) (?:me|us) (?:about|details of|information about) (?:the )?([\w\s-]+?)(?:\s+project)?\s*(?:$|[?.])', re.IGNORECASE),
+            re.compile(r'(?:what|how) (?:is|about) (?:the )?([\w\s-]+?)(?:\s+project)?\s*(?:$|[?.])', re.IGNORECASE),
+            re.compile(r'(?:details|information|status) (?:for|of) (?:the )?([\w\s-]+?)(?:\s+project)?\s*(?:$|[?.])', re.IGNORECASE),
+            re.compile(r'(?:project|code) (?:code )?(MW-[A-Za-z]{2}-[A-Z0-9]{2})', re.IGNORECASE)
+        ]
+        
         # District patterns
         self.district_patterns = [
             re.compile(r'(?:projects|list).* (?:in|located in|based in|for) (\w+)(?: district)?', re.IGNORECASE),
@@ -76,6 +84,26 @@ class HybridClassifier:
             re.compile(r'projects (?:after|since) (?:the year )?(\d{4})', re.IGNORECASE),
             re.compile(r'projects (?:before|until|up to) (?:the year )?(\d{4})', re.IGNORECASE)
         ]
+    
+    def _regex_classify_project(self, query: str) -> Tuple[List[str], float]:
+        """
+        Classify project queries using regex
+        
+        Returns:
+            Tuple of (list of projects, confidence)
+        """
+        for pattern in self.project_patterns:
+            match = pattern.search(query)
+            if match:
+                project = match.group(1).strip()
+                # If it's a project code, ensure proper format
+                if re.match(r'(?:MW-)?[A-Za-z]{2}-[A-Z0-9]{2}', project, re.IGNORECASE):
+                    if not project.upper().startswith('MW-'):
+                        project = f"MW-{project.upper()}"
+                    return [project], 0.9
+                return [project], 0.8
+        
+        return [], 0.0
     
     def _regex_classify_district(self, query: str) -> Tuple[List[str], float]:
         """
@@ -244,20 +272,36 @@ class HybridClassifier:
     
     def _regex_classify(self, query: str) -> QueryClassification:
         """
-        Classify a query using regex patterns
+        Classify query using regex patterns
         
-        Args:
-            query: The natural language query to classify
-            
         Returns:
-            QueryClassification object with query type and parameters
+            QueryClassification with highest confidence match
         """
         start_time = time.time()
         
         # Initialize parameters
         parameters = QueryParameters()
+        confidence = 0.0
+        query_type = QueryType.UNKNOWN
         
-        # Try to classify with each regex classifier
+        # Try project classification first (most specific)
+        projects, proj_conf = self._regex_classify_project(query)
+        if projects:
+            parameters.projects = projects
+            confidence = proj_conf
+            query_type = QueryType.PROJECT
+            
+            # Early return for high-confidence project matches
+            if confidence > 0.8:
+                return QueryClassification(
+                    query_type=query_type,
+                    parameters=parameters,
+                    confidence=confidence,
+                    original_query=query,
+                    processing_time=time.time() - start_time
+                )
+
+        # Continue with other classifications if no high-confidence project match
         districts, district_confidence = self._regex_classify_district(query)
         sectors, sector_confidence = self._regex_classify_sector(query)
         budget_range, budget_confidence = self._regex_classify_budget(query)
