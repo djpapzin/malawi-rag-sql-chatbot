@@ -295,15 +295,16 @@ class QueryClassificationService:
         else:  # UNKNOWN
             explanation = "I'm not sure what you're asking about. Could you please rephrase your question?"
 
-        # Add result count information
+        # Add result count information in a clean format
         if total_results > 0:
             if shown_results > 0 and shown_results < total_results:
-                explanation += f" (showing {shown_results}/{total_results})"
+                explanation = explanation.rstrip('.') + f" (showing {shown_results}/{total_results})"
             else:
-                explanation += f" (found {total_results} results)"
+                explanation = explanation.rstrip('.') + f" ({total_results} results)"
         elif total_results == 0:
-            explanation += " (found 0 results)"
+            explanation = explanation.rstrip('.') + " (no results found)"
         
+        explanation += "."
         return explanation
 
 def extract_district(query: str) -> str:
