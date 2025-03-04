@@ -82,3 +82,4 @@ docs/_build/
 *.bak
 .windsurfrules
 nohup.out
+.cursor/rules/malawi-chatbot.mdc
