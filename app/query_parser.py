@@ -4,6 +4,7 @@ import os
 import sys
 from typing import Dict, Any, Tuple, List
 from datetime import datetime
+from app.llm_classification.hybrid_classifier import HybridClassifier
 
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,6 +16,7 @@ class QueryParser:
     
     def __init__(self):
         logger.info("Initializing QueryParser")
+        self.classifier = HybridClassifier()
         self.specific_query_patterns = [
             # Direct project name queries
             r'(?:details?|tell me|what|show)\s+(?:about|for|on|is|the status of)\s+(?:the\s+)?["\'](.+?)["\'](?:\s+(?:project|construction|building))?(?:\s*\?)?$',
@@ -345,8 +347,17 @@ class QueryParser:
         """Extract sector from query text"""
         # Common patterns for sectors
         patterns = [
+            # Direct sector mentions
             r"\b(?:in\s+the\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector|projects?|facilities?|infrastructure)?\b",
-            r"(?:sector|projects?|facilities?|infrastructure)\s+(?:in|for|about)\s+(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\b"
+            r"(?:sector|projects?|facilities?|infrastructure)\s+(?:in|for|about)\s+(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\b",
+            
+            # Question-based patterns
+            r"(?:what|which|show|list)\s+(?:are\s+the\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector\s+)?projects?\b",
+            r"(?:tell\s+me\s+about|show\s+me|list)\s+(?:the\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector\s+)?projects?\b",
+            
+            # Natural language patterns
+            r"(?:i\s+want|need)\s+to\s+(?:see|find|get)\s+(?:information\s+about\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector\s+)?projects?\b",
+            r"(?:looking\s+for|interested\s+in)\s+(?:information\s+about\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector\s+)?projects?\b"
         ]
         
         query = query.lower()
@@ -363,8 +374,17 @@ class QueryParser:
         """Extract status from query text"""
         # Common patterns for statuses
         patterns = [
+            # Direct status mentions
             r"\b(?:that\s+(?:are|is)\s+)?(ongoing|in progress|complete|completed|done|finished|approved|planned|pending)\b",
-            r"\b(ongoing|in progress|complete|completed|done|finished|approved|planned|pending)\s+(?:projects?|status)\b"
+            r"\b(ongoing|in progress|complete|completed|done|finished|approved|planned|pending)\s+(?:projects?|status)\b",
+            
+            # Question-based patterns
+            r"(?:what|which|show|list)\s+(?:are\s+the\s+)?(ongoing|in progress|complete|completed|done|finished|approved|planned|pending)\s+projects?\b",
+            r"(?:tell\s+me\s+about|show\s+me|list)\s+(?:the\s+)?(ongoing|in progress|complete|completed|done|finished|approved|planned|pending)\s+projects?\b",
+            
+            # Natural language patterns
+            r"(?:i\s+want|need)\s+to\s+(?:see|find|get)\s+(?:information\s+about\s+)?(ongoing|in progress|complete|completed|done|finished|approved|planned|pending)\s+projects?\b",
+            r"(?:looking\s+for|interested\s+in)\s+(?:information\s+about\s+)?(ongoing|in progress|complete|completed|done|finished|approved|planned|pending)\s+projects?\b"
         ]
         
         query = query.lower()
@@ -379,57 +399,49 @@ class QueryParser:
 
     def _build_sector_query(self, sector: str) -> str:
         """Build SQL query fragment for sector filtering"""
-        if not sector:
-            return ""
-            
-        sector = sector.strip().lower()
-        
         # Map common terms to actual sectors
         sector_mapping = {
-            "school": "education",
-            "education": "education",
             "health": "health",
-            "hospital": "health",
-            "clinic": "health",
-            "road": "transport",
-            "transport": "transport",
+            "education": "education",
             "water": "water",
-            "sanitation": "water",
             "agriculture": "agriculture",
-            "farming": "agriculture"
+            "infrastructure": "infrastructure",
+            "transport": "transport",
+            "energy": "energy",
+            "housing": "housing",
+            "sanitation": "sanitation",
+            "rural development": "rural development"
         }
         
-        if sector in sector_mapping:
-            mapped_sector = sector_mapping[sector]
-            return f"AND LOWER(PROJECTSECTOR) = '{mapped_sector}'"
-            
-        return f"AND LOWER(PROJECTSECTOR) LIKE '%{sector}%'"
+        # Get the mapped sector or use the original
+        mapped_sector = sector_mapping.get(sector.lower(), sector)
+        
+        # Escape single quotes
+        mapped_sector = mapped_sector.replace("'", "''")
+        
+        # Build the query condition
+        return f"LOWER(projectsector) = LOWER('{mapped_sector}')"
 
     def _build_status_query(self, status: str) -> str:
         """Build SQL query fragment for status filtering"""
-        if not status:
-            return ""
-            
-        status = status.strip().lower()
-        
         # Map common terms to actual statuses
         status_mapping = {
-            "ongoing": "in progress",
-            "in progress": "in progress",
-            "complete": "completed",
+            "ongoing": "ongoing",
             "completed": "completed",
-            "done": "completed",
-            "finished": "completed",
             "approved": "approved",
-            "planned": "planned",
-            "pending": "planned"
+            "pending": "pending",
+            "cancelled": "cancelled",
+            "suspended": "suspended"
         }
         
-        if status in status_mapping:
-            mapped_status = status_mapping[status]
-            return f"AND LOWER(PROJECTSTATUS) = '{mapped_status}'"
-            
-        return f"AND LOWER(PROJECTSTATUS) LIKE '%{status}%'"
+        # Get the mapped status or use the original
+        mapped_status = status_mapping.get(status.lower(), status)
+        
+        # Escape single quotes
+        mapped_status = mapped_status.replace("'", "''")
+        
+        # Build the query condition
+        return f"LOWER(projectstatus) = LOWER('{mapped_status}')"
 
     def _build_completion_query(self, is_complete: bool) -> str:
         """Build SQL query for completed/incomplete projects"""
@@ -565,31 +577,22 @@ class QueryParser:
         return ""
 
     def _build_district_query(self, district: str) -> str:
-        """Build SQL query for district filtering
-        
-        Args:
-            district (str): District name to filter by
-            
-        Returns:
-            str: SQL query fragment for district filtering
-        """
-        if not district:
-            return ""
-        
+        """Build SQL query fragment for district filtering"""
         # Escape single quotes
         district = district.replace("'", "''")
         
-        # Build conditions with priority
-        conditions = [
-            f"LOWER(DISTRICT) = LOWER('{district}')",
-            f"LOWER(DISTRICT) LIKE LOWER('%{district}%')"
-        ]
+        # Split district name into words
+        words = district.split()
         
-        return f"""AND (
-            {' OR '.join(conditions)}
-        )"""
+        if len(words) == 1:
+            # For single-word districts, use exact match
+            return f"LOWER(district) = LOWER('{district}')"
+        else:
+            # For multi-word districts, use regex pattern with word boundaries
+            pattern = r'\b' + r'\b.*\b'.join(words) + r'\b'
+            return f"LOWER(district) ~ LOWER('{pattern}')"
 
-    def parse_query(self, query: str) -> Dict[str, Any]:
+    async def parse_query(self, query: str) -> Dict[str, Any]:
         """Parse a natural language query into SQL"""
         logger.info(f"Parsing query: {query}")
         
@@ -603,119 +606,61 @@ class QueryParser:
             }
         }
         
-        # Extract district if present
-        district = self._extract_district(query)
-        if district:
-            response["type"] = "district"
-            district_query = self._build_district_query(district)
-            response["query"] = f"""
-                SELECT 
-                    projectname as project_name,
-                    fiscalyear as fiscal_year,
-                    district,
-                    budget as total_budget,
-                    projectstatus as status,
-                    projectsector as project_sector
-                FROM 
-                    proj_dashboard
-                WHERE 
-                    1=1
-                    {district_query}
-                ORDER BY 
-                    budget DESC
-                LIMIT 10
-            """
-            return response
+        # Get classification from hybrid classifier
+        classification = await self.classifier.classify_query(query)
         
-        # First check if this is a specific project query
-        project_code = self._extract_project_code(query)
-        if project_code and not query.lower().startswith("show all"):
-            response["type"] = "specific"
-            response["metadata"]["project_code"] = project_code
-            
-            # Build base query for specific project
-            base_query = """
-            SELECT 
-                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
-                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
-                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
-                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
-                STAGE, STARTDATE, COMPLETIONESTIDATE
-            FROM proj_dashboard
-            WHERE ISLATEST = 1
-            """
-            
-            # Add project code condition
-            base_query += f"\n{self._build_project_code_query(project_code)}"
-            
-            # Add limit
-            base_query += "\nLIMIT 1"
-            response["query"] = base_query
-            return response
-            
-        # Check for project name
-        project_name, is_quoted = self._extract_project_name(query)
-        if project_name and not query.lower().startswith("show all"):
-            response["type"] = "specific"
-            response["metadata"]["project_name"] = project_name
-            
-            # Build base query for specific project
-            base_query = """
-            SELECT 
-                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
-                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
-                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
-                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
-                STAGE, STARTDATE, COMPLETIONESTIDATE
-            FROM proj_dashboard
-            WHERE ISLATEST = 1
-            """
-            
-            # Add project name condition
-            base_query += f"\n{self._build_project_name_query(project_name, is_quoted)}"
-            
-            # Add limit
-            base_query += "\nLIMIT 1"
-            response["query"] = base_query
-            return response
-        
-        # Handle general queries
+        # Build base query based on classification
         base_query = """
             SELECT 
-                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR
-            FROM proj_dashboard
-            WHERE ISLATEST = 1
+                projectname as project_name,
+                fiscalyear as fiscal_year,
+                district,
+                budget as total_budget,
+                projectstatus as status,
+                projectsector as project_sector
+            FROM 
+                proj_dashboard
+            WHERE 
+                ISLATEST = 1
         """
         
-        # Add filters for general queries
+        # Add filters based on classification
         filters = []
         
-        # Location filter
-        location = self._extract_location(query)
-        if location:
-            filters.append(self._build_location_query(location))
-            response["metadata"]["location"] = location
-            
-        # Status filter
-        status = self._extract_status(query)
-        if status:
-            filters.append(self._build_status_query(status))
-            response["metadata"]["status"] = status
-            
+        # District filter
+        if classification.parameters.districts:
+            district_conditions = []
+            for district in classification.parameters.districts:
+                district_conditions.append(self._build_district_query(district))
+            if district_conditions:
+                filters.append(f"({' OR '.join(district_conditions)})")
+                response["metadata"]["districts"] = classification.parameters.districts
+        
         # Sector filter
-        sector = self._extract_sector(query)
-        if sector:
-            filters.append(self._build_sector_query(sector))
-            response["metadata"]["sector"] = sector
-            
+        if classification.parameters.sectors:
+            sector_conditions = []
+            for sector in classification.parameters.sectors:
+                sector_conditions.append(self._build_sector_query(sector))
+            if sector_conditions:
+                filters.append(f"({' OR '.join(sector_conditions)})")
+                response["metadata"]["sectors"] = classification.parameters.sectors
+        
+        # Status filter
+        if classification.parameters.status:
+            status_conditions = []
+            for status in classification.parameters.status:
+                status_conditions.append(self._build_status_query(status))
+            if status_conditions:
+                filters.append(f"({' OR '.join(status_conditions)})")
+                response["metadata"]["status"] = classification.parameters.status
+        
         # Add all filters
         for filter_query in filters:
             if filter_query:
-                base_query += f"\n{filter_query}"
-                
+                base_query += f"\nAND {filter_query}"
+        
         # Add sorting and limits
-        response["query"] = self._add_result_limits(base_query, response["type"])
+        response["query"] = self._add_result_limits(base_query, classification.query_type.value)
+        response["type"] = classification.query_type.value
+        
         return response
