@@ -48,12 +48,32 @@
 - [  ] Update nginx configuration if necessary
 - [  ] Test that the site is properly displaying the intended content
 
-## 5. Add mobile responsiveness improvements
-- [  ] Test current UI on various mobile screen sizes
-- [  ] Adjust CSS media queries as needed
-- [  ] Ensure chat interface is usable on small screens
-- [  ] Verify that buttons and inputs are appropriately sized for touch interfaces
-- [  ] Test loading animations and ensure they display correctly on mobile
+## 5. Improve Query Intent Interpretation and Test Variations
+- [  ] Identify current limitations in query interpretation
+  - [  ] Document working vs non-working query patterns
+  - [  ] Example: "Which projects are in Dowa?" (not working) vs "Show me all projects in Dowa district" (working)
+- [  ] Generate and test query variations
+  - [  ] Use LLM to suggest natural language variations
+  - [  ] Test district queries with different phrasings:
+    - [  ] "Which projects are in [district]?"
+    - [  ] "Show me all projects in [district] district"
+    - [  ] "List projects from [district]"
+    - [  ] "What projects exist in [district]?"
+    - [  ] "Projects located in [district]"
+  - [  ] Test sector queries with variations
+  - [  ] Test specific project queries with variations
+- [  ] Improve query parser to handle more variations
+  - [  ] Update regex patterns to catch more natural language patterns
+  - [  ] Enhance intent detection logic
+  - [  ] Add support for question-based queries
+- [  ] Create comprehensive test suite
+  - [  ] Document all tested variations
+  - [  ] Record which variations work/don't work
+  - [  ] Create automated tests for common variations
+- [  ] Implement feedback loop
+  - [  ] Log failed queries for analysis
+  - [  ] Track patterns in failed queries
+  - [  ] Use insights to improve query interpretation
 
 ## 6. Improve error handling
 - [  ] Add better error messages for common user errors
