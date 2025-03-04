@@ -411,7 +411,7 @@ Just ask me what you'd like to know about these projects!"""
                     }
                 
                 # Format the response
-                return await self.format_response(results, sql_query, query_time, user_query, "district_query")
+                return await self.format_response(results, sql_query, query_time, user_query, "district_query", {"district_name": district_name})
             
             # Check if this is a specific project query
             project_patterns = [
@@ -652,7 +652,7 @@ Just ask me what you'd like to know about these projects!"""
                 }
             }
 
-    async def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str, query_type: str = None) -> Dict[str, Any]:
+    async def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str, query_type: str = None, additional_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """Format query results into a standardized response with natural language."""
         try:
             if not query_results:
@@ -675,10 +675,8 @@ Just ask me what you'd like to know about these projects!"""
                 for project in query_results:
                     # Get district name for district queries
                     location = project.get("district", "Unknown")
-                    if query_type == "district_query":
-                        district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-                        if district_match:
-                            location = district_match.group(1).strip().title()
+                    if query_type == "district_query" and additional_data and "district_name" in additional_data:
+                        location = additional_data["district_name"]
                     
                     formatted_project = {
                         "Name of project": project.get("project_name", "Unknown"),
@@ -695,9 +693,8 @@ Just ask me what you'd like to know about these projects!"""
                 if query_type == "health_sector":
                     message = f"Found {len(query_results)} health sector projects:"
                 elif query_type == "district_query":
-                    # Extract district name from the query
-                    district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-                    district_name = district_match.group(1).strip().title() if district_match else "the specified"
+                    # Get district name from additional data
+                    district_name = additional_data.get("district_name", "the specified") if additional_data else "the specified"
                     message = f"Found {len(query_results)} projects in {district_name} district:"
                 elif query_type == "project_query" or query_type == "specific_project":
                     project_name = query_results[0].get("project_name", "the requested project")
@@ -932,6 +929,9 @@ Just ask me what you'd like to know about these projects!"""
                     district_name = re.sub(r'\s+', ' ', district_name)  # Normalize spaces
                     district_name = ' '.join(word.title() for word in district_name.split())  # Title case
                     
+                    # Escape single quotes in district name
+                    district_name_sql = district_name.replace("'", "''")
+                    
                     sql_query = f"""
                     SELECT 
                         projectname as project_name,
@@ -943,7 +943,7 @@ Just ask me what you'd like to know about these projects!"""
                     FROM 
                         proj_dashboard
                     WHERE 
-                        LOWER(district) LIKE '%{district_name.lower()}%'
+                        LOWER(district) LIKE LOWER('%{district_name_sql}%')
                     ORDER BY 
                         budget DESC
                     LIMIT 10
@@ -954,7 +954,7 @@ Just ask me what you'd like to know about these projects!"""
                     query_time = time.time() - start_time
                     
                     # Format the response
-                    return await self.format_response(results, sql_query, query_time, user_query, "district_query")
+                    return await self.format_response(results, sql_query, query_time, user_query, "district_query", {"district_name": district_name})
             
             # Check if this is a specific project query
             project_patterns = [

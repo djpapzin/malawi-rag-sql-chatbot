@@ -410,106 +410,74 @@ class HybridClassifier:
         
         return classification
     
-    def _merge_classifications(self, regex_classification: QueryClassification, llm_classification: QueryClassification) -> QueryClassification:
+    def _merge_classifications(self, regex_class: QueryClassification, llm_class: QueryClassification) -> QueryClassification:
         """
-        Merge regex and LLM classification results
-        
-        Strategy:
-        - Take the classification with higher confidence
-        - For parameters, combine from both sources with preference to higher confidence source
+        Merge regex and LLM classifications intelligently
         
         Args:
-            regex_classification: Classification from regex
-            llm_classification: Classification from LLM
+            regex_class: Classification from regex patterns
+            llm_class: Classification from LLM
             
         Returns:
             Merged QueryClassification
         """
-        # Start with the classification that has higher confidence
-        if regex_classification.confidence >= llm_classification.confidence:
-            base_classification = regex_classification
-            secondary_classification = llm_classification
-        else:
-            base_classification = llm_classification
-            secondary_classification = regex_classification
+        # If regex has high confidence and LLM has low confidence, prefer regex
+        if regex_class.confidence > 0.8 and llm_class.confidence < 0.6:
+            return regex_class
+            
+        # If LLM has high confidence and regex has low confidence, prefer LLM
+        if llm_class.confidence > 0.8 and regex_class.confidence < 0.6:
+            return llm_class
+            
+        # For medium confidence cases, merge the parameters
+        merged_params = QueryParameters()
         
-        # Create a new merged classification
-        merged = QueryClassification(
-            query_type=base_classification.query_type,
-            parameters=QueryParameters(),
-            confidence=max(regex_classification.confidence, llm_classification.confidence),
-            original_query=base_classification.original_query,
-            llm_response=llm_classification.llm_response,
-            processing_time=regex_classification.processing_time + llm_classification.processing_time
+        # Merge districts
+        merged_params.districts = list(set(regex_class.parameters.districts + llm_class.parameters.districts))
+        
+        # Merge projects
+        merged_params.projects = list(set(regex_class.parameters.projects + llm_class.parameters.projects))
+        
+        # Merge sectors
+        merged_params.sectors = list(set(regex_class.parameters.sectors + llm_class.parameters.sectors))
+        
+        # Merge budget ranges - take the more specific one
+        if regex_class.parameters.budget_range["min"] is not None or regex_class.parameters.budget_range["max"] is not None:
+            merged_params.budget_range = regex_class.parameters.budget_range
+        else:
+            merged_params.budget_range = llm_class.parameters.budget_range
+            
+        # Merge statuses
+        merged_params.status = list(set(regex_class.parameters.status + llm_class.parameters.status))
+        
+        # Merge time ranges - take the more specific one
+        if regex_class.parameters.time_range["start"] is not None or regex_class.parameters.time_range["end"] is not None:
+            merged_params.time_range = regex_class.parameters.time_range
+        else:
+            merged_params.time_range = llm_class.parameters.time_range
+            
+        # Determine merged query type
+        if regex_class.query_type == llm_class.query_type:
+            query_type = regex_class.query_type
+        elif regex_class.query_type == QueryType.COMBINED or llm_class.query_type == QueryType.COMBINED:
+            query_type = QueryType.COMBINED
+        else:
+            # Count non-empty parameters for each type
+            regex_params = sum(1 for p in regex_class.parameters.dict().values() if p)
+            llm_params = sum(1 for p in llm_class.parameters.dict().values() if p)
+            query_type = regex_class.query_type if regex_params > llm_params else llm_class.query_type
+            
+        # Calculate merged confidence
+        merged_confidence = (regex_class.confidence + llm_class.confidence) / 2
+        
+        # Create merged classification
+        return QueryClassification(
+            query_type=query_type,
+            parameters=merged_params,
+            confidence=merged_confidence,
+            original_query=regex_class.original_query,
+            processing_time=regex_class.processing_time + llm_class.processing_time
         )
-        
-        # Merge parameters with preference to base classification
-        
-        # Districts
-        merged.parameters.districts = base_classification.parameters.districts.copy()
-        for district in secondary_classification.parameters.districts:
-            if district not in merged.parameters.districts:
-                merged.parameters.districts.append(district)
-        
-        # Projects
-        merged.parameters.projects = base_classification.parameters.projects.copy()
-        for project in secondary_classification.parameters.projects:
-            if project not in merged.parameters.projects:
-                merged.parameters.projects.append(project)
-        
-        # Sectors
-        merged.parameters.sectors = base_classification.parameters.sectors.copy()
-        for sector in secondary_classification.parameters.sectors:
-            if sector not in merged.parameters.sectors:
-                merged.parameters.sectors.append(sector)
-        
-        # Budget range
-        merged.parameters.budget_range = base_classification.parameters.budget_range.copy()
-        if merged.parameters.budget_range["min"] is None and secondary_classification.parameters.budget_range["min"] is not None:
-            merged.parameters.budget_range["min"] = secondary_classification.parameters.budget_range["min"]
-        if merged.parameters.budget_range["max"] is None and secondary_classification.parameters.budget_range["max"] is not None:
-            merged.parameters.budget_range["max"] = secondary_classification.parameters.budget_range["max"]
-        
-        # Status
-        merged.parameters.status = base_classification.parameters.status.copy()
-        for status in secondary_classification.parameters.status:
-            if status not in merged.parameters.status:
-                merged.parameters.status.append(status)
-        
-        # Time range
-        merged.parameters.time_range = base_classification.parameters.time_range.copy()
-        if merged.parameters.time_range["start"] is None and secondary_classification.parameters.time_range["start"] is not None:
-            merged.parameters.time_range["start"] = secondary_classification.parameters.time_range["start"]
-        if merged.parameters.time_range["end"] is None and secondary_classification.parameters.time_range["end"] is not None:
-            merged.parameters.time_range["end"] = secondary_classification.parameters.time_range["end"]
-        
-        # Recalculate query type based on merged parameters
-        param_counts = {
-            QueryType.DISTRICT: len(merged.parameters.districts),
-            QueryType.PROJECT: len(merged.parameters.projects),
-            QueryType.SECTOR: len(merged.parameters.sectors),
-            QueryType.STATUS: len(merged.parameters.status),
-            QueryType.BUDGET: 1 if (merged.parameters.budget_range["min"] is not None or merged.parameters.budget_range["max"] is not None) else 0,
-            QueryType.TIME: 1 if (merged.parameters.time_range["start"] is not None or merged.parameters.time_range["end"] is not None) else 0
-        }
-        
-        # Count how many parameter types are present
-        non_empty_param_types = sum(1 for count in param_counts.values() if count > 0)
-        
-        # If multiple parameter types, it's a combined query
-        if non_empty_param_types > 1:
-            merged.query_type = QueryType.COMBINED
-        # If only one parameter type, return that type
-        elif non_empty_param_types == 1:
-            for query_type, count in param_counts.items():
-                if count > 0:
-                    merged.query_type = query_type
-                    break
-        # If no parameters, return unknown
-        else:
-            merged.query_type = QueryType.UNKNOWN
-        
-        return merged
     
     async def classify_query(self, query: str, use_llm: bool = True) -> QueryClassification:
         """

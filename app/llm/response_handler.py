@@ -10,6 +10,7 @@ import logging
 import os
 import time
 import uuid
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -91,7 +92,17 @@ class ResponseHandler:
                 })
             else:
                 cleaned_results.append(result)
-                
+        
+        # Handle district queries
+        if query_type == "district_query":
+            # Extract district name from the query
+            district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', metadata.get("user_query", "").lower())
+            if district_match:
+                district_name = district_match.group(1).strip().title()
+                # Update the message to include the district name
+                if cleaned_results and cleaned_results[0].get("type") == "text":
+                    cleaned_results[0]["message"] = f"Found {len(results)} projects in {district_name} district:"
+        
         return {
             "response": {
                 "query_type": query_type,

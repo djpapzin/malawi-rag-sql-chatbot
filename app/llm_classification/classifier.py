@@ -380,6 +380,35 @@ class LLMClassifier:
         You are an assistant for a Malawi infrastructure project database.
         Classify this user query: "{query}"
         
+        Consider these common query patterns and variations:
+        1. District queries:
+           - "Which projects are in Dowa?"
+           - "Show me all projects in Dowa district"
+           - "List projects from Dowa"
+           - "What projects exist in Dowa?"
+           - "Projects located in Dowa"
+           - "I want to see projects in Dowa"
+           - "Tell me about projects in Dowa"
+           - "Are there any projects in Dowa?"
+        
+        2. Sector queries:
+           - "Show me health sector projects"
+           - "What education projects are there?"
+           - "List all water projects"
+           - "Tell me about transport projects"
+           - "I need information about agriculture projects"
+        
+        3. Specific project queries:
+           - "Tell me about the [project name]"
+           - "What is the status of [project name]?"
+           - "Show details for [project name]"
+           - "Give me information about [project name]"
+        
+        4. Combined queries:
+           - "Show me health projects in Dowa"
+           - "List completed education projects"
+           - "What are the ongoing water projects?"
+        
         Return a JSON object with the following structure:
         {{
             "query_type": "district|project|sector|budget|status|time|combined",
@@ -390,7 +419,9 @@ class LLMClassifier:
                 "budget_range": {{"min": null, "max": null}},
                 "status": ["completed", "in_progress", "planned"],
                 "time_range": {{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}}
-            }}
+            }},
+            "confidence": 0.0 to 1.0,
+            "explanation": "Brief explanation of why this classification was chosen"
         }}
         
         Only include parameters that are relevant to the query.

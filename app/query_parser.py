@@ -538,7 +538,19 @@ class QueryParser:
             # Complex patterns
             r'(?:tell|give) me (?:about|information about) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
             r'(?:looking for|need information about) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:what are|show me) the projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?'
+            r'(?:what are|show me) the projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            
+            # Additional variations
+            r'(?:what|which) (?:infrastructure|development) projects (?:are|exist) (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:tell me|show me) (?:about|all) (?:the )?projects (?:that are|which are) (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:i am|i\'m) (?:looking for|interested in) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:can you|please) (?:tell me|show me) (?:about|all) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:what|which) (?:kinds of|types of) projects (?:are|exist) (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:give me|show me) a (?:list of|summary of) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:what|which) projects (?:can you|do you) (?:find|show) (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:i need|i want) to (?:know about|see) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:are there|do you have) (?:any )?projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:please|can you) (?:list|show) (?:all )?projects (?:from|in|at) ([a-zA-Z\s]+?)(?: district)?'
         ]
         
         for pattern in patterns:

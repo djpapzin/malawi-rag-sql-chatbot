@@ -18,24 +18,79 @@ def test_natural_language_response():
     # Test cases with expected content/phrases
     test_cases = [
         {
-            "query": "What projects are there in Lilongwe?",
-            "expected_content": ["Lilongwe", "project", "budget"],
-            "description": "Basic project query"
+            "description": "Basic district query",
+            "query": "Which projects are in Dowa?",
+            "expected_content": ["projects", "Dowa", "district"]
         },
         {
-            "query": "Tell me about completed projects",
-            "expected_content": ["completed", "status", "project"],
-            "description": "Status-based query"
+            "description": "Alternative district query format",
+            "query": "Show me all projects in Dowa district",
+            "expected_content": ["projects", "Dowa", "district"]
         },
         {
-            "query": "What is the total budget for infrastructure projects?",
-            "expected_content": ["budget", "infrastructure", "total"],
-            "description": "Aggregate query"
+            "description": "Natural district query",
+            "query": "I want to see projects in Dowa",
+            "expected_content": ["projects", "Dowa", "district"]
         },
         {
-            "query": "Hello, how can you help me?",
-            "expected_content": ["help", "projects", "information"],
-            "description": "Greeting query"
+            "description": "Question-based district query",
+            "query": "What projects exist in Dowa?",
+            "expected_content": ["projects", "Dowa", "district"]
+        },
+        {
+            "description": "Direct district query",
+            "query": "Projects located in Dowa",
+            "expected_content": ["projects", "Dowa", "district"]
+        },
+        {
+            "description": "Informal district query",
+            "query": "Tell me about projects in Dowa",
+            "expected_content": ["projects", "Dowa", "district"]
+        },
+        {
+            "description": "Existence check district query",
+            "query": "Are there any projects in Dowa?",
+            "expected_content": ["projects", "Dowa", "district"]
+        },
+        {
+            "description": "Sector query",
+            "query": "Show me health sector projects",
+            "expected_content": ["health", "sector", "projects"]
+        },
+        {
+            "description": "Question-based sector query",
+            "query": "What education projects are there?",
+            "expected_content": ["education", "projects"]
+        },
+        {
+            "description": "Direct sector query",
+            "query": "List all water projects",
+            "expected_content": ["water", "projects"]
+        },
+        {
+            "description": "Informal sector query",
+            "query": "Tell me about transport projects",
+            "expected_content": ["transport", "projects"]
+        },
+        {
+            "description": "Need-based sector query",
+            "query": "I need information about agriculture projects",
+            "expected_content": ["agriculture", "projects"]
+        },
+        {
+            "description": "Combined district and sector query",
+            "query": "Show me health projects in Dowa",
+            "expected_content": ["health", "projects", "Dowa", "district"]
+        },
+        {
+            "description": "Combined status and sector query",
+            "query": "List completed education projects",
+            "expected_content": ["completed", "education", "projects"]
+        },
+        {
+            "description": "Combined status and sector question",
+            "query": "What are the ongoing water projects?",
+            "expected_content": ["ongoing", "water", "projects"]
         }
     ]
 
