@@ -74,3 +74,21 @@
 - [  ] Implement caching where appropriate
 - [  ] Reduce frontend asset sizes
 - [  ] Consider pagination for large result sets
+
+## 8. Implement Pagination for Large Result Sets
+- [  ] Modify backend to store full result sets in session when queries return many results
+- [  ] Update response_generator.py to limit initial display to 10 items
+- [  ] Add clear messaging like "Found 219 health projects, showing first 10..."
+- [  ] Design and implement "Show more" and "Show all" buttons in the frontend UI
+- [  ] Create API endpoint to fetch additional results without re-querying the LLM
+- [  ] Ensure pagination buttons appear only when there are more than 10 results
+- [  ] Implement frontend JavaScript to handle pagination button clicks
+- [  ] Make sure additional results maintain the same formatting with all required fields
+- [  ] Add loading indicator for when additional results are being fetched
+- [  ] Test pagination with various queries that return large result sets:
+    - [  ] Health sector (219+ projects)
+    - [  ] Education sector
+    - [  ] District-specific queries with many results
+- [  ] Verify the formatting of paginated results matches the LLM-formatted results
+- [  ] Add session cleanup to remove stored results after a period of inactivity
+
