@@ -176,16 +176,18 @@ class QueryClassificationService:
         # Add ORDER BY clause
         sql += " ORDER BY total_budget DESC"
         
+        # Add LIMIT clause
+        sql += " LIMIT 10"
+        
         return sql
     
-    def generate_explanation_from_classification(self, classification: QueryClassification, total_results: int = 0, shown_results: int = 0) -> str:
+    def generate_explanation_from_classification(self, classification: QueryClassification, total_results: int = 0) -> str:
         """
         Generate a natural language explanation of the query classification
         
         Args:
             classification: The query classification result
             total_results: Total number of results found
-            shown_results: Number of results being shown
             
         Returns:
             Explanation string
@@ -297,8 +299,8 @@ class QueryClassificationService:
 
         # Add result count information in the requested format
         if total_results > 0:
-            if shown_results > 0 and shown_results < total_results:
-                explanation = explanation.rstrip('.') + f". I have found {total_results} projects, showing the first {shown_results}."
+            if total_results > 10:
+                explanation = explanation.rstrip('.') + f". I have found {total_results} projects, showing the first 10."
             else:
                 explanation = explanation.rstrip('.') + f". I have found {total_results} projects."
         elif total_results == 0:
