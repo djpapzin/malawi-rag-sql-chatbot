@@ -507,6 +507,76 @@ class QueryParser:
                 
         return "\n".join(response_parts)
 
+    def _extract_district(self, query: str) -> str:
+        """Extract district name from query text
+        
+        Args:
+            query (str): The query text to extract district from
+            
+        Returns:
+            str: Extracted district name or empty string if not found
+        """
+        # Common patterns for district queries
+        patterns = [
+            # Direct district queries
+            r'(?:in|at|from|of) (?:the )?([a-zA-Z\s]+?) district',
+            r'(?:projects|list).* (?:in|located in|based in|for) ([a-zA-Z\s]+?)(?: district)?',
+            r'([a-zA-Z\s]+?) (?:district|region).* projects',
+            r'show (?:me|all) projects.* ([a-zA-Z\s]+?)',
+            r'(?:what|which|any) projects (?:are|exist|located) (?:in|at) ([a-zA-Z\s]+?)',
+            
+            # Question-based patterns
+            r'(?:which|what) projects (?:are|exist|located) (?:in|at) ([a-zA-Z\s]+?)(?: district)?\s*[?]?',
+            r'(?:can you|please) (?:show|list|display) (?:me|all) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:i want|need) to (?:see|find|get) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            
+            # Direct patterns
+            r'projects (?:in|at|located in|based in) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:list|show|display) projects (?:from|in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:find|search for) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            
+            # Complex patterns
+            r'(?:tell|give) me (?:about|information about) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:looking for|need information about) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:what are|show me) the projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
+                district = match.group(1).strip()
+                # Clean up the district name
+                district = re.sub(r'\s+', ' ', district)  # Normalize spaces
+                district = ' '.join(word.title() for word in district.split())  # Title case
+                return district
+        
+        return ""
+
+    def _build_district_query(self, district: str) -> str:
+        """Build SQL query for district filtering
+        
+        Args:
+            district (str): District name to filter by
+            
+        Returns:
+            str: SQL query fragment for district filtering
+        """
+        if not district:
+            return ""
+        
+        # Escape single quotes
+        district = district.replace("'", "''")
+        
+        # Build conditions with priority
+        conditions = [
+            f"LOWER(DISTRICT) = LOWER('{district}')",
+            f"LOWER(DISTRICT) LIKE LOWER('%{district}%')"
+        ]
+        
+        return f"""AND (
+            {' OR '.join(conditions)}
+        )"""
+
     def parse_query(self, query: str) -> Dict[str, Any]:
         """Parse a natural language query into SQL"""
         logger.info(f"Parsing query: {query}")
@@ -520,6 +590,30 @@ class QueryParser:
                 "original_query": query
             }
         }
+        
+        # Extract district if present
+        district = self._extract_district(query)
+        if district:
+            response["type"] = "district"
+            district_query = self._build_district_query(district)
+            response["query"] = f"""
+                SELECT 
+                    projectname as project_name,
+                    fiscalyear as fiscal_year,
+                    district,
+                    budget as total_budget,
+                    projectstatus as status,
+                    projectsector as project_sector
+                FROM 
+                    proj_dashboard
+                WHERE 
+                    1=1
+                    {district_query}
+                ORDER BY 
+                    budget DESC
+                LIMIT 10
+            """
+            return response
         
         # First check if this is a specific project query
         project_code = self._extract_project_code(query)
