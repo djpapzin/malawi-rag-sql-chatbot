@@ -1,194 +1,134 @@
-import requests
+import asyncio
 import json
-import logging
 from datetime import datetime
+from app.query_parser import QueryParser
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# API configuration
-API_URL = "http://localhost:5000/api/rag-sql-chatbot/chat"
-HEADERS = {"Content-Type": "application/json"}
-
-def test_query(query: str) -> dict:
-    """Test a single query and return the results"""
-    try:
-        response = requests.post(
-            API_URL,
-            headers=HEADERS,
-            json={"message": query}
-        )
-        
-        if response.status_code != 200:
-            return {
-                "success": False,
-                "error": f"Request failed with status {response.status_code}"
-            }
-            
-        data = response.json()
-        return {
-            "success": True,
-            "response": data
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-def check_response_content(response: dict, expected_params: list) -> tuple[bool, list]:
+async def check_response_content(response: dict, expected_params: list) -> tuple[bool, list]:
     """Check if the response contains the expected parameters"""
-    if not response.get("results"):
-        return False, expected_params
-        
-    # Check the first result's message
-    message = response["results"][0].get("message", "").lower()
-    
-    # Check the data values if present
-    data_values = []
-    if len(response["results"]) > 1 and response["results"][1].get("type") == "list":
-        data_values = [
-            value.get("Location", "").lower() for value in 
-            response["results"][1].get("data", {}).get("values", [])
-        ]
-    
-    # Check for missing parameters
     missing_params = []
+    
+    # Check if response has the required fields
+    if not response.get("query") or not response.get("type"):
+        return False, ["Invalid response format"]
+    
+    # Get the SQL query
+    sql_query = response["query"].lower()
+    
+    # Check for each expected parameter
     for param in expected_params:
         param_lower = param.lower()
-        if param_lower not in message and param_lower not in data_values:
+        if param_lower not in sql_query:
             missing_params.append(param)
-            
+    
     return len(missing_params) == 0, missing_params
 
-def main():
-    # Test cases covering different query patterns
+async def main():
+    parser = QueryParser()
     test_cases = [
-        # District queries
         {
-            "description": "Basic district query",
             "query": "Which projects are in Dowa?",
-            "expected_type": "district",
-            "expected_params": ["Dowa"]
+            "expected_params": ["dowa"],
+            "description": "Basic district query"
         },
         {
-            "description": "Alternative district format",
             "query": "Show me all projects in Dowa district",
-            "expected_type": "district",
-            "expected_params": ["Dowa"]
+            "expected_params": ["dowa"],
+            "description": "Alternative district format"
         },
         {
-            "description": "Natural district query",
             "query": "I want to see projects in Dowa",
-            "expected_type": "district",
-            "expected_params": ["Dowa"]
+            "expected_params": ["dowa"],
+            "description": "Natural district query"
         },
         {
-            "description": "Question-based district query",
             "query": "What projects exist in Dowa?",
-            "expected_type": "district",
-            "expected_params": ["Dowa"]
+            "expected_params": ["dowa"],
+            "description": "Question-based district query"
         },
-        
-        # Sector queries
         {
-            "description": "Health sector query",
             "query": "Show me health sector projects",
-            "expected_type": "sector",
-            "expected_params": ["health"]
+            "expected_params": ["health"],
+            "description": "Health sector query"
         },
         {
-            "description": "Education sector query",
             "query": "What education projects are there?",
-            "expected_type": "sector",
-            "expected_params": ["education"]
+            "expected_params": ["education"],
+            "description": "Education sector query"
         },
         {
-            "description": "Water sector query",
             "query": "List all water projects",
-            "expected_type": "sector",
-            "expected_params": ["water"]
+            "expected_params": ["water"],
+            "description": "Water sector query"
         },
-        
-        # Combined queries
         {
-            "description": "District and sector combined",
             "query": "Show me health projects in Dowa",
-            "expected_type": "combined",
-            "expected_params": ["health", "Dowa"]
+            "expected_params": ["health", "dowa"],
+            "description": "District and sector combined"
         },
         {
-            "description": "Status and sector combined",
             "query": "List completed education projects",
-            "expected_type": "combined",
-            "expected_params": ["completed", "education"]
+            "expected_params": ["completed", "education"],
+            "description": "Status and sector combined"
         },
         {
-            "description": "Status and district combined",
             "query": "What are the ongoing projects in Dowa?",
-            "expected_type": "combined",
-            "expected_params": ["ongoing", "Dowa"]
+            "expected_params": ["ongoing", "dowa"],
+            "description": "Status and district combined"
         }
     ]
     
     results = []
-    
     for test_case in test_cases:
-        logger.info(f"\nTesting: {test_case['description']}")
-        logger.info(f"Query: {test_case['query']}")
-        
-        result = test_query(test_case["query"])
-        
-        if not result["success"]:
-            logger.error(f"Test failed: {result['error']}")
-            results.append({
-                "test_case": test_case["description"],
+        try:
+            # Parse the query
+            parsed_query = await parser.parse_query(test_case["query"])
+            
+            # Check if the query was parsed correctly
+            success, missing_params = await check_response_content(parsed_query, test_case["expected_params"])
+            
+            result = {
                 "query": test_case["query"],
+                "description": test_case["description"],
+                "success": success,
+                "missing_params": missing_params,
+                "parsed_query": parsed_query
+            }
+            results.append(result)
+            
+            # Log the result
+            print(f"\nTest: {test_case['description']}")
+            print(f"Query: {test_case['query']}")
+            print(f"Success: {'✓' if success else '✗'}")
+            if missing_params:
+                print(f"Missing parameters: {', '.join(missing_params)}")
+            print(f"SQL Query: {parsed_query.get('query', '')}")
+            print("-" * 50)
+            
+        except Exception as e:
+            print(f"Error processing query '{test_case['query']}': {str(e)}")
+            results.append({
+                "query": test_case["query"],
+                "description": test_case["description"],
                 "success": False,
-                "error": result["error"]
+                "error": str(e)
             })
-            continue
-            
-        response = result["response"]
-        
-        # Check if response contains expected content
-        success, missing_params = check_response_content(response, test_case["expected_params"])
-        
-        test_result = {
-            "test_case": test_case["description"],
-            "query": test_case["query"],
-            "success": success,
-            "response": response["results"][0].get("message", "") if response.get("results") else ""
-        }
-        
-        if missing_params:
-            test_result["missing_params"] = missing_params
-            
-        results.append(test_result)
-        
-        # Log the result
-        if test_result["success"]:
-            logger.info("✓ Test passed")
-        else:
-            logger.error(f"✗ Test failed - Missing parameters: {missing_params}")
     
     # Save results to file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_file = f"query_interpretation_results_{timestamp}.json"
-    
-    with open(results_file, "w") as f:
+    filename = f"query_interpretation_results_{timestamp}.json"
+    with open(filename, "w") as f:
         json.dump(results, f, indent=2)
     
     # Print summary
-    passed_tests = sum(1 for r in results if r["success"])
-    total_tests = len(results)
+    total_tests = len(test_cases)
+    passed_tests = sum(1 for r in results if r.get("success", False))
+    failed_tests = total_tests - passed_tests
     
     print(f"\nTest Summary:")
     print(f"Total tests: {total_tests}")
     print(f"Passed: {passed_tests}")
-    print(f"Failed: {total_tests - passed_tests}")
-    print(f"\nDetailed results saved to: {results_file}")
+    print(f"Failed: {failed_tests}")
+    print(f"\nDetailed results saved to: {filename}")
 
 if __name__ == "__main__":
-    main() 
+    asyncio.run(main()) 
