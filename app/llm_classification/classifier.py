@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class QueryType(str, Enum):
     """Enum for query types"""
+    GENERAL = "general"
     DISTRICT = "district"
     PROJECT = "project"
     SECTOR = "sector"
