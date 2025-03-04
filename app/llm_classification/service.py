@@ -56,7 +56,7 @@ class QueryClassificationService:
         self.base_prompt = "Base prompt for classification"
         logger.info("Initialized Query Classification Service")
     
-    async def classify_query(self, query: str) -> dict:
+    async def classify_query(self, query: str) -> QueryClassification:
         """
         Enhanced query classification with improved district detection.
         """
@@ -68,49 +68,46 @@ class QueryClassificationService:
         
         # Adjust classification based on district presence
         if district:
-            return {
-                "type": "district_query",
-                "parameters": {
-                    "district": district,
-                    "confidence": 0.9 if "district" in query.lower() else 0.8
-                }
-            }
+            parameters = QueryParameters(
+                districts=[district],
+                projects=[],
+                sectors=[],
+                budget_range={"min": None, "max": None},
+                status=[],
+                time_range={"start": None, "end": None}
+            )
+            return QueryClassification(
+                query_type=QueryType.DISTRICT,
+                parameters=parameters,
+                confidence=0.9 if "district" in query.lower() else 0.8,
+                original_query=query,
+                processing_time=0.0
+            )
         
         # Continue with other classification logic
         result = await self.classifier.classify_query(query)
         return result
     
-    def generate_sql_from_classification(self, classification: dict) -> str:
+    def generate_sql_from_classification(self, classification: QueryClassification) -> str:
         """Generate SQL query based on classification"""
-        if classification["type"] == "district_query":
-            district = classification["parameters"]["district"]
-            return f"""
-                    SELECT 
-                        projectname as project_name,
-                        fiscalyear as fiscal_year,
-                        district as location,
-                        budget as total_budget,
-                        projectstatus as status,
-                        projectsector as project_sector
-                    FROM 
-                        proj_dashboard 
-                    WHERE 
-                        LOWER(district) LIKE '%{district.lower()}%'
-                    ORDER BY 
-                        budget DESC
-                    LIMIT 10;
-                    """
-        
         # Base SQL query
         sql = """
-        SELECT * FROM proj_dashboard
+        SELECT 
+            projectname as project_name,
+            fiscalyear as fiscal_year,
+            district as location,
+            budget as total_budget,
+            projectstatus as status,
+            projectsector as project_sector
+        FROM 
+            proj_dashboard
         """
         
         # List to collect WHERE clauses
         where_clauses = []
         
         # Add district filter
-        if classification.parameters.districts:
+        if classification.parameters.districts and not any(d.lower() == 'the' for d in classification.parameters.districts):
             district_conditions = []
             for district in classification.parameters.districts:
                 district_conditions.append(f"LOWER(district) LIKE '%{district.lower()}%'")
@@ -177,16 +174,18 @@ class QueryClassificationService:
             sql += f" WHERE {' AND '.join(where_clauses)}"
         
         # Add ORDER BY clause
-        sql += " ORDER BY projectname"
+        sql += " ORDER BY total_budget DESC"
         
         return sql
     
-    def generate_explanation_from_classification(self, classification: QueryClassification) -> str:
+    def generate_explanation_from_classification(self, classification: QueryClassification, total_results: int = 0, shown_results: int = 0) -> str:
         """
         Generate a natural language explanation of the query classification
         
         Args:
             classification: The query classification result
+            total_results: Total number of results found
+            shown_results: Number of results being shown
             
         Returns:
             Explanation string
@@ -194,12 +193,30 @@ class QueryClassificationService:
         explanation = f"I understood your query as asking about "
         
         if classification.query_type == QueryType.DISTRICT:
-            districts = ", ".join(classification.parameters.districts)
-            explanation += f"projects in the {districts} district."
+            districts = [d for d in classification.parameters.districts if d.lower() != 'the']
+            if districts:
+                explanation += f"projects in the {', '.join(districts)} district."
+            else:
+                explanation += "projects in a specific district, but I couldn't determine which district."
         
         elif classification.query_type == QueryType.SECTOR:
-            sectors = ", ".join(classification.parameters.sectors)
-            explanation += f"projects in the {sectors} sector."
+            sectors = classification.parameters.sectors
+            if len(sectors) == 1:
+                sector = sectors[0]
+                if sector.lower() == "health":
+                    explanation += "projects in the health sector (including hospitals and medical facilities)."
+                elif sector.lower() == "education":
+                    explanation += "projects in the education sector (including schools and learning facilities)."
+                elif sector.lower() == "water":
+                    explanation += "projects in the water sector (including water and sanitation)."
+                elif sector.lower() == "transport":
+                    explanation += "projects in the transport sector (including roads and infrastructure)."
+                elif sector.lower() == "agriculture":
+                    explanation += "projects in the agriculture sector (including farming and crops)."
+                else:
+                    explanation += f"projects in the {sector} sector."
+            else:
+                explanation += f"projects in the following sectors: {', '.join(sectors)}."
         
         elif classification.query_type == QueryType.PROJECT:
             projects = ", ".join(classification.parameters.projects)
@@ -228,13 +245,28 @@ class QueryClassificationService:
         elif classification.query_type == QueryType.COMBINED:
             parts = []
             
-            if classification.parameters.districts:
-                districts = ", ".join(classification.parameters.districts)
-                parts.append(f"in the {districts} district")
+            districts = [d for d in classification.parameters.districts if d.lower() != 'the']
+            if districts:
+                parts.append(f"in the {', '.join(districts)} district")
             
             if classification.parameters.sectors:
-                sectors = ", ".join(classification.parameters.sectors)
-                parts.append(f"in the {sectors} sector")
+                sectors = classification.parameters.sectors
+                if len(sectors) == 1:
+                    sector = sectors[0]
+                    if sector.lower() == "health":
+                        parts.append("in the health sector (including hospitals and medical facilities)")
+                    elif sector.lower() == "education":
+                        parts.append("in the education sector (including schools and learning facilities)")
+                    elif sector.lower() == "water":
+                        parts.append("in the water sector (including water and sanitation)")
+                    elif sector.lower() == "transport":
+                        parts.append("in the transport sector (including roads and infrastructure)")
+                    elif sector.lower() == "agriculture":
+                        parts.append("in the agriculture sector (including farming and crops)")
+                    else:
+                        parts.append(f"in the {sector} sector")
+                else:
+                    parts.append(f"in the following sectors: {', '.join(sectors)}")
             
             if classification.parameters.projects:
                 projects = ", ".join(classification.parameters.projects)
@@ -262,6 +294,15 @@ class QueryClassificationService:
         
         else:  # UNKNOWN
             explanation = "I'm not sure what you're asking about. Could you please rephrase your question?"
+
+        # Add result count information
+        if total_results > 0:
+            if shown_results > 0 and shown_results < total_results:
+                explanation += f" (showing {shown_results}/{total_results})"
+            else:
+                explanation += f" (found {total_results} results)"
+        elif total_results == 0:
+            explanation += " (found 0 results)"
         
         return explanation
 
