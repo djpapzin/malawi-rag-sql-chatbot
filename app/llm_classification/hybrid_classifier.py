@@ -69,11 +69,40 @@ class HybridClassifier:
         
         # Sector patterns
         self.sector_patterns = [
-            re.compile(r'(?:health sector|healthcare|health projects)', re.IGNORECASE),
-            re.compile(r'(?:education|school|learning) (?:sector|projects|initiatives)', re.IGNORECASE),
-            re.compile(r'(?:water|sanitation) (?:sector|projects|initiatives)', re.IGNORECASE),
-            re.compile(r'(?:transport|road|infrastructure) (?:sector|projects|initiatives)', re.IGNORECASE),
-            re.compile(r'(?:agriculture|farming|crop) (?:sector|projects|initiatives)', re.IGNORECASE)
+            # Health sector
+            re.compile(r'(?:health|healthcare|hospital|clinic|medical) (?:sector|projects|initiatives)?', re.IGNORECASE),
+            re.compile(r'(?:show|list|find) (?:me|all) (?:health|healthcare|hospital|clinic|medical) (?:projects)?', re.IGNORECASE),
+            
+            # Education sector
+            re.compile(r'(?:education|school|university|college|learning) (?:sector|projects|initiatives)?', re.IGNORECASE),
+            re.compile(r'(?:show|list|find) (?:me|all) (?:education|school|university|college|learning) (?:projects)?', re.IGNORECASE),
+            
+            # Water sector
+            re.compile(r'(?:water|sanitation|irrigation|drainage) (?:sector|projects|initiatives)?', re.IGNORECASE),
+            re.compile(r'(?:show|list|find) (?:me|all) (?:water|sanitation|irrigation|drainage) (?:projects)?', re.IGNORECASE),
+            
+            # Transport sector
+            re.compile(r'(?:transport|road|highway|bridge|infrastructure) (?:sector|projects|initiatives)?', re.IGNORECASE),
+            re.compile(r'(?:show|list|find) (?:me|all) (?:transport|road|highway|bridge|infrastructure) (?:projects)?', re.IGNORECASE),
+            
+            # Agriculture sector
+            re.compile(r'(?:agriculture|farming|crop|livestock|food) (?:sector|projects|initiatives)?', re.IGNORECASE),
+            re.compile(r'(?:show|list|find) (?:me|all) (?:agriculture|farming|crop|livestock|food) (?:projects)?', re.IGNORECASE)
+        ]
+        
+        # Status patterns
+        self.status_patterns = [
+            # Completed status
+            re.compile(r'(?:completed|finished|done|finalized) (?:projects|initiatives)?', re.IGNORECASE),
+            re.compile(r'projects (?:that are|which are) (?:completed|finished|done|finalized)', re.IGNORECASE),
+            
+            # Ongoing status
+            re.compile(r'(?:ongoing|current|in progress|active|running) (?:projects|initiatives)?', re.IGNORECASE),
+            re.compile(r'projects (?:that are|which are) (?:ongoing|current|in progress|active|running)', re.IGNORECASE),
+            
+            # Planned status
+            re.compile(r'(?:planned|future|upcoming|proposed|approved) (?:projects|initiatives)?', re.IGNORECASE),
+            re.compile(r'projects (?:that are|which are) (?:planned|future|upcoming|proposed|approved)', re.IGNORECASE)
         ]
         
         # Budget patterns
@@ -83,14 +112,6 @@ class HybridClassifier:
             re.compile(r'budget (?:between|from) (?:MWK|K)?(\d[\d,.]*) (?:and|to) (?:MWK|K)?(\d[\d,.]*)', re.IGNORECASE),
             re.compile(r'(?:projects|initiatives) (?:costing|worth|valued at) (?:more than|over|above) (?:MWK|K)?(\d[\d,.]*)', re.IGNORECASE),
             re.compile(r'(?:projects|initiatives) (?:costing|worth|valued at) (?:less than|under|below) (?:MWK|K)?(\d[\d,.]*)', re.IGNORECASE)
-        ]
-        
-        # Status patterns
-        self.status_patterns = [
-            re.compile(r'(?:completed|finished|done) projects', re.IGNORECASE),
-            re.compile(r'(?:ongoing|current|in progress|active) projects', re.IGNORECASE),
-            re.compile(r'(?:planned|future|upcoming|proposed) projects', re.IGNORECASE),
-            re.compile(r'projects (?:that are|which are) (?:completed|ongoing|planned|in progress)', re.IGNORECASE)
         ]
         
         # Time patterns
@@ -173,32 +194,36 @@ class HybridClassifier:
             Tuple of (list of sectors, confidence)
         """
         sectors = []
+        confidence = 0.0
         
-        # Check for health sector
-        if re.search(r'(?:health sector|healthcare|health projects)', query.lower()):
-            sectors.append("health")
+        # Check each sector pattern
+        for pattern in self.sector_patterns:
+            match = pattern.search(query)
+            if match:
+                # Extract the sector from the matched text
+                matched_text = match.group(0).lower()
+                
+                # Map matched text to sector
+                if any(term in matched_text for term in ["health", "healthcare", "hospital", "clinic", "medical"]):
+                    sectors.append("health")
+                    confidence = max(confidence, 0.8)
+                elif any(term in matched_text for term in ["education", "school", "university", "college", "learning"]):
+                    sectors.append("education")
+                    confidence = max(confidence, 0.8)
+                elif any(term in matched_text for term in ["water", "sanitation", "irrigation", "drainage"]):
+                    sectors.append("water")
+                    confidence = max(confidence, 0.8)
+                elif any(term in matched_text for term in ["transport", "road", "highway", "bridge", "infrastructure"]):
+                    sectors.append("transport")
+                    confidence = max(confidence, 0.8)
+                elif any(term in matched_text for term in ["agriculture", "farming", "crop", "livestock", "food"]):
+                    sectors.append("agriculture")
+                    confidence = max(confidence, 0.8)
         
-        # Check for education sector
-        if re.search(r'(?:education|school|learning) (?:sector|projects|initiatives)', query.lower()):
-            sectors.append("education")
+        # Remove duplicates while preserving order
+        sectors = list(dict.fromkeys(sectors))
         
-        # Check for water sector
-        if re.search(r'(?:water|sanitation) (?:sector|projects|initiatives)', query.lower()):
-            sectors.append("water")
-        
-        # Check for transport sector
-        if re.search(r'(?:transport|road|infrastructure) (?:sector|projects|initiatives)', query.lower()):
-            sectors.append("transport")
-        
-        # Check for agriculture sector
-        if re.search(r'(?:agriculture|farming|crop) (?:sector|projects|initiatives)', query.lower()):
-            sectors.append("agriculture")
-        
-        # Return with confidence based on number of sectors found
-        if sectors:
-            return sectors, 0.8
-        
-        return [], 0.0
+        return sectors, confidence
     
     def _regex_classify_budget(self, query: str) -> Tuple[Dict[str, Optional[float]], float]:
         """
@@ -251,27 +276,30 @@ class HybridClassifier:
             Tuple of (list of statuses, confidence)
         """
         statuses = []
+        confidence = 0.0
         
-        # Check for completed projects
-        if re.search(r'(?:completed|finished|done) projects', query.lower()) or \
-           re.search(r'projects (?:that are|which are) (?:completed|finished|done)', query.lower()):
-            statuses.append("completed")
+        # Check each status pattern
+        for pattern in self.status_patterns:
+            match = pattern.search(query)
+            if match:
+                # Extract the status from the matched text
+                matched_text = match.group(0).lower()
+                
+                # Map matched text to status
+                if any(term in matched_text for term in ["completed", "finished", "done", "finalized"]):
+                    statuses.append("completed")
+                    confidence = max(confidence, 0.8)
+                elif any(term in matched_text for term in ["ongoing", "current", "in progress", "active", "running"]):
+                    statuses.append("ongoing")
+                    confidence = max(confidence, 0.8)
+                elif any(term in matched_text for term in ["planned", "future", "upcoming", "proposed", "approved"]):
+                    statuses.append("approved")
+                    confidence = max(confidence, 0.8)
         
-        # Check for ongoing projects
-        if re.search(r'(?:ongoing|current|in progress|active) projects', query.lower()) or \
-           re.search(r'projects (?:that are|which are) (?:ongoing|in progress|active)', query.lower()):
-            statuses.append("ongoing")
+        # Remove duplicates while preserving order
+        statuses = list(dict.fromkeys(statuses))
         
-        # Check for planned projects
-        if re.search(r'(?:planned|future|upcoming|proposed) projects', query.lower()) or \
-           re.search(r'projects (?:that are|which are) (?:planned|proposed)', query.lower()):
-            statuses.append("planned")
-        
-        # Return with confidence based on number of statuses found
-        if statuses:
-            return statuses, 0.8
-        
-        return [], 0.0
+        return statuses, confidence
     
     def _regex_classify_time(self, query: str) -> Tuple[Dict[str, Optional[str]], float]:
         """
@@ -410,95 +438,70 @@ class HybridClassifier:
         
         return classification
     
-    def _merge_classifications(self, regex_class: QueryClassification, llm_class: QueryClassification) -> QueryClassification:
-        """
-        Merge regex and LLM classifications intelligently
-        
-        Args:
-            regex_class: Classification from regex patterns
-            llm_class: Classification from LLM
-            
-        Returns:
-            Merged QueryClassification
-        """
-        # If regex has high confidence and LLM has low confidence, prefer regex
-        if regex_class.confidence > 0.8 and llm_class.confidence < 0.6:
-            return regex_class
-            
-        # If LLM has high confidence and regex has low confidence, prefer LLM
-        if llm_class.confidence > 0.8 and regex_class.confidence < 0.6:
-            return llm_class
-            
-        # For medium confidence cases, merge the parameters
-        merged_params = QueryParameters()
-        
-        # Merge districts
-        merged_params.districts = list(set(regex_class.parameters.districts + llm_class.parameters.districts))
-        
-        # Merge projects
-        merged_params.projects = list(set(regex_class.parameters.projects + llm_class.parameters.projects))
-        
-        # Merge sectors
-        merged_params.sectors = list(set(regex_class.parameters.sectors + llm_class.parameters.sectors))
-        
-        # Merge budget ranges - take the more specific one
-        if regex_class.parameters.budget_range["min"] is not None or regex_class.parameters.budget_range["max"] is not None:
-            merged_params.budget_range = regex_class.parameters.budget_range
-        else:
-            merged_params.budget_range = llm_class.parameters.budget_range
-            
-        # Merge statuses
-        merged_params.status = list(set(regex_class.parameters.status + llm_class.parameters.status))
-        
-        # Merge time ranges - take the more specific one
-        if regex_class.parameters.time_range["start"] is not None or regex_class.parameters.time_range["end"] is not None:
-            merged_params.time_range = regex_class.parameters.time_range
-        else:
-            merged_params.time_range = llm_class.parameters.time_range
-            
-        # Determine merged query type
-        if regex_class.query_type == llm_class.query_type:
-            query_type = regex_class.query_type
-        elif regex_class.query_type == QueryType.COMBINED or llm_class.query_type == QueryType.COMBINED:
-            query_type = QueryType.COMBINED
-        else:
-            # Count non-empty parameters for each type
-            regex_params = sum(1 for p in regex_class.parameters.dict().values() if p)
-            llm_params = sum(1 for p in llm_class.parameters.dict().values() if p)
-            query_type = regex_class.query_type if regex_params > llm_params else llm_class.query_type
-            
-        # Calculate merged confidence
-        merged_confidence = (regex_class.confidence + llm_class.confidence) / 2
-        
-        # Create merged classification
-        return QueryClassification(
-            query_type=query_type,
-            parameters=merged_params,
-            confidence=merged_confidence,
-            original_query=regex_class.original_query,
-            processing_time=regex_class.processing_time + llm_class.processing_time
-        )
-    
     async def classify_query(self, query: str, use_llm: bool = True) -> QueryClassification:
         """
-        Classify a natural language query using the hybrid approach
+        Classify a query using both regex and LLM approaches
         
         Args:
-            query: The natural language query to classify
-            use_llm: Whether to use LLM for classification (if False, only use regex)
+            query: The query to classify
+            use_llm: Whether to use LLM classification
             
         Returns:
-            QueryClassification object with query type and parameters
+            QueryClassification object
         """
-        # First, try regex classification (fast)
-        regex_classification = self._regex_classify(query)
+        # First try regex classification
+        regex_class = self._regex_classify(query)
         
-        # If regex classification has high confidence or LLM is disabled, return it
-        if regex_classification.confidence > 0.8 or not use_llm:
-            return regex_classification
+        # If regex classification is complete and confident, return it
+        if regex_class.query_type != QueryType.GENERAL and regex_class.confidence >= 0.8:
+            return regex_class
         
-        # Otherwise, also try LLM classification
-        llm_classification = await self.llm_classifier.classify_query(query)
+        # If LLM is disabled or regex is confident enough, return regex result
+        if not use_llm or regex_class.confidence >= 0.6:
+            return regex_class
         
-        # Merge the classifications
-        return self._merge_classifications(regex_classification, llm_classification)
+        # Get LLM classification
+        llm_class = await self.llm_classifier.classify_query(query)
+        
+        # Merge the results
+        return self._merge_classifications(regex_class, llm_class)
+    
+    def _merge_classifications(self, regex_class: QueryClassification, llm_class: QueryClassification) -> QueryClassification:
+        """
+        Merge regex and LLM classifications
+        
+        Args:
+            regex_class: Regex classification result
+            llm_class: LLM classification result
+            
+        Returns:
+            Merged QueryClassification object
+        """
+        # Initialize merged result
+        merged = QueryClassification(
+            query_type=QueryType.GENERAL,
+            confidence=0.0,
+            parameters=QueryParameters()
+        )
+        
+        # Determine query type
+        if regex_class.query_type != QueryType.GENERAL and llm_class.query_type != QueryType.GENERAL:
+            merged.query_type = QueryType.COMBINED
+            merged.confidence = max(regex_class.confidence, llm_class.confidence)
+        else:
+            merged.query_type = regex_class.query_type if regex_class.query_type != QueryType.GENERAL else llm_class.query_type
+            merged.confidence = max(regex_class.confidence, llm_class.confidence)
+        
+        # Merge parameters
+        merged.parameters.districts = list(set(regex_class.parameters.districts + llm_class.parameters.districts))
+        merged.parameters.sectors = list(set(regex_class.parameters.sectors + llm_class.parameters.sectors))
+        merged.parameters.status = list(set(regex_class.parameters.status + llm_class.parameters.status))
+        merged.parameters.budget = regex_class.parameters.budget if regex_class.parameters.budget else llm_class.parameters.budget
+        merged.parameters.time = regex_class.parameters.time if regex_class.parameters.time else llm_class.parameters.time
+        
+        # Update confidence based on number of parameters
+        param_count = len(merged.parameters.districts) + len(merged.parameters.sectors) + len(merged.parameters.status)
+        if param_count > 0:
+            merged.confidence = min(merged.confidence + (param_count * 0.1), 1.0)
+        
+        return merged
