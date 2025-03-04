@@ -155,20 +155,37 @@ class ResponseGenerator:
                 
                 formatted_projects.append("\n".join(project_details))
             
+            # Calculate total budget for summary
+            total_budget = 0
+            if 'TOTALBUDGET' in df.columns:
+                total_budget = df['TOTALBUDGET'].sum()
+            
+            # Create summary message
+            total_results = len(df)
+            if query_info and query_info.get('total_count', total_results) > total_results:
+                total_count = query_info['total_count']
+                summary = f"Found {total_count} projects"
+                if total_budget > 0:
+                    summary += f" with a total budget of {self._format_currency(total_budget)}"
+                summary += f", showing {total_results}:\n\n"
+            else:
+                summary = f"Found {total_results} projects"
+                if total_budget > 0:
+                    summary += f" with a total budget of {self._format_currency(total_budget)}"
+                summary += ":\n\n"
+            
             # Join all projects with clear separation
-            response = "\n\n".join([
+            projects_text = "\n\n".join([
                 f"Project {i+1}:\n{details}"
                 for i, details in enumerate(formatted_projects)
             ])
             
-            # Add metadata
-            total_results = len(df)
+            # Add pagination information if needed
             if query_info and query_info.get('total_count', total_results) > total_results:
-                response = f"Found {query_info['total_count']} projects, showing first {total_results}:\n\n{response}"
-            else:
-                response = f"Found {total_results} projects:\n\n{response}"
+                remaining = query_info['total_count'] - total_results
+                projects_text += f"\n\nType 'show more' to see the remaining {remaining} projects."
             
-            return response
+            return summary + projects_text
             
         except Exception as e:
             logger.error(f"Error formatting project list: {str(e)}")
