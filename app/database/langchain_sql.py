@@ -508,14 +508,20 @@ Just ask me what you'd like to know about these projects!"""
                     # Format the results for a specific project
                     project = results[0]
                     
-                    # Format the budget as currency
-                    budget_value = project.get('total_budget', 0)
-                    if budget_value:
-                        try:
-                            formatted_budget = f"MWK {float(budget_value):,.2f}"
-                        except (ValueError, TypeError):
-                            formatted_budget = f"MWK {budget_value}"
-                    else:
+                    # Format the budget as currency with better error handling
+                    try:
+                        budget_value = project.get('total_budget')
+                        if budget_value is not None and str(budget_value).strip():
+                            try:
+                                # Try to convert to float and format
+                                formatted_budget = f"MWK {float(str(budget_value).replace(',', '')):,.2f}"
+                            except (ValueError, TypeError):
+                                # If conversion fails, just display as is
+                                formatted_budget = f"MWK {str(budget_value)}"
+                        else:
+                            formatted_budget = "Unknown"
+                    except Exception as e:
+                        logger.error(f"Error formatting budget: {str(e)}")
                         formatted_budget = "Unknown"
                     
                     # Create a formatted project object
@@ -620,6 +626,7 @@ Just ask me what you'd like to know about these projects!"""
                 
         except Exception as e:
             logger.error(f"Error in execute_query_from_natural_language: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "results": [{
                     "type": "error",
@@ -636,23 +643,9 @@ Just ask me what you'd like to know about these projects!"""
     async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None, query_type: str = None) -> Dict[str, Any]:
         """Generate a natural language response from query results."""
         try:
-            logger.info(f"Generating natural response for user query: {user_query}")
-            
-            # Convert results to string format for the prompt
-            results_str = json.dumps(results, indent=2)
-            
-            # Check if this is a counting query
-            is_count_query = any(word in user_query.lower() for word in ['how many', 'count', 'number of'])
-            has_count = any('count' in col.lower() for result in results for col in result.keys())
-            
-            start_time = time.time()
-            query_time = f"{time.time() - start_time:.2f}s"
-            
-            # Check if this is a specific project query
-            is_specific_project = query_type == "project_query"
-            
-            # Check if this is a district query
-            is_district_query = 'district' in user_query.lower() and any(word in user_query.lower() for word in ['show', 'list', 'all projects in'])
+            # Check if this is a count query
+            is_count_query = any(key.lower().endswith('count') for result in results for key in result.keys())
+            has_count = any('count' in key.lower() for result in results for key in result.keys())
             
             if is_count_query or has_count or 'which' in user_query.lower():
                 # For count queries, format response directly without LLM
@@ -661,122 +654,128 @@ Just ask me what you'd like to know about these projects!"""
                     count = next(val for result in results for key, val in result.items() if 'count' in key.lower())
                 else:
                     count = len(results)
-                    
-                response = f"There are {count} projects that match your criteria."
+                
+                # Calculate total budget if available
+                total_budget = 0
+                budget_field = next((key for result in results for key in result.keys() if 'budget' in key.lower()), None)
+                if budget_field:
+                    total_budget = sum(float(result[budget_field]) for result in results if result.get(budget_field))
+                
+                # Format the response
+                response = f"Found {count} projects"
+                if total_budget > 0:
+                    response += f" with a total budget of MWK {total_budget:,.2f}"
                 
                 # Add summary for 'which' queries
                 if 'which' in user_query.lower():
                     if results:
                         # Get unique non-empty sectors and districts
-                        sectors = {r.get('project_sector', '') for r in results if r.get('project_sector')}
+                        sectors = {r.get('project_sector', r.get('PROJECTSECTOR', '')) for r in results if r.get('project_sector') or r.get('PROJECTSECTOR')}
                         districts = {r.get('district', r.get('DISTRICT', '')) for r in results if r.get('district') or r.get('DISTRICT')}
                         
                         if sectors:
                             if len(sectors) == 1:
-                                response += f" All projects are in the {next(iter(sectors))} sector."
+                                response += f". All projects are in the {next(iter(sectors))} sector"
                             else:
                                 sector_list = sorted(sectors)
-                                response += f" Projects are in the following sectors: {', '.join(sector_list)}."
+                                response += f". Projects are in the following sectors: {', '.join(sector_list)}"
                         
                         if districts:
                             if len(districts) <= 5:
-                                response += f" Projects are located in: {', '.join(sorted(districts))}."
+                                response += f". Located in: {', '.join(sorted(districts))}"
                             else:
                                 top_districts = sorted(districts)[:5]
-                                response += f" Projects are spread across {len(districts)} districts, including: {', '.join(top_districts)}."
+                                response += f". Projects are spread across {len(districts)} districts, including: {', '.join(top_districts)}"
+                
+                response += "."
+                
+                return {
+                    "results": [{
+                        "type": "text",
+                        "message": response,
+                        "data": {}
+                    }],
+                    "metadata": {
+                        "total_results": count,
+                        "query_time": "0.00s"
+                    }
+                }
             
-            elif is_district_query:
-                # For district queries, format a clean response
-                district_name = next((word for word in user_query.lower().split() if word in [r.get('district', '').lower() for r in results]), "")
-                if district_name:
-                    district_name = district_name.capitalize()
-                    
-                count = len(results)
-                response = f"There are {count} projects in {district_name} district."
-                
-                if results:
-                    # Get unique sectors
-                    sectors = {r.get('project_sector', '') for r in results if r.get('project_sector')}
-                    
-                    if sectors:
-                        if len(sectors) <= 5:
-                            response += f" Projects are in the following sectors: {', '.join(sorted(sectors))}."
-                        else:
-                            top_sectors = sorted(sectors)[:5]
-                            response += f" Projects span {len(sectors)} sectors, including: {', '.join(top_sectors)}."
-                    
-                    # Add a sample project
-                    if results[0].get('project_name'):
-                        sample_project = results[0]
-                        budget = sample_project.get('total_budget', 0)
-                        status = sample_project.get('project_status', 'Unknown')
-                        response += f" One example is the {sample_project.get('project_name')} project ({status}) with a budget of MWK {budget:,.2f}."
-                
-            elif is_specific_project:
-                # For specific project queries, provide detailed information
-                if results and len(results) > 0:
-                    project = results[0]
-                    project_name = project.get('project_name', 'Unknown project')
-                    district = project.get('district', project.get('DISTRICT', 'Unknown location'))
-                    sector = project.get('project_sector', 'Unknown sector')
-                    status = project.get('project_status', 'Unknown status')
-                    budget = project.get('total_budget', 0)
-                    completion = project.get('completion_percentage', 0)
-                    
-                    response = f"The {project_name} is a {sector} project located in {district}. "
-                    response += f"It has a budget of MWK {budget:,.2f} and is currently {status} "
-                    response += f"with {completion}% completion."
-                else:
-                    response = "I couldn't find specific information about this project."
+            # For other queries, format results in a standardized way
+            formatted_results = []
+            total_budget = 0
             
-            else:
-                # For non-count queries, use LLM but with strict instructions
-                explanation_prompt = f"""You are a helpful assistant for Malawi infrastructure projects. 
-                The user asked: "{user_query}"
-                The query returned {len(results)} results.
+            # Add summary message
+            if results:
+                budget_field = next((key for result in results[0].keys() if 'budget' in key.lower()), None)
+                if budget_field:
+                    total_budget = sum(float(result[budget_field]) for result in results if result.get(budget_field))
                 
-                First result: {str(results[0]) if results else 'No results'}
+                summary = f"Found {len(results)} projects"
+                if total_budget > 0:
+                    summary += f" with a total budget of MWK {total_budget:,.2f}"
+                summary += "."
                 
-                CRITICAL INSTRUCTIONS:
-                1. If mentioning any counts, ALWAYS start with "There are {len(results)} projects"
-                2. If mentioning any amounts, use the EXACT values from the results
-                3. Do not perform calculations or generate numbers - use only the values provided
-                4. Keep the response brief and factual
-                5. DO NOT include any code, function definitions, or Python syntax in your response
-                6. Respond in plain natural language only
+                formatted_results.append({
+                    "type": "text",
+                    "message": summary,
+                    "data": {}
+                })
+            
+            # Format project details
+            if len(results) > 0:
+                formatted_projects = []
+                for project in results[:10]:  # Show first 10 projects
+                    formatted_project = {
+                        "Name": project.get("project_name", project.get("PROJECTNAME", "Unknown")),
+                        "Fiscal Year": project.get("fiscal_year", project.get("FISCALYEAR", "Unknown")),
+                        "Location": project.get("district", project.get("DISTRICT", "Unknown")),
+                        "Budget": f"MWK {float(project.get('total_budget', project.get('TOTALBUDGET', 0))):,.2f}",
+                        "Status": project.get("project_status", project.get("PROJECTSTATUS", "Unknown")),
+                        "Sector": project.get("project_sector", project.get("PROJECTSECTOR", "Unknown"))
+                    }
+                    formatted_projects.append(formatted_project)
                 
-                Provide a brief, natural language explanation of these results."""
+                formatted_results.append({
+                    "type": "list",
+                    "message": "Project Details",
+                    "data": {
+                        "fields": ["Name", "Fiscal Year", "Location", "Budget", "Status", "Sector"],
+                        "values": formatted_projects
+                    }
+                })
                 
-                response = await self._get_llm_response(explanation_prompt)
-                
-                # Clean the response to remove any code blocks or function definitions
-                response = self._clean_llm_response(response)
-                
-                # Validate that the response uses the correct count
-                if str(len(results)) not in response:
-                    response = f"There are {len(results)} projects that match your criteria. {response}"
+                # Add pagination message if needed
+                if len(results) > 10:
+                    formatted_results.append({
+                        "type": "text",
+                        "message": f"Showing 10 of {len(results)} projects. Type 'show more' to see additional results.",
+                        "data": {}
+                    })
             
             return {
-                "results": [{
-                    "type": "text",
-                    "message": response,
-                    "data": results[0] if len(results) == 1 else {}
-                }],
+                "results": formatted_results,
                 "metadata": {
                     "total_results": len(results),
-                    "query_time": query_time,
+                    "query_time": "0.00s",
                     "sql_query": sql_query
                 }
             }
             
         except Exception as e:
             logger.error(f"Error generating natural response: {str(e)}")
-            logger.error(traceback.format_exc())
-            if results and len(results) > 0:
-                total_budget = sum(float(r.get('total_budget', 0)) for r in results)
-                return f"I found {len(results)} matching projects with a total budget of MWK {total_budget:,.2f}."
-            return "I found some matching projects in the database."
-            
+            return {
+                "results": [{
+                    "type": "error",
+                    "message": "Error generating response",
+                    "data": {}
+                }],
+                "metadata": {
+                    "total_results": 0,
+                    "query_time": "0.00s"
+                }
+            }
+
     async def format_response(self, query_results: List[Dict[str, Any]], sql_query: str, query_time: float, user_query: str, query_type: str = None) -> Dict[str, Any]:
         """Format query results into a standardized response with natural language."""
         try:
@@ -1099,14 +1098,20 @@ Just ask me what you'd like to know about these projects!"""
                     # Format the results for a specific project
                     project = results[0]
                     
-                    # Format the budget as currency
-                    budget_value = project.get('total_budget', 0)
-                    if budget_value:
-                        try:
-                            formatted_budget = f"MWK {float(budget_value):,.2f}"
-                        except (ValueError, TypeError):
-                            formatted_budget = f"MWK {budget_value}"
-                    else:
+                    # Format the budget as currency with better error handling
+                    try:
+                        budget_value = project.get('total_budget')
+                        if budget_value is not None and str(budget_value).strip():
+                            try:
+                                # Try to convert to float and format
+                                formatted_budget = f"MWK {float(str(budget_value).replace(',', '')):,.2f}"
+                            except (ValueError, TypeError):
+                                # If conversion fails, just display as is
+                                formatted_budget = f"MWK {str(budget_value)}"
+                        else:
+                            formatted_budget = "Unknown"
+                    except Exception as e:
+                        logger.error(f"Error formatting budget: {str(e)}")
                         formatted_budget = "Unknown"
                     
                     # Create a formatted project object
@@ -1189,8 +1194,6 @@ Just ask me what you'd like to know about these projects!"""
                             formatted_budget = f"MWK {float(budget_value):,.2f}"
                         except (ValueError, TypeError):
                             formatted_budget = f"MWK {budget_value}"
-                    else:
-                        formatted_budget = "Unknown"
                         
                     project_message += f"Budget: {formatted_budget}\n"
                     project_message += f"Status: {project.get('status', 'Unknown')}\n"
