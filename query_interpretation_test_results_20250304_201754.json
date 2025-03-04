@@ -1,0 +1,56 @@
+[
+  {
+    "test_case": "Basic district query",
+    "query": "Which projects are in Dowa?",
+    "passed": false,
+    "error": "Response missing classification information"
+  },
+  {
+    "test_case": "Alternative district query format",
+    "query": "Show me all projects in Dowa district",
+    "passed": false,
+    "error": "Response missing classification information"
+  },
+  {
+    "test_case": "Natural district query",
+    "query": "I want to see projects in Dowa",
+    "passed": false,
+    "error": "Response missing classification information"
+  },
+  {
+    "test_case": "Basic sector query",
+    "query": "Show me health sector projects",
+    "passed": false,
+    "error": "Response missing classification information"
+  },
+  {
+    "test_case": "Question-based sector query",
+    "query": "What education projects are there?",
+    "passed": false,
+    "error": "Response missing classification information"
+  },
+  {
+    "test_case": "Combined district and sector query",
+    "query": "Show me health projects in Dowa",
+    "passed": false,
+    "error": "Response missing classification information"
+  },
+  {
+    "test_case": "Combined status and sector query",
+    "query": "List completed education projects",
+    "passed": false,
+    "error": "Response missing classification information"
+  },
+  {
+    "test_case": "Specific project query",
+    "query": "Tell me about the Lilongwe Water Supply Project",
+    "passed": false,
+    "error": "Response missing classification information"
+  },
+  {
+    "test_case": "Complex combined query",
+    "query": "Show me completed health projects in Dowa district from 2020",
+    "passed": false,
+    "error": "Response missing classification information"
+  }
+]
