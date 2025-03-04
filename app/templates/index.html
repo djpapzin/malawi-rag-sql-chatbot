@@ -1,0 +1,23 @@
+<div class="chat-container">
+    <div class="messages" id="messages">
+        {% if test_mode %}
+            <div class="test-mode-banner">Test Mode - Viewing Sample Responses</div>
+        {% endif %}
+        {% for message in messages %}
+            <div class="message {{ message.type }}">
+                <div class="message-content">{{ message.content | safe }}</div>
+            </div>
+        {% endfor %}
+    </div>
+    
+    {% if not test_mode %}
+    <div class="input-container">
+        <input type="text" id="user-input" placeholder="Ask about development projects...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+    {% else %}
+    <div class="test-mode-controls">
+        <a href="/" class="button">Return to Chat</a>
+    </div>
+    {% endif %}
+</div> 
