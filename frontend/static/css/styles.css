@@ -805,3 +805,31 @@ body.dark-mode {
 .results-table tr:hover {
     background-color: #f3f4f6;
 }
+
+.welcome-link {
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    display: inline-block;
+}
+
+.welcome-link:hover {
+    color: #2563eb; /* Tailwind blue-600 */
+}
+
+.welcome-link::after {
+    content: '🔄';
+    font-size: 0.8em;
+    margin-left: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.welcome-link:hover::after {
+    opacity: 1;
+}
+
+.dark-mode .welcome-link:hover {
+    color: #60a5fa; /* Tailwind blue-400 for dark mode */
+}
