@@ -329,25 +329,35 @@ class HybridClassifier:
         confidence = 0.0
         query_type = QueryType.UNKNOWN
         
-        # Try project classification first (most specific)
+        # Try district classification first (most specific)
+        districts, district_confidence = self._regex_classify_district(query)
+        if districts and district_confidence > 0.7:  # Lower threshold for district queries
+            parameters.districts = districts
+            confidence = district_confidence
+            query_type = QueryType.DISTRICT
+            return QueryClassification(
+                query_type=query_type,
+                parameters=parameters,
+                confidence=confidence,
+                original_query=query,
+                processing_time=time.time() - start_time
+            )
+        
+        # Try project classification next
         projects, proj_conf = self._regex_classify_project(query)
-        if projects:
+        if projects and proj_conf > 0.8:
             parameters.projects = projects
             confidence = proj_conf
             query_type = QueryType.PROJECT
-            
-            # Early return for high-confidence project matches
-            if confidence > 0.8:
-                return QueryClassification(
-                    query_type=query_type,
-                    parameters=parameters,
-                    confidence=confidence,
-                    original_query=query,
-                    processing_time=time.time() - start_time
-                )
-
-        # Continue with other classifications if no high-confidence project match
-        districts, district_confidence = self._regex_classify_district(query)
+            return QueryClassification(
+                query_type=query_type,
+                parameters=parameters,
+                confidence=confidence,
+                original_query=query,
+                processing_time=time.time() - start_time
+            )
+        
+        # Continue with other classifications
         sectors, sector_confidence = self._regex_classify_sector(query)
         budget_range, budget_confidence = self._regex_classify_budget(query)
         statuses, status_confidence = self._regex_classify_status(query)
@@ -381,8 +391,13 @@ class HybridClassifier:
             query_type = max(confidences.items(), key=lambda x: x[1])[0]
             confidence = confidences[query_type]
         else:
-            query_type = QueryType.UNKNOWN
-            confidence = 0.0
+            # If no specific type is found, check if it's a general query
+            if any(word in query.lower() for word in ['projects', 'list', 'show', 'find', 'what', 'which']):
+                query_type = QueryType.GENERAL
+                confidence = 0.6
+            else:
+                query_type = QueryType.UNKNOWN
+                confidence = 0.0
         
         # Create classification result
         classification = QueryClassification(
