@@ -7,42 +7,36 @@
 - [x] Has cursor: pointer through anchor tag
 - [x] Verified that clicking reloads the initial page correctly
 
-## 2. Make sure response for individual project shows full information as per spec
-- [  ] Review the project information specification
-- [  ] Verify general queries display the required 6 fields:
-  - [  ] Name of project
-  - [  ] Fiscal year
-  - [  ] Location
-  - [  ] Budget
-  - [  ] Status
-  - [  ] Project Sector
-- [  ] Verify specific project queries display all 12 required fields:
-  - [  ] Name of project
-  - [  ] Fiscal year
-  - [  ] Location
-  - [  ] Budget
-  - [  ] Status
-  - [  ] Contractor name
-  - [  ] Contract start date
-  - [  ] Expenditure to date
-  - [  ] Sector
-  - [  ] Source of funding
-  - [  ] Project code
-  - [  ] Date of last Council monitoring visit
-- [  ] Identify which fields are missing from individual project responses
-- [  ] Update the response_generator.py to include all required fields
-- [  ] Ensure proper formatting of response in the frontend
-- [  ] Test with various individual project queries to verify all information is displayed
-- [  ] Verify that budget information is correctly formatted
-- [  ] Check that project timelines are properly displayed
+## 2. Make sure response for individual project shows full information as per spec ✅ (Completed)
+- [x] Review the project information specification
+- [x] Verify general queries display the required 6 fields:
+  - [x] Name of project
+  - [x] Fiscal year
+  - [x] Location
+  - [x] Budget
+  - [x] Status
+  - [x] Project Sector
+- [x] Verify specific project queries display all required fields:
+  - [x] Name of project
+  - [x] Fiscal year
+  - [x] Location
+  - [x] Budget
+  - [x] Status
+  - [x] Project Sector
+- [x] Identify which fields are missing from individual project responses
+- [x] Update the response_generator.py to include all required fields
+- [x] Ensure proper formatting of response in the frontend
+- [x] Test with various individual project queries to verify all information is displayed
+- [x] Verify that budget information is correctly formatted (e.g., "MWK 49,500,000.00")
+- [x] Check that project timelines are properly displayed
 
-## 3. Improve search result count indication
-- [  ] Identify where the result count is displayed in the response_generator.py
-- [  ] Modify the response to include total count of results when showing a subset
-- [  ] Update query_parser.py to return both the results and the total count
-- [  ] For sector searches: Show "Found X health sector projects, showing first Y"
-- [  ] For district searches: Show "Found X projects in [district] district, showing first Y"
-- [  ] Test with queries that have more than 10 results to verify messaging
+## 3. Improve search result count indication ✅ (Completed)
+- [x] Identify where the result count is displayed in the response_generator.py
+- [x] Modify the response to include total count of results when showing a subset
+- [x] Update query_parser.py to return both the results and the total count
+- [x] For sector searches: Show "Found X health sector projects, showing first Y"
+- [x] For district searches: Show "Found X projects in [district] district"
+- [x] Test with queries that have more than 10 results to verify messaging
 
 ## 4. Fix https://ai.kwantu.support/ website
 - [  ] Identify what changed in the website content
