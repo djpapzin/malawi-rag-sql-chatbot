@@ -1,0 +1,92 @@
+[
+  {
+    "test_case": "Basic district query",
+    "query": "Which projects are in Dowa?",
+    "success": false,
+    "response": "Found 10 projects in D district:",
+    "missing_params": [
+      "Dowa"
+    ]
+  },
+  {
+    "test_case": "Alternative district format",
+    "query": "Show me all projects in Dowa district",
+    "success": true,
+    "response": "Found 10 projects in Dowa district:"
+  },
+  {
+    "test_case": "Natural district query",
+    "query": "I want to see projects in Dowa",
+    "success": false,
+    "response": "Found 10 projects in D district:",
+    "missing_params": [
+      "Dowa"
+    ]
+  },
+  {
+    "test_case": "Question-based district query",
+    "query": "What projects exist in Dowa?",
+    "success": false,
+    "response": "Found 10 projects in D district:",
+    "missing_params": [
+      "Dowa"
+    ]
+  },
+  {
+    "test_case": "Health sector query",
+    "query": "Show me health sector projects",
+    "success": false,
+    "response": "Error generating response",
+    "missing_params": [
+      "health"
+    ]
+  },
+  {
+    "test_case": "Education sector query",
+    "query": "What education projects are there?",
+    "success": false,
+    "response": "Error generating response",
+    "missing_params": [
+      "education"
+    ]
+  },
+  {
+    "test_case": "Water sector query",
+    "query": "List all water projects",
+    "success": false,
+    "response": "Error generating response",
+    "missing_params": [
+      "water"
+    ]
+  },
+  {
+    "test_case": "District and sector combined",
+    "query": "Show me health projects in Dowa",
+    "success": false,
+    "response": "Found 10 projects in D district:",
+    "missing_params": [
+      "health",
+      "Dowa"
+    ]
+  },
+  {
+    "test_case": "Status and sector combined",
+    "query": "List completed education projects",
+    "success": false,
+    "response": "Error processing query: Database error: 'NoneType' object is not iterable",
+    "missing_params": [
+      "completed",
+      "education"
+    ]
+  },
+  {
+    "test_case": "Status and district combined",
+    "query": "What are the ongoing projects in Dowa?",
+    "success": false,
+    "response": "Found 10 projects in D district:",
+    "missing_params": [
+      "ongoing",
+      "Dowa"
+    ]
+  }
+]

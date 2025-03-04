@@ -1,0 +1,174 @@
+[
+  {
+    "query": "Which projects are in Dowa?",
+    "description": "Basic district query",
+    "success": true,
+    "missing_params": [],
+    "parsed_query": {
+      "type": "district",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(district) = LOWER('Dowa'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:04.121799",
+        "original_query": "Which projects are in Dowa?",
+        "districts": [
+          "Dowa"
+        ]
+      }
+    }
+  },
+  {
+    "query": "Show me all projects in Dowa district",
+    "description": "Alternative district format",
+    "success": true,
+    "missing_params": [],
+    "parsed_query": {
+      "type": "district",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(district) = LOWER('Dowa'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:04.122187",
+        "original_query": "Show me all projects in Dowa district",
+        "districts": [
+          "Dowa"
+        ]
+      }
+    }
+  },
+  {
+    "query": "I want to see projects in Dowa",
+    "description": "Natural district query",
+    "success": true,
+    "missing_params": [],
+    "parsed_query": {
+      "type": "district",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(district) = LOWER('Dowa'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:04.122372",
+        "original_query": "I want to see projects in Dowa",
+        "districts": [
+          "Dowa"
+        ]
+      }
+    }
+  },
+  {
+    "query": "What projects exist in Dowa?",
+    "description": "Question-based district query",
+    "success": true,
+    "missing_params": [],
+    "parsed_query": {
+      "type": "district",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(district) = LOWER('Dowa'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:04.122534",
+        "original_query": "What projects exist in Dowa?",
+        "districts": [
+          "Dowa"
+        ]
+      }
+    }
+  },
+  {
+    "query": "Show me health sector projects",
+    "description": "Health sector query",
+    "success": true,
+    "missing_params": [],
+    "parsed_query": {
+      "type": "sector",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(projectsector) = LOWER('health'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:04.122705",
+        "original_query": "Show me health sector projects",
+        "sectors": [
+          "health"
+        ]
+      }
+    }
+  },
+  {
+    "query": "What education projects are there?",
+    "description": "Education sector query",
+    "success": true,
+    "missing_params": [],
+    "parsed_query": {
+      "type": "sector",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(projectsector) = LOWER('education'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:08.412866",
+        "original_query": "What education projects are there?",
+        "sectors": [
+          "education"
+        ]
+      }
+    }
+  },
+  {
+    "query": "List all water projects",
+    "description": "Water sector query",
+    "success": true,
+    "missing_params": [],
+    "parsed_query": {
+      "type": "sector",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(projectsector) = LOWER('water'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:12.083915",
+        "original_query": "List all water projects",
+        "sectors": [
+          "water"
+        ]
+      }
+    }
+  },
+  {
+    "query": "Show me health projects in Dowa",
+    "description": "District and sector combined",
+    "success": false,
+    "missing_params": [
+      "health"
+    ],
+    "parsed_query": {
+      "type": "district",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(district) = LOWER('Dowa'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:15.545192",
+        "original_query": "Show me health projects in Dowa",
+        "districts": [
+          "Dowa"
+        ]
+      }
+    }
+  },
+  {
+    "query": "List completed education projects",
+    "description": "Status and sector combined",
+    "success": true,
+    "missing_params": [],
+    "parsed_query": {
+      "type": "sector",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(projectsector) = LOWER('education'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:15.545389",
+        "original_query": "List completed education projects",
+        "sectors": [
+          "education"
+        ]
+      }
+    }
+  },
+  {
+    "query": "What are the ongoing projects in Dowa?",
+    "description": "Status and district combined",
+    "success": true,
+    "missing_params": [],
+    "parsed_query": {
+      "type": "district",
+      "query": "\n            \n            SELECT \n                projectname as project_name,\n                fiscalyear as fiscal_year,\n                district,\n                budget as total_budget,\n                projectstatus as status,\n                projectsector as project_sector\n            FROM \n                proj_dashboard\n            WHERE \n                ISLATEST = 1\n        \nAND (LOWER(district) = LOWER('Dowa'))\n            ORDER BY \n                \n            CASE \n                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1\n                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2\n                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3\n                ELSE 4\n            END\n        ,\n                TOTALBUDGET DESC,\n                COMPLETIONPERCENTAGE DESC\n            LIMIT 10\n            ",
+      "metadata": {
+        "timestamp": "2025-03-04T20:48:20.040801",
+        "original_query": "What are the ongoing projects in Dowa?",
+        "districts": [
+          "Dowa"
+        ]
+      }
+    }
+  }
+]
