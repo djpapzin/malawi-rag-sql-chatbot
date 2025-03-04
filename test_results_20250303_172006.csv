@@ -1,5 +1,5 @@
 ID,Query,Expected Result,Actual Result,Status,Category,Full Response
-"D01","Show me all projects in Dowa district","Dowa","Found 10 projects in Dowa district:
+"D01","Show me all projects in Dowa district","List all projects in Dowa","Found 10 projects in Dowa district:
 Project 1:
 Name of project: Construction of Mndolera Bridge
 Fisc...","PASS","District","Found 10 projects in Dowa district:
