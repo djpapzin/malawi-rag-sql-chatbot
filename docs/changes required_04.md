@@ -1,11 +1,11 @@
 # Changes Required - Implementation Checklist
 
-## 1. Make "Welcome to Dziwani!" clickable so it reloads initial page
-- [  ] Locate the h1 element with "Welcome to Dziwani!" text in frontend/templates/index.html
-- [  ] Wrap the text in an anchor tag (`<a>`) with href="/" or javascript:location.reload()
-- [  ] Add appropriate styling to make it look clickable (e.g., hover effects)
-- [  ] Add cursor: pointer CSS property
-- [  ] Test that clicking reloads the initial page correctly
+## 1. Make "Welcome to Dziwani!" clickable ✅ (Completed)
+- [x] Located and verified h1 element with "Welcome to Dziwani!" text in frontend/templates/index.html
+- [x] Text is wrapped in anchor tag (`<a>`) with onclick="location.reload()"
+- [x] Has appropriate styling with hover effects (hover:text-blue-600)
+- [x] Has cursor: pointer through anchor tag
+- [x] Verified that clicking reloads the initial page correctly
 
 ## 2. Make sure response for individual project shows full information as per spec
 - [  ] Review the project information specification
