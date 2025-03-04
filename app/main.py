@@ -57,7 +57,7 @@ app = FastAPI(
 # Initialize templates
 templates = Jinja2Templates(directory="frontend/templates")
 
-# Set up static files and templates
+# Set up static files and frontend
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
 # Configure CORS
@@ -79,11 +79,16 @@ logger.info("Initialized components")
 
 # Include routers with correct prefix for rag-sql-chatbot
 from app.routers import chat
+from app import routes as test_routes
+
 app.include_router(
     chat.router, 
     prefix=f"{API_PREFIX}/rag-sql-chatbot",
     tags=["chatbot"]
 )
+
+# Include test routes
+app.include_router(test_routes.router, tags=["test"])
 
 @app.get("/")
 async def root(request: Request):
@@ -321,10 +326,6 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
                 "query_time": "0.00s"
             }
         }
-
-# Mount the frontend static files
-app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
