@@ -20,40 +20,30 @@ class ResponseGenerator:
         self.date_columns = ['SIGNINGDATE', 'LASTVISIT', 'STARTDATE', 'COMPLETIONESTIDATE']
         self.NULL_VALUE = "Not available"
         
-        # Define standard field order
+        # Define standard field order for general queries (6 fields as per spec)
         self.general_field_order = [
-            'PROJECTNAME',
-            'PROJECTCODE',
-            'PROJECTSECTOR',
-            'REGION',
-            'DISTRICT',
-            'PROJECTSTATUS',
-            'TOTALBUDGET',
-            'COMPLETIONPERCENTAGE'
+            'PROJECTNAME',      # Name of project
+            'FISCALYEAR',       # Fiscal year
+            'DISTRICT',         # Location
+            'TOTALBUDGET',      # Budget
+            'PROJECTSTATUS',    # Status
+            'PROJECTSECTOR'     # Project Sector
         ]
         
+        # Define standard field order for specific queries (12 fields as per spec)
         self.specific_field_order = [
-            # Basic Information
-            'PROJECTNAME',
-            'PROJECTCODE',
-            'PROJECTSECTOR',
-            'REGION',
-            'DISTRICT',
-            'PROJECTSTATUS',
-            # Implementation Details
-            'CONTRACTORNAME',
-            'STARTDATE',
-            'COMPLETIONESTIDATE',
-            'COMPLETIONPERCENTAGE',
-            'STAGE',
-            # Financial Information
-            'TOTALBUDGET',
-            'TOTALEXPENDITURETODATE',
-            'FUNDINGSOURCE',
-            # Additional Information
-            'PROJECTDESC',
-            'TRADITIONALAUTHORITY',
-            'LASTVISIT'
+            'PROJECTNAME',              # Name of project
+            'FISCALYEAR',              # Fiscal year
+            'DISTRICT',                # Location
+            'TOTALBUDGET',             # Budget
+            'PROJECTSTATUS',           # Status
+            'CONTRACTORNAME',          # Contractor name
+            'STARTDATE',               # Contract start date
+            'TOTALEXPENDITURETODATE',  # Expenditure to date
+            'PROJECTSECTOR',           # Sector
+            'FUNDINGSOURCE',           # Source of funding
+            'PROJECTCODE',             # Project code
+            'LASTVISIT'                # Date of last Council monitoring visit
         ]
         
     def _format_value(self, value: Any) -> str:
@@ -133,66 +123,59 @@ class ResponseGenerator:
         return " ".join(response)
 
     def _format_project_list(self, df: pd.DataFrame, query_info: Dict[str, Any] = None) -> str:
-        """Format a list of projects for display"""
-        if df.empty:
-            return "No projects found matching your criteria."
+        """Format a list of projects according to general query specification"""
+        try:
+            start_time = datetime.now()
             
-        # Start timing for metadata
-        start_time = datetime.now()
-        
-        # Format summary
-        summary = []
-        total_projects = len(df)
-        total_budget = df['TOTALBUDGET'].sum() if 'TOTALBUDGET' in df.columns else None
-        avg_completion = df['COMPLETIONPERCENTAGE'].mean() if 'COMPLETIONPERCENTAGE' in df.columns else None
-        
-        summary.append(f"Found {total_projects} project{'s' if total_projects != 1 else ''}")
-        if total_budget is not None and not pd.isna(total_budget):
-            summary.append(f"Total Budget: {self.format_budget(total_budget)}")
-        if avg_completion is not None and not pd.isna(avg_completion):
-            summary.append(f"Average Completion: {self._format_percentage(avg_completion)}")
+            if df.empty:
+                return "No projects found matching your criteria."
             
-        # Format individual projects
-        formatted_projects = []
-        for _, row in df.iterrows():
-            project_details = []
-            
-            # Add fields in standard order
-            for field in self.general_field_order:
-                if field in row.index:
-                    value = row[field]
-                    formatted_value = (
-                        self._format_currency(value) if field in self.currency_columns
-                        else self._format_date(value) if field in self.date_columns
-                        else self._format_percentage(value) if field == 'COMPLETIONPERCENTAGE'
-                        else self._format_value(value)
-                    )
-                    project_details.append(f"{field.title()}: {formatted_value}")
-                    
-            formatted_projects.append("\n".join(project_details))
-            
-        # Get filters applied
-        filters_applied = []
-        if query_info:
-            if 'sector' in query_info:
-                filters_applied.append(f"Sector: {query_info['sector']}")
-            if 'region' in query_info:
-                filters_applied.append(f"Region: {query_info['region']}")
-            if 'status' in query_info:
-                filters_applied.append(f"Status: {query_info['status']}")
+            # Format each project with only the required fields for general queries
+            formatted_projects = []
+            for idx, project in df.iterrows():
+                project_details = []
+                for field in self.general_field_order:
+                    if field in project.index:
+                        value = project[field]
+                        formatted_value = (
+                            self._format_currency(value) if field in self.currency_columns
+                            else self._format_date(value) if field in self.date_columns
+                            else self._format_value(value)
+                        )
+                        # Use more user-friendly field names
+                        display_name = {
+                            'PROJECTNAME': 'Name',
+                            'FISCALYEAR': 'Fiscal Year',
+                            'DISTRICT': 'Location',
+                            'TOTALBUDGET': 'Budget',
+                            'PROJECTSTATUS': 'Status',
+                            'PROJECTSECTOR': 'Sector'
+                        }.get(field, field)
+                        project_details.append(f"- {display_name}: {formatted_value}")
                 
-        # Combine all sections
-        response_parts = [
-            "\n".join(summary),
-            "\nProjects:",
-            "\n\n".join(formatted_projects),
-            self._format_metadata(datetime.now() - start_time, total_projects, filters_applied)
-        ]
-        
-        return "\n\n".join(response_parts)
+                formatted_projects.append("\n".join(project_details))
+            
+            # Join all projects with clear separation
+            response = "\n\n".join([
+                f"Project {i+1}:\n{details}"
+                for i, details in enumerate(formatted_projects)
+            ])
+            
+            # Add metadata
+            total_results = len(df)
+            if query_info and query_info.get('total_count', total_results) > total_results:
+                response = f"Found {query_info['total_count']} projects, showing first {total_results}:\n\n{response}"
+            else:
+                response = f"Found {total_results} projects:\n\n{response}"
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error formatting project list: {str(e)}")
+            return "Error: Unable to format project list"
         
     def _format_specific_project(self, project: pd.Series, is_code_query: bool = False) -> str:
-        """Format a specific project's details"""
+        """Format a specific project's details according to specification"""
         try:
             start_time = datetime.now()
             
@@ -204,62 +187,34 @@ class ResponseGenerator:
                     formatted_values[field] = (
                         self._format_currency(value) if field in self.currency_columns
                         else self._format_date(value) if field in self.date_columns
-                        else self._format_percentage(value) if field == 'COMPLETIONPERCENTAGE'
                         else self._format_value(value)
                     )
             
-            # Build response sections
-            sections = []
+            # Build response with user-friendly field names
+            field_display_names = {
+                'PROJECTNAME': 'Name of project',
+                'FISCALYEAR': 'Fiscal year',
+                'DISTRICT': 'Location',
+                'TOTALBUDGET': 'Budget',
+                'PROJECTSTATUS': 'Status',
+                'CONTRACTORNAME': 'Contractor name',
+                'STARTDATE': 'Contract start date',
+                'TOTALEXPENDITURETODATE': 'Expenditure to date',
+                'PROJECTSECTOR': 'Sector',
+                'FUNDINGSOURCE': 'Source of funding',
+                'PROJECTCODE': 'Project code',
+                'LASTVISIT': 'Date of last Council monitoring visit'
+            }
             
-            # Basic Information
-            basic_info = []
-            if is_code_query:
-                basic_info.extend([
-                    f"Project Code: {formatted_values.get('PROJECTCODE', self.NULL_VALUE)}",
-                    f"Project Name: {formatted_values.get('PROJECTNAME', self.NULL_VALUE)}"
-                ])
-            else:
-                basic_info.extend([
-                    f"Project Name: {formatted_values.get('PROJECTNAME', self.NULL_VALUE)}",
-                    f"Project Code: {formatted_values.get('PROJECTCODE', self.NULL_VALUE)}"
-                ])
-            basic_info.extend([
-                f"Sector: {formatted_values.get('PROJECTSECTOR', self.NULL_VALUE)}",
-                f"Region: {formatted_values.get('REGION', self.NULL_VALUE)}",
-                f"District: {formatted_values.get('DISTRICT', self.NULL_VALUE)}",
-                f"Status: {formatted_values.get('PROJECTSTATUS', self.NULL_VALUE)}"
-            ])
-            sections.append("\n".join(basic_info))
+            details = []
+            for field in self.specific_field_order:
+                display_name = field_display_names.get(field, field)
+                value = formatted_values.get(field, self.NULL_VALUE)
+                details.append(f"- {display_name}: {value}")
             
-            # Implementation Details
-            if any(field in formatted_values for field in ['CONTRACTORNAME', 'STARTDATE', 'COMPLETIONESTIDATE', 'COMPLETIONPERCENTAGE']):
-                impl_details = ["\nImplementation Details:"]
-                for field in ['CONTRACTORNAME', 'STARTDATE', 'COMPLETIONESTIDATE', 'COMPLETIONPERCENTAGE', 'STAGE']:
-                    if field in formatted_values:
-                        impl_details.append(f"{field.title()}: {formatted_values[field]}")
-                sections.append("\n".join(impl_details))
+            response = f"Project Details:\n\n" + "\n".join(details)
             
-            # Financial Information
-            if any(field in formatted_values for field in ['TOTALBUDGET', 'TOTALEXPENDITURETODATE', 'FUNDINGSOURCE']):
-                financial_info = ["\nFinancial Information:"]
-                for field in ['TOTALBUDGET', 'TOTALEXPENDITURETODATE', 'FUNDINGSOURCE']:
-                    if field in formatted_values:
-                        financial_info.append(f"{field.title()}: {formatted_values[field]}")
-                sections.append("\n".join(financial_info))
-            
-            # Additional Information
-            if formatted_values.get('PROJECTDESC', self.NULL_VALUE) != self.NULL_VALUE:
-                sections.append("\nProject Description:")
-                sections.append(formatted_values['PROJECTDESC'])
-            
-            # Add metadata
-            sections.append(self._format_metadata(
-                datetime.now() - start_time,
-                1,
-                [f"Query Type: {'Project Code' if is_code_query else 'Project Name'} Search"]
-            ))
-            
-            return "\n\n".join(sections)
+            return response
             
         except Exception as e:
             logger.error(f"Error formatting specific project: {str(e)}")
