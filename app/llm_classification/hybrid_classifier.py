@@ -45,10 +45,26 @@ class HybridClassifier:
         
         # District patterns
         self.district_patterns = [
+            # Basic patterns
             re.compile(r'(?:projects|list).* (?:in|located in|based in|for) (\w+)(?: district)?', re.IGNORECASE),
             re.compile(r'(\w+) (?:district|region).* projects', re.IGNORECASE),
             re.compile(r'show (?:me|all) projects.* (\w+)', re.IGNORECASE),
-            re.compile(r'(?:what|which|any) projects (?:are|exist|located) (?:in|at) (\w+)', re.IGNORECASE)
+            re.compile(r'(?:what|which|any) projects (?:are|exist|located) (?:in|at) (\w+)', re.IGNORECASE),
+            
+            # Question-based patterns
+            re.compile(r'(?:which|what) projects (?:are|exist|located) (?:in|at) (\w+)(?: district)?\s*[?]?', re.IGNORECASE),
+            re.compile(r'(?:can you|please) (?:show|list|display) (?:me|all) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            re.compile(r'(?:i want|need) to (?:see|find|get) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            
+            # Direct patterns
+            re.compile(r'projects (?:in|at|located in|based in) (\w+)(?: district)?', re.IGNORECASE),
+            re.compile(r'(?:list|show|display) projects (?:from|in|at) (\w+)(?: district)?', re.IGNORECASE),
+            re.compile(r'(?:find|search for) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            
+            # Complex patterns
+            re.compile(r'(?:tell|give) me (?:about|information about) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            re.compile(r'(?:looking for|need information about) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            re.compile(r'(?:what are|show me) the projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE)
         ]
         
         # Sector patterns
@@ -112,11 +128,40 @@ class HybridClassifier:
         Returns:
             Tuple of (list of districts, confidence)
         """
+        best_match = None
+        best_confidence = 0.0
+        
         for pattern in self.district_patterns:
             match = pattern.search(query)
             if match:
-                district = match.group(1).strip().title()
-                return [district], 0.8
+                # Extract the district name and clean it
+                district = match.group(1).strip()
+                
+                # Handle multi-word districts
+                if ' ' in district:
+                    # If it's a multi-word district, we need to capture all words
+                    district = ' '.join(word.title() for word in district.split())
+                else:
+                    district = district.title()
+                
+                # Calculate confidence based on pattern match quality
+                confidence = 0.8  # Base confidence
+                
+                # Increase confidence for more specific patterns
+                if 'district' in query.lower():
+                    confidence += 0.1
+                if 'show me all' in query.lower():
+                    confidence += 0.1
+                if 'projects' in query.lower():
+                    confidence += 0.05
+                
+                # Update best match if this one has higher confidence
+                if confidence > best_confidence:
+                    best_match = district
+                    best_confidence = confidence
+        
+        if best_match:
+            return [best_match], min(best_confidence, 1.0)  # Cap confidence at 1.0
         
         return [], 0.0
     
