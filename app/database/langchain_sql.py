@@ -697,8 +697,8 @@ Just ask me what you'd like to know about these projects!"""
                 elif query_type == "district_query":
                     # Extract district name from the query
                     district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-                    district_name = district_match.group(1).strip() if district_match else "the specified"
-                    message = f"Found {len(query_results)} projects in {district_name.title()} district:"
+                    district_name = district_match.group(1).strip().title() if district_match else "the specified"
+                    message = f"Found {len(query_results)} projects in {district_name} district:"
                 elif query_type == "project_query" or query_type == "specific_project":
                     project_name = query_results[0].get("project_name", "the requested project")
                     message = f"Here are the details for {project_name}:"
@@ -709,11 +709,11 @@ Just ask me what you'd like to know about these projects!"""
                         "message": message,
                         "data": {}
                     }, {
-                        "type": "project_details" if query_type == "specific_project" else "list",
+                        "type": "list",
                         "message": "Project Details",
                         "data": {
-                            "project" if query_type == "specific_project" else "fields": formatted_projects[0] if query_type == "specific_project" else ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
-                            "values": None if query_type == "specific_project" else formatted_projects
+                            "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
+                            "values": formatted_projects
                         }
                     }],
                     "metadata": {
@@ -911,11 +911,52 @@ Just ask me what you'd like to know about these projects!"""
             raise ValueError(f"Failed to get answer: {str(e)}")
 
     async def process_query(self, user_query: str) -> Dict[str, Any]:
-        """Process a natural language query and return formatted results."""
+        """Process a natural language query and return formatted results"""
         try:
             start_time = time.time()
             
-            # Check if this is a specific project query first
+            # Check if this is a district query
+            district_patterns = [
+                r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district',
+                r'(?:projects|list).* (?:in|located in|based in|for) ([a-zA-Z\s]+?)(?: district)?',
+                r'([a-zA-Z\s]+?) (?:district|region).* projects',
+                r'show (?:me|all) projects.* ([a-zA-Z\s]+?)',
+                r'(?:what|which|any) projects (?:are|exist|located) (?:in|at) ([a-zA-Z\s]+?)'
+            ]
+            
+            for pattern in district_patterns:
+                match = re.search(pattern, user_query, re.IGNORECASE)
+                if match:
+                    district_name = match.group(1).strip()
+                    # Clean up the district name
+                    district_name = re.sub(r'\s+', ' ', district_name)  # Normalize spaces
+                    district_name = ' '.join(word.title() for word in district_name.split())  # Title case
+                    
+                    sql_query = f"""
+                    SELECT 
+                        projectname as project_name,
+                        fiscalyear as fiscal_year,
+                        district,
+                        budget as total_budget,
+                        projectstatus as status,
+                        projectsector as project_sector
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%{district_name.lower()}%'
+                    ORDER BY 
+                        budget DESC
+                    LIMIT 10
+                    """
+                    
+                    # Execute query
+                    results = await self.execute_query(sql_query)
+                    query_time = time.time() - start_time
+                    
+                    # Format the response
+                    return await self.format_response(results, sql_query, query_time, user_query, "district_query")
+            
+            # Check if this is a specific project query
             project_patterns = [
                 r'(?:tell|show|give) (?:me|us) (?:about|details of|information about) (?:the )?([\w\s-]+?)(?:\s+project)?\s*(?:$|[?.])',
                 r'(?:what|how) (?:is|about) (?:the )?([\w\s-]+?)(?:\s+project)?\s*(?:$|[?.])',
@@ -929,12 +970,24 @@ Just ask me what you'd like to know about these projects!"""
                     sql_query = f"""
                     SELECT 
                         projectname as project_name,
-                        fiscalyear as fiscal_year,
-                        district,
-                        budget as total_budget,
-                        projectstatus as status,
+                        projectcode as project_code,
                         projectsector as project_sector,
-                        COALESCE(district, 'Unknown') as district
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        expendituretodate as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
                     FROM 
                         proj_dashboard
                     WHERE 
@@ -952,91 +1005,8 @@ Just ask me what you'd like to know about these projects!"""
                     results = await self.execute_query(sql_query)
                     query_time = time.time() - start_time
                     
-                    if not results:
-                        return {
-                            "results": [{
-                                "type": "text",
-                                "message": f"I couldn't find any details for the project '{project_name}'. Please check the project name and try again.",
-                                "data": {}
-                            }],
-                            "metadata": {
-                                "total_results": 0,
-                                "query_time": f"{query_time:.2f}s",
-                                "sql_query": sql_query
-                            }
-                        }
-                    
-                    # Format the response for specific project
-                    project = results[0]
-                    formatted_project = {
-                        "Name of project": project.get("project_name", "Unknown"),
-                        "Fiscal year": project.get("fiscal_year", "Unknown"),
-                        "Location": project.get("district", "Unknown"),
-                        "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') else "Unknown",
-                        "Status": project.get("status", "Unknown"),
-                        "Project Sector": project.get("project_sector", "Unknown")
-                    }
-                    
-                    return {
-                        "results": [{
-                            "type": "text",
-                            "message": f"Here are the details for {project.get('project_name', 'the requested project')}:",
-                            "data": {}
-                        }, {
-                            "type": "project_details",
-                            "message": "Project Details",
-                            "data": {
-                                "project": formatted_project
-                            }
-                        }],
-                        "metadata": {
-                            "total_results": 1,
-                            "query_time": f"{query_time:.2f}s",
-                            "sql_query": sql_query
-                        }
-                    }
-            
-            # Check if this is a district query
-            district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-            if district_match:
-                district_name = district_match.group(1).strip()
-                sql_query = f"""
-                SELECT 
-                    projectname as project_name,
-                    fiscalyear as fiscal_year,
-                    district,
-                    budget as total_budget,
-                    projectstatus as status,
-                    projectsector as project_sector
-                FROM 
-                    proj_dashboard
-                WHERE 
-                    LOWER(district) LIKE '%{district_name.lower()}%'
-                ORDER BY 
-                    budget DESC
-                LIMIT 10
-                """
-                
-                # Execute query
-                results = await self.execute_query(sql_query)
-                query_time = time.time() - start_time
-                
-                if not results:
-                    return {
-                        "results": [{
-                            "type": "text",
-                            "message": f"I couldn't find any projects in {district_name.title()} district.",
-                            "data": {}
-                        }],
-                        "metadata": {
-                            "total_results": 0,
-                            "query_time": f"{query_time:.2f}s",
-                            "sql_query": sql_query
-                        }
-                    }
-                
-                # Format the response
-                return await self.format_response(results, sql_query, query_time, user_query, "district_query")
+                    # Format the response
+                    return await self.format_response(results, sql_query, query_time, user_query, "specific_project")
             
             # Continue with other query types
             # Generate SQL query for other queries using LLM
@@ -1073,7 +1043,7 @@ Just ask me what you'd like to know about these projects!"""
                 }
                 
         except Exception as e:
-            logger.error(f"Error in execute_query_from_natural_language: {str(e)}")
+            logger.error(f"Error in process_query: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "results": [{
