@@ -64,7 +64,12 @@ class HybridClassifier:
             # Complex patterns
             re.compile(r'(?:tell|give) me (?:about|information about) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
             re.compile(r'(?:looking for|need information about) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
-            re.compile(r'(?:what are|show me) the projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE)
+            re.compile(r'(?:what are|show me) the projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            
+            # Combined patterns
+            re.compile(r'(?:show|list|find) (?:me|all) (?:health|education|water|transport|agriculture) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            re.compile(r'(?:health|education|water|transport|agriculture) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            re.compile(r'(?:completed|ongoing|approved) (?:health|education|water|transport|agriculture) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE)
         ]
         
         # Sector patterns
@@ -72,22 +77,27 @@ class HybridClassifier:
             # Health sector
             re.compile(r'(?:health|healthcare|hospital|clinic|medical) (?:sector|projects|initiatives)?', re.IGNORECASE),
             re.compile(r'(?:show|list|find) (?:me|all) (?:health|healthcare|hospital|clinic|medical) (?:projects)?', re.IGNORECASE),
+            re.compile(r'(?:health|healthcare|hospital|clinic|medical) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
             
             # Education sector
             re.compile(r'(?:education|school|university|college|learning) (?:sector|projects|initiatives)?', re.IGNORECASE),
             re.compile(r'(?:show|list|find) (?:me|all) (?:education|school|university|college|learning) (?:projects)?', re.IGNORECASE),
+            re.compile(r'(?:education|school|university|college|learning) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
             
             # Water sector
             re.compile(r'(?:water|sanitation|irrigation|drainage) (?:sector|projects|initiatives)?', re.IGNORECASE),
             re.compile(r'(?:show|list|find) (?:me|all) (?:water|sanitation|irrigation|drainage) (?:projects)?', re.IGNORECASE),
+            re.compile(r'(?:water|sanitation|irrigation|drainage) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
             
             # Transport sector
             re.compile(r'(?:transport|road|highway|bridge|infrastructure) (?:sector|projects|initiatives)?', re.IGNORECASE),
             re.compile(r'(?:show|list|find) (?:me|all) (?:transport|road|highway|bridge|infrastructure) (?:projects)?', re.IGNORECASE),
+            re.compile(r'(?:transport|road|highway|bridge|infrastructure) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
             
             # Agriculture sector
             re.compile(r'(?:agriculture|farming|crop|livestock|food) (?:sector|projects|initiatives)?', re.IGNORECASE),
-            re.compile(r'(?:show|list|find) (?:me|all) (?:agriculture|farming|crop|livestock|food) (?:projects)?', re.IGNORECASE)
+            re.compile(r'(?:show|list|find) (?:me|all) (?:agriculture|farming|crop|livestock|food) (?:projects)?', re.IGNORECASE),
+            re.compile(r'(?:agriculture|farming|crop|livestock|food) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE)
         ]
         
         # Status patterns
@@ -95,14 +105,17 @@ class HybridClassifier:
             # Completed status
             re.compile(r'(?:completed|finished|done|finalized) (?:projects|initiatives)?', re.IGNORECASE),
             re.compile(r'projects (?:that are|which are) (?:completed|finished|done|finalized)', re.IGNORECASE),
+            re.compile(r'(?:completed|finished|done|finalized) (?:health|education|water|transport|agriculture) projects', re.IGNORECASE),
             
             # Ongoing status
             re.compile(r'(?:ongoing|current|in progress|active|running) (?:projects|initiatives)?', re.IGNORECASE),
             re.compile(r'projects (?:that are|which are) (?:ongoing|current|in progress|active|running)', re.IGNORECASE),
+            re.compile(r'(?:ongoing|current|in progress|active|running) (?:health|education|water|transport|agriculture) projects', re.IGNORECASE),
             
             # Planned status
             re.compile(r'(?:planned|future|upcoming|proposed|approved) (?:projects|initiatives)?', re.IGNORECASE),
-            re.compile(r'projects (?:that are|which are) (?:planned|future|upcoming|proposed|approved)', re.IGNORECASE)
+            re.compile(r'projects (?:that are|which are) (?:planned|future|upcoming|proposed|approved)', re.IGNORECASE),
+            re.compile(r'(?:planned|future|upcoming|proposed|approved) (?:health|education|water|transport|agriculture) projects', re.IGNORECASE)
         ]
         
         # Budget patterns
@@ -345,98 +358,83 @@ class HybridClassifier:
     
     def _regex_classify(self, query: str) -> QueryClassification:
         """
-        Classify query using regex patterns
+        Classify a query using regex patterns
         
+        Args:
+            query: The query to classify
+            
         Returns:
-            QueryClassification with highest confidence match
+            QueryClassification object
         """
-        start_time = time.time()
-        
-        # Initialize parameters
-        parameters = QueryParameters()
-        confidence = 0.0
-        query_type = QueryType.UNKNOWN
-        
-        # Try district classification first (most specific)
-        districts, district_confidence = self._regex_classify_district(query)
-        if districts and district_confidence > 0.7:  # Lower threshold for district queries
-            parameters.districts = districts
-            confidence = district_confidence
-            query_type = QueryType.DISTRICT
-            return QueryClassification(
-                query_type=query_type,
-                parameters=parameters,
-                confidence=confidence,
-                original_query=query,
-                processing_time=time.time() - start_time
-            )
-        
-        # Try project classification next
-        projects, proj_conf = self._regex_classify_project(query)
-        if projects and proj_conf > 0.8:
-            parameters.projects = projects
-            confidence = proj_conf
-            query_type = QueryType.PROJECT
-            return QueryClassification(
-                query_type=query_type,
-                parameters=parameters,
-                confidence=confidence,
-                original_query=query,
-                processing_time=time.time() - start_time
-            )
-        
-        # Continue with other classifications
-        sectors, sector_confidence = self._regex_classify_sector(query)
-        budget_range, budget_confidence = self._regex_classify_budget(query)
-        statuses, status_confidence = self._regex_classify_status(query)
-        time_range, time_confidence = self._regex_classify_time(query)
-        
-        # Update parameters with regex results
-        parameters.districts = districts
-        parameters.sectors = sectors
-        parameters.budget_range = budget_range
-        parameters.status = statuses
-        parameters.time_range = time_range
-        
-        # Determine query type and confidence
-        confidences = {
-            QueryType.DISTRICT: district_confidence if districts else 0.0,
-            QueryType.SECTOR: sector_confidence if sectors else 0.0,
-            QueryType.BUDGET: budget_confidence if (budget_range["min"] is not None or budget_range["max"] is not None) else 0.0,
-            QueryType.STATUS: status_confidence if statuses else 0.0,
-            QueryType.TIME: time_confidence if (time_range["start"] is not None or time_range["end"] is not None) else 0.0
-        }
-        
-        # Count non-empty parameter types
-        non_empty_param_types = sum(1 for conf in confidences.values() if conf > 0.0)
-        
-        # Determine query type
-        if non_empty_param_types > 1:
-            query_type = QueryType.COMBINED
-            confidence = sum(confidences.values()) / non_empty_param_types
-        elif non_empty_param_types == 1:
-            # Get the query type with the highest confidence
-            query_type = max(confidences.items(), key=lambda x: x[1])[0]
-            confidence = confidences[query_type]
-        else:
-            # If no specific type is found, check if it's a general query
-            if any(word in query.lower() for word in ['projects', 'list', 'show', 'find', 'what', 'which']):
-                query_type = QueryType.GENERAL
-                confidence = 0.6
-            else:
-                query_type = QueryType.UNKNOWN
-                confidence = 0.0
-        
-        # Create classification result
-        classification = QueryClassification(
-            query_type=query_type,
-            parameters=parameters,
-            confidence=confidence,
-            original_query=query,
-            processing_time=time.time() - start_time
+        # Initialize result
+        result = QueryClassification(
+            query_type=QueryType.GENERAL,
+            confidence=0.0,
+            parameters=QueryParameters(),
+            original_query=query
         )
         
-        return classification
+        # Try to classify project
+        projects, project_confidence = self._regex_classify_project(query)
+        if projects:
+            result.parameters.projects = projects
+            result.confidence = max(result.confidence, project_confidence)
+        
+        # Try to classify district
+        districts, district_confidence = self._regex_classify_district(query)
+        if districts:
+            result.parameters.districts = districts
+            result.confidence = max(result.confidence, district_confidence)
+        
+        # Try to classify sector
+        sectors, sector_confidence = self._regex_classify_sector(query)
+        if sectors:
+            result.parameters.sectors = sectors
+            result.confidence = max(result.confidence, sector_confidence)
+        
+        # Try to classify budget
+        budget, budget_confidence = self._regex_classify_budget(query)
+        if budget["min"] is not None or budget["max"] is not None:
+            result.parameters.budget = budget
+            result.confidence = max(result.confidence, budget_confidence)
+        
+        # Try to classify status
+        statuses, status_confidence = self._regex_classify_status(query)
+        if statuses:
+            result.parameters.status = statuses
+            result.confidence = max(result.confidence, status_confidence)
+        
+        # Try to classify time
+        time, time_confidence = self._regex_classify_time(query)
+        if time["start"] is not None or time["end"] is not None:
+            result.parameters.time = time
+            result.confidence = max(result.confidence, time_confidence)
+        
+        # Determine query type based on parameters
+        param_count = sum(1 for p in [projects, districts, sectors, statuses] if p)
+        if param_count == 0:
+            result.query_type = QueryType.GENERAL
+        elif param_count == 1:
+            if projects:
+                result.query_type = QueryType.PROJECT
+            elif districts:
+                result.query_type = QueryType.DISTRICT
+            elif sectors:
+                result.query_type = QueryType.SECTOR
+            elif statuses:
+                result.query_type = QueryType.STATUS
+            elif budget["min"] is not None or budget["max"] is not None:
+                result.query_type = QueryType.BUDGET
+            elif time["start"] is not None or time["end"] is not None:
+                result.query_type = QueryType.TIME
+        else:
+            result.query_type = QueryType.COMBINED
+        
+        # Update confidence based on number of parameters
+        if param_count > 0:
+            result.confidence = min(result.confidence + (param_count * 0.1), 1.0)
+        
+        return result
     
     async def classify_query(self, query: str, use_llm: bool = True) -> QueryClassification:
         """
