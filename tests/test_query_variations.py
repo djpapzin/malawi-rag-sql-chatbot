@@ -14,6 +14,40 @@ class QueryVariationTester:
         response = requests.post(self.endpoint, json=payload)
         return response.json()
     
+    def verify_response(self, response: Dict, query: str, district: str) -> Dict:
+        """Verify the response contains the expected data"""
+        verification = {
+            "has_error": "error" in response,
+            "has_results": False,
+            "has_correct_district": False,
+            "has_project_list": False,
+            "has_metadata": False,
+            "total_results": 0
+        }
+        
+        if not verification["has_error"]:
+            # Check for results
+            if "results" in response and len(response["results"]) > 0:
+                verification["has_results"] = True
+                
+                # Check for project list
+                for result in response["results"]:
+                    if result.get("type") == "list" and "data" in result:
+                        verification["has_project_list"] = True
+                        # Check if district is correct in the results
+                        if "values" in result["data"]:
+                            for project in result["data"]["values"]:
+                                if project.get("Location", "").lower() == district.lower():
+                                    verification["has_correct_district"] = True
+                                    break
+            
+            # Check for metadata
+            if "metadata" in response:
+                verification["has_metadata"] = True
+                verification["total_results"] = response["metadata"].get("total_results", 0)
+        
+        return verification
+    
     def test_district_variations(self, district: str = "Dowa") -> List[Dict]:
         """Test various ways of asking for projects in a district"""
         variations = [
@@ -39,9 +73,11 @@ class QueryVariationTester:
             print(f"\nTesting query: {query}")
             try:
                 response = self.test_query(query)
+                verification = self.verify_response(response, query, district)
                 results.append({
                     "query": query,
-                    "success": "error" not in response,
+                    "success": not verification["has_error"],
+                    "verification": verification,
                     "response": response
                 })
                 # Add a small delay to avoid overwhelming the server
@@ -57,14 +93,39 @@ class QueryVariationTester:
     
     def analyze_results(self, results: List[Dict]) -> Dict:
         """Analyze the test results"""
-        working_queries = [r["query"] for r in results if r["success"]]
-        failing_queries = [r["query"] for r in results if not r["success"]]
+        working_queries = []
+        partially_working_queries = []
+        failing_queries = []
+        
+        for result in results:
+            if not result["success"]:
+                failing_queries.append(result["query"])
+            else:
+                verification = result["verification"]
+                if all([
+                    verification["has_results"],
+                    verification["has_project_list"],
+                    verification["has_correct_district"],
+                    verification["has_metadata"],
+                    verification["total_results"] > 0
+                ]):
+                    working_queries.append(result["query"])
+                else:
+                    partially_working_queries.append({
+                        "query": result["query"],
+                        "missing": [
+                            k for k, v in verification.items() 
+                            if k != "has_error" and not v
+                        ]
+                    })
         
         return {
             "total_queries": len(results),
             "working_queries": len(working_queries),
+            "partially_working_queries": len(partially_working_queries),
             "failing_queries": len(failing_queries),
             "working_patterns": working_queries,
+            "partially_working_patterns": partially_working_queries,
             "failing_patterns": failing_queries
         }
 
@@ -81,12 +142,18 @@ def main():
     # Print summary
     print("\n=== Test Results Summary ===")
     print(f"Total queries tested: {analysis['total_queries']}")
-    print(f"Working queries: {analysis['working_queries']}")
+    print(f"Fully working queries: {analysis['working_queries']}")
+    print(f"Partially working queries: {analysis['partially_working_queries']}")
     print(f"Failing queries: {analysis['failing_queries']}")
     
     print("\n=== Working Query Patterns ===")
     for query in analysis["working_patterns"]:
         print(f"✓ {query}")
+    
+    print("\n=== Partially Working Query Patterns ===")
+    for item in analysis["partially_working_patterns"]:
+        print(f"⚠ {item['query']}")
+        print(f"  Missing: {', '.join(item['missing'])}")
     
     print("\n=== Failing Query Patterns ===")
     for query in analysis["failing_patterns"]:
