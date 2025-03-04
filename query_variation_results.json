@@ -1,0 +1,105 @@
+{
+  "timestamp": "2025-03-04 19:15:56",
+  "results": [
+    {
+      "query": "Which projects are in Dowa?",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfcd2db0>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Show me all projects in Dowa district",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfcd30e0>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "List projects from Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86c0021880>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "What projects exist in Dowa?",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfcd3080>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Projects located in Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfcd2d80>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Give me projects in Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfd081d0>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Show projects in Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfd089b0>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Find projects in Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfd09190>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Display projects from Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfcd2690>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "What are the projects in Dowa?",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfcd3380>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Can you show me projects in Dowa?",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86ceefb3b0>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "I want to see projects in Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfd08230>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Looking for projects in Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfd09970>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Need information about projects in Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfd0a270>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "query": "Tell me about projects in Dowa",
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/rag-sql-chatbot/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f86bfcd3200>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    }
+  ],
+  "analysis": {
+    "total_queries": 15,
+    "working_queries": 0,
+    "partially_working_queries": 0,
+    "failing_queries": 15,
+    "working_patterns": [],
+    "partially_working_patterns": [],
+    "failing_patterns": [
+      "Which projects are in Dowa?",
+      "Show me all projects in Dowa district",
+      "List projects from Dowa",
+      "What projects exist in Dowa?",
+      "Projects located in Dowa",
+      "Give me projects in Dowa",
+      "Show projects in Dowa",
+      "Find projects in Dowa",
+      "Display projects from Dowa",
+      "What are the projects in Dowa?",
+      "Can you show me projects in Dowa?",
+      "I want to see projects in Dowa",
+      "Looking for projects in Dowa",
+      "Need information about projects in Dowa",
+      "Tell me about projects in Dowa"
+    ]
+  }
+}
