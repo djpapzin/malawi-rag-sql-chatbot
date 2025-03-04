@@ -11,7 +11,8 @@ pkill -f "gunicorn app.main:app"
 
 # Start the application
 cd /home/dj/malawi-rag-sql-chatbot
-nohup gunicorn app.main:app \
+PYTHON_PATH=$(which python)
+nohup $PYTHON_PATH -m gunicorn app.main:app \
     --workers 4 \
     --worker-class uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:5000 \
@@ -23,4 +24,5 @@ nohup gunicorn app.main:app \
 
 # Print process information
 echo "Started application on port 5000"
-echo "Process ID: $!" 
+echo "Process ID: $!"
+echo "Using Python: $PYTHON_PATH" 
