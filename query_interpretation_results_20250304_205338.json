@@ -1,0 +1,62 @@
+[
+  {
+    "query": "Which projects are in Dowa?",
+    "description": "Basic district query",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  },
+  {
+    "query": "Show me all projects in Dowa district",
+    "description": "Alternative district format",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  },
+  {
+    "query": "I want to see projects in Dowa",
+    "description": "Natural district query",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  },
+  {
+    "query": "What projects exist in Dowa?",
+    "description": "Question-based district query",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  },
+  {
+    "query": "Show me health sector projects",
+    "description": "Health sector query",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  },
+  {
+    "query": "What education projects are there?",
+    "description": "Education sector query",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  },
+  {
+    "query": "List all water projects",
+    "description": "Water sector query",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  },
+  {
+    "query": "Show me health projects in Dowa",
+    "description": "District and sector combined",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  },
+  {
+    "query": "List completed education projects",
+    "description": "Status and sector combined",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  },
+  {
+    "query": "What are the ongoing projects in Dowa?",
+    "description": "Status and district combined",
+    "success": false,
+    "error": "type object 'QueryType' has no attribute 'GENERAL'"
+  }
+]
