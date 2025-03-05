@@ -103,7 +103,7 @@ class QueryClassificationService:
                 district as location,
                 traditionalauthority,
                 budget as total_budget,
-                expendituretodate as total_expenditure,
+                TOTALEXPENDITUREYEAR as total_expenditure,
                 fundingsource as funding_source,
                 startdate as start_date,
                 completionestidate as completion_date,

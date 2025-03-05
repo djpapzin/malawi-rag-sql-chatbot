@@ -23,7 +23,7 @@ async def test_responses(request: Request):
         'PROJECTSECTOR': 'Education',
         'CONTRACTORNAME': 'Malawi Construction Ltd.',
         'STARTDATE': '2023-05-15',
-        'TOTALEXPENDITURETODATE': 75000000.00,
+        'TOTALEXPENDITUREYEAR': 75000000.00,
         'FUNDINGSOURCE': 'World Bank Education Grant',
         'PROJECTCODE': 'EDU-LLW-2023-005',
         'LASTVISIT': '2024-01-12'

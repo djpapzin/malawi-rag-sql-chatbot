@@ -16,7 +16,7 @@ class ResponseGenerator:
     
     def __init__(self):
         """Initialize response generator"""
-        self.currency_columns = ['TOTALBUDGET', 'TOTALEXPENDITURETODATE']
+        self.currency_columns = ['TOTALBUDGET', 'TOTALEXPENDITUREYEAR']
         self.date_columns = ['SIGNINGDATE', 'LASTVISIT', 'STARTDATE', 'COMPLETIONESTIDATE']
         self.NULL_VALUE = "Not available"
         
@@ -46,7 +46,7 @@ class ResponseGenerator:
             
             # Financial Information
             'TOTALBUDGET',             # Budget
-            'TOTALEXPENDITURETODATE',  # Expenditure to date
+            'TOTALEXPENDITUREYEAR',  # Expenditure to date
             'FUNDINGSOURCE',           # Source of funding
             
             # Timeline Information
@@ -228,7 +228,7 @@ class ResponseGenerator:
             sections = {
                 "Core Information": ['PROJECTNAME', 'PROJECTCODE', 'PROJECTSECTOR', 'PROJECTSTATUS', 'STAGE'],
                 "Location": ['REGION', 'DISTRICT', 'TRADITIONALAUTHORITY'],
-                "Financial Details": ['TOTALBUDGET', 'TOTALEXPENDITURETODATE', 'FUNDINGSOURCE'],
+                "Financial Details": ['TOTALBUDGET', 'TOTALEXPENDITUREYEAR', 'FUNDINGSOURCE'],
                 "Timeline": ['STARTDATE', 'COMPLETIONESTIDATE', 'LASTVISIT', 'COMPLETIONPERCENTAGE'],
                 "Contractor Details": ['CONTRACTORNAME', 'SIGNINGDATE'],
                 "Additional Information": ['PROJECTDESC', 'FISCALYEAR']
@@ -245,7 +245,7 @@ class ResponseGenerator:
                 'DISTRICT': 'District',
                 'TRADITIONALAUTHORITY': 'Traditional Authority',
                 'TOTALBUDGET': 'Total Budget',
-                'TOTALEXPENDITURETODATE': 'Expenditure to Date',
+                'TOTALEXPENDITUREYEAR': 'Expenditure to Date',
                 'FUNDINGSOURCE': 'Source of Funding',
                 'STARTDATE': 'Start Date',
                 'COMPLETIONESTIDATE': 'Estimated Completion Date',

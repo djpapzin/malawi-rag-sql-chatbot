@@ -320,7 +320,7 @@ class QueryParser:
             SELECT 
                 PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
                 TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
-                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITUREYEAR,
                 FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
                 COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
                 STAGE, STARTDATE, COMPLETIONESTIDATE
@@ -508,12 +508,12 @@ class QueryParser:
             response_parts.append(f"Status: {row['PROJECTSTATUS']}")
             
         # Financial information
-        if any(row.get(k) for k in ['TOTALBUDGET', 'TOTALEXPENDITURETODATE', 'FUNDINGSOURCE']):
+        if any(row.get(k) for k in ['TOTALBUDGET', 'TOTALEXPENDITUREYEAR', 'FUNDINGSOURCE']):
             response_parts.append("\nFinancial Information:")
             if row.get('TOTALBUDGET'):
-                response_parts.append(f"Total Budget: MWK {row['TOTALBUDGET']:,.2f}")
-            if row.get('TOTALEXPENDITURETODATE'):
-                response_parts.append(f"Expenditure to Date: MWK {row['TOTALEXPENDITURETODATE']:,.2f}")
+                response_parts.append(f"Budget: MWK {row['TOTALBUDGET']:,.2f}")
+            if row.get('TOTALEXPENDITUREYEAR'):
+                response_parts.append(f"Expenditure to Date: MWK {row['TOTALEXPENDITUREYEAR']:,.2f}")
             if row.get('FUNDINGSOURCE'):
                 response_parts.append(f"Funding Source: {row['FUNDINGSOURCE']}")
                 
