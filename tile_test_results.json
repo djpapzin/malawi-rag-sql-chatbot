@@ -1,0 +1,263 @@
+{
+  "test_run_time": "2025-03-05T12:18:01.910221",
+  "results": [
+    {
+      "title": "Sector Query",
+      "description": "Testing query for finding projects in the health sector",
+      "natural_language_query": "Which projects are there in the health sector",
+      "sql_query": "Not available",
+      "status_code": 200,
+      "response_time": 1.2820756435394287,
+      "response_data": {
+        "results": [
+          {
+            "type": "text",
+            "message": "Found 10 projects in T district:",
+            "data": {}
+          },
+          {
+            "type": "list",
+            "message": "Project Details",
+            "data": {
+              "fields": [
+                "Name of project",
+                "Fiscal year",
+                "Location",
+                "Budget",
+                "Status",
+                "Project Sector"
+              ],
+              "values": [
+                {
+                  "Name of project": "Maintanance of dispensary, construction of one staff house, construction of incinerator, installatio",
+                  "Fiscal year": "April 2023 / March 2024",
+                  "Location": "T",
+                  "Budget": "MWK 35,577,086,000.00",
+                  "Status": "Implementation: On track",
+                  "Project Sector": "Health"
+                },
+                {
+                  "Name of project": "KADIDI HEALTH CENTRE (DISPENSARY, STAFF HOUSE, WATER SYSTEM, INCENERATOR AND ELECTRICITY, VIP TOILET",
+                  "Fiscal year": "April 2023 / March 2024",
+                  "Location": "T",
+                  "Budget": "MWK 750,000,000.00",
+                  "Status": null,
+                  "Project Sector": "Health"
+                },
+                {
+                  "Name of project": "Construction of Chitipa BOMA Stadium",
+                  "Fiscal year": "April 2023 / March 2024",
+                  "Location": "T",
+                  "Budget": "MWK 687,188,200.00",
+                  "Status": null,
+                  "Project Sector": "Commercial services"
+                },
+                {
+                  "Name of project": "Construction of Katete Girls Hostel for Katete Community Secondary School",
+                  "Fiscal year": "April 2023 / March 2024",
+                  "Location": "T",
+                  "Budget": "MWK 542,032,900.00",
+                  "Status": "Implementation: On track or Implementation: Delayed",
+                  "Project Sector": "Education"
+                },
+                {
+                  "Name of project": "Construction of Nyumba ya mmwamba Junior Primary School",
+                  "Fiscal year": "April 2024 / March 2025",
+                  "Location": "T",
+                  "Budget": "MWK 495,000,000.00",
+                  "Status": null,
+                  "Project Sector": "Education"
+                },
+                {
+                  "Name of project": "Construction of Malambo police unit",
+                  "Fiscal year": "April 2024 / March 2025",
+                  "Location": "T",
+                  "Budget": "MWK 486,350,660.00",
+                  "Status": "Implementation: On track or Implementation: Delayed",
+                  "Project Sector": "Community security initiatives"
+                },
+                {
+                  "Name of project": "Thyolo Boma Primary School",
+                  "Fiscal year": "April 2023 / March 2024",
+                  "Location": "T",
+                  "Budget": "MWK 472,798,140.00",
+                  "Status": null,
+                  "Project Sector": "Education"
+                },
+                {
+                  "Name of project": "Sani Secondary School",
+                  "Fiscal year": "April 2024 / March 2025",
+                  "Location": "T",
+                  "Budget": "MWK 437,264,900.00",
+                  "Status": null,
+                  "Project Sector": "Education"
+                },
+                {
+                  "Name of project": "Rehabilitation of Sitima Inn",
+                  "Fiscal year": "April 2023 / March 2024",
+                  "Location": "T",
+                  "Budget": "MWK 278,351,650.00",
+                  "Status": "Implementation: On track",
+                  "Project Sector": "Commercial services"
+                },
+                {
+                  "Name of project": "Nkhunga Admission Wards",
+                  "Fiscal year": "April 2022 / March 2023",
+                  "Location": "T",
+                  "Budget": "MWK 268,132,260.00",
+                  "Status": null,
+                  "Project Sector": "Health"
+                }
+              ]
+            }
+          }
+        ],
+        "metadata": {
+          "total_results": 10,
+          "query_time": "0.00s",
+          "sql_query": "\n                    SELECT \n                        projectname as project_name,\n                        fiscalyear as fiscal_year,\n                        district,\n                        budget as total_budget,\n                        projectstatus as status,\n                        projectsector as project_sector\n                    FROM \n                        proj_dashboard\n                    WHERE \n                        LOWER(district) LIKE LOWER('%T%')\n                    ORDER BY \n                        budget DESC\n                    LIMIT 10\n                    "
+        }
+      }
+    },
+    {
+      "title": "Location Query",
+      "description": "Testing query for finding projects in Zomba district",
+      "natural_language_query": "Show me all projects in Zomba district",
+      "sql_query": "Not available",
+      "status_code": 200,
+      "response_time": 1.007059097290039,
+      "response_data": {
+        "results": [
+          {
+            "type": "text",
+            "message": "Found 10 projects in Zomba district:",
+            "data": {}
+          },
+          {
+            "type": "list",
+            "message": "Project Details",
+            "data": {
+              "fields": [
+                "Name of project",
+                "Fiscal year",
+                "Location",
+                "Budget",
+                "Status",
+                "Project Sector"
+              ],
+              "values": [
+                {
+                  "Name of project": "Mchengawedi TDC",
+                  "Fiscal year": "April 2024 / March 2025",
+                  "Location": "Zomba",
+                  "Budget": "MWK 224,017,740.00",
+                  "Status": null,
+                  "Project Sector": "Education"
+                },
+                {
+                  "Name of project": "Chingale Maternity Wing Phase 2",
+                  "Fiscal year": "April 2024 / March 2025",
+                  "Location": "Zomba",
+                  "Budget": "MWK 185,000,000.00",
+                  "Status": null,
+                  "Project Sector": "Health"
+                },
+                {
+                  "Name of project": "Matandani Concrete Bridge Phase 2",
+                  "Fiscal year": "April 2024 / March 2025",
+                  "Location": "Zomba",
+                  "Budget": "MWK 185,000,000.00",
+                  "Status": null,
+                  "Project Sector": "Roads and bridges"
+                },
+                {
+                  "Name of project": "Mamphanda \u2013 Naphali Road Via Matiya (10Km) Graveling",
+                  "Fiscal year": "April 2022 / March 2023",
+                  "Location": "Zomba",
+                  "Budget": "MWK 176,173,300.00",
+                  "Status": "Implementation: On track or Implementation: Delayed",
+                  "Project Sector": "Roads and bridges"
+                },
+                {
+                  "Name of project": "Mamphanda-Naphali Road Phase 2",
+                  "Fiscal year": "April 2024 / March 2025",
+                  "Location": "Zomba",
+                  "Budget": "MWK 150,000,000.00",
+                  "Status": null,
+                  "Project Sector": "Roads and bridges"
+                },
+                {
+                  "Name of project": "Chingale Maternity wing",
+                  "Fiscal year": "April 2022 / March 2023",
+                  "Location": "Zomba",
+                  "Budget": "MWK 130,949,430.00",
+                  "Status": "Works completed",
+                  "Project Sector": "Health"
+                },
+                {
+                  "Name of project": "Chimseu Police Unit, Staff House and Toilet",
+                  "Fiscal year": "April 2022 / March 2023",
+                  "Location": "Zomba",
+                  "Budget": "MWK 116,214,530.00",
+                  "Status": "Implementation: On track",
+                  "Project Sector": "Community security initiatives"
+                },
+                {
+                  "Name of project": "Chimseu Police Unit Phase 2",
+                  "Fiscal year": "April 2024 / March 2025",
+                  "Location": "Zomba",
+                  "Budget": "MWK 100,000,000.00",
+                  "Status": null,
+                  "Project Sector": "Community security initiatives"
+                },
+                {
+                  "Name of project": "Matandani Concrete Bridge",
+                  "Fiscal year": "April 2022 / March 2023",
+                  "Location": "Zomba",
+                  "Budget": "MWK 93,028,736.00",
+                  "Status": "Implementation: On track or Implementation: Delayed",
+                  "Project Sector": "Roads and bridges"
+                },
+                {
+                  "Name of project": "Construction of Six Miles Market shade ",
+                  "Fiscal year": "April 2023 / March 2024",
+                  "Location": "Zomba",
+                  "Budget": "MWK 70,000,000.00",
+                  "Status": null,
+                  "Project Sector": "Commercial services"
+                }
+              ]
+            }
+          }
+        ],
+        "metadata": {
+          "total_results": 10,
+          "query_time": "0.00s",
+          "sql_query": "\n                    SELECT \n                        projectname as project_name,\n                        fiscalyear as fiscal_year,\n                        district,\n                        budget as total_budget,\n                        projectstatus as status,\n                        projectsector as project_sector\n                    FROM \n                        proj_dashboard\n                    WHERE \n                        LOWER(district) LIKE LOWER('%Zomba%')\n                    ORDER BY \n                        budget DESC\n                    LIMIT 10\n                    "
+        }
+      }
+    },
+    {
+      "title": "Specific Project Query",
+      "description": "Testing query for finding details about a specific project",
+      "natural_language_query": "Tell me about the Nyandule Classroom Block project",
+      "sql_query": "Not available",
+      "status_code": 200,
+      "response_time": 1.071532964706421,
+      "response_data": {
+        "results": [
+          {
+            "type": "error",
+            "message": "An unexpected error occurred: Database error: no such column: expendituretodate",
+            "data": {}
+          }
+        ],
+        "metadata": {
+          "total_results": 0,
+          "query_time": "0.0s",
+          "error": "Database error: no such column: expendituretodate"
+        }
+      }
+    }
+  ]
+}
