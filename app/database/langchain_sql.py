@@ -985,7 +985,7 @@ Just ask me what you'd like to know about these projects!"""
             # Generate SQL query
             sql_query, query_type = await self.generate_sql_query(user_query)
             
-            if not sql_query:
+            if not sql_query or (isinstance(sql_query, tuple) and not sql_query[0] and not sql_query[1]):
                 if query_type == "greeting":
                     return {
                         "results": [{
@@ -1001,7 +1001,7 @@ Just ask me what you'd like to know about these projects!"""
                 return {
                     "results": [{
                         "type": "error",
-                        "message": "I couldn't understand your query. Please try rephrasing it.",
+                        "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
                         "data": {}
                     }],
                     "metadata": {
@@ -1011,18 +1011,34 @@ Just ask me what you'd like to know about these projects!"""
                 }
             
             # Execute query
-            results = await self.execute_query(sql_query)
-            query_time = time.time() - start_time
-            
-            # Format the response
-            return await self.format_response(results, sql_query, query_time, user_query, query_type)
-            
+            try:
+                results = await self.execute_query(sql_query)
+                query_time = time.time() - start_time
+                
+                # Format the response
+                return await self.format_response(results, sql_query, query_time, user_query, query_type)
+                
+            except Exception as e:
+                logger.error(f"Query execution error: {str(e)}")
+                return {
+                    "results": [{
+                        "type": "error",
+                        "message": f"Error executing query: {str(e)}",
+                        "data": {}
+                    }],
+                    "metadata": {
+                        "total_results": 0,
+                        "query_time": f"{time.time() - start_time:.2f}s",
+                        "sql_query": sql_query[1] if isinstance(sql_query, tuple) else sql_query
+                    }
+                }
+                
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
             return {
                 "results": [{
                     "type": "error",
-                    "message": f"An error occurred while processing your query: {str(e)}",
+                    "message": f"An error occurred while processing your query. Please try rephrasing your question or ask about projects in a specific district or sector.",
                     "data": {}
                 }],
                 "metadata": {
