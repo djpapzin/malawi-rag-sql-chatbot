@@ -449,8 +449,8 @@ Just ask me what you'd like to know about these projects!"""
             
             for pattern in district_patterns:
                 district_match = re.search(pattern, user_query.lower())
-            if district_match:
-                district_name = district_match.group(1).strip()
+                if district_match:
+                    district_name = district_match.group(1).strip()
                     # First get total count
                     count_query = f"""
                     SELECT COUNT(*) as total_count
@@ -460,16 +460,16 @@ Just ask me what you'd like to know about these projects!"""
                     
                     # Then get limited results
                     results_query = f"""
-                SELECT 
-                    projectname as project_name,
+                    SELECT 
+                        projectname as project_name,
                         projectcode as project_code,
                         projectsector as project_sector,
                         projectstatus as status,
                         stage,
                         region,
-                    district,
+                        district,
                         traditionalauthority,
-                    budget as total_budget,
+                        budget as total_budget,
                         TOTALEXPENDITUREYEAR as total_expenditure,
                         fundingsource as funding_source,
                         startdate as start_date,
@@ -480,11 +480,11 @@ Just ask me what you'd like to know about these projects!"""
                         signingdate as contract_signing_date,
                         projectdesc as description,
                         fiscalyear as fiscal_year
-                FROM 
-                    proj_dashboard
-                WHERE 
-                    LOWER(district) LIKE '%{district_name.lower()}%'
-                ORDER BY 
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%{district_name.lower()}%'
+                    ORDER BY 
                         budget DESC NULLS LAST
                     LIMIT 10;
                     """
@@ -595,7 +595,7 @@ Just ask me what you'd like to know about these projects!"""
             # If no specific patterns match, return empty query
             return ("", ""), "unknown"
                 
-            except Exception as e:
+        except Exception as e:
             logger.error(f"Error in generate_sql_query: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             return ("", ""), "error"
@@ -685,23 +685,29 @@ Just ask me what you'd like to know about these projects!"""
             # Format project details
             if len(results) > 0:
                 formatted_projects = []
-                for project in results[:10]:  # Show first 10 projects
-                    # Get district name for district queries
-                    location = project.get("district", "Unknown")
-                    if query_type == "district_query":
-                        district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-                        if district_match:
-                            location = district_match.group(1).strip().title()
-                    
-                    formatted_project = {
-                        "Name of project": project.get("project_name", "Unknown"),
-                        "Fiscal year": project.get("fiscal_year", "Unknown"),
-                        "Location": location,
-                        "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') else "Unknown",
-                        "Status": project.get("status", "Unknown"),
-                        "Project Sector": project.get("project_sector", "Unknown")
-                    }
-                    formatted_projects.append(formatted_project)
+                for project in results[:10]:
+                    try:
+                        # Get location based on query type
+                        if query_type == "district_query":
+                            district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
+                            location = district_match.group(1).strip().title() + " District" if district_match else project.get("district", "")
+                        else:
+                            location = project.get("district", "")
+                            if project.get("region"):
+                                location = f"{project.get('region')}, {location}".strip(", ")
+                        
+                        formatted_project = {
+                            "Name of project": project.get("project_name", "Unknown"),
+                            "Fiscal year": project.get("fiscal_year", "Unknown"),
+                            "Location": location,
+                            "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
+                            "Status": project.get("status", "Unknown"),
+                            "Project Sector": project.get("project_sector", "Unknown")
+                        }
+                        formatted_projects.append(formatted_project)
+                    except Exception as e:
+                        logger.error(f"Error formatting project: {str(e)}")
+                        continue
                 
                 formatted_results.append({
                     "type": "list",
@@ -807,16 +813,16 @@ Just ask me what you'd like to know about these projects!"""
                             location = project.get("district", "")
                             if project.get("region"):
                                 location = f"{project.get('region')}, {location}".strip(", ")
-                    
-                    formatted_project = {
-                        "Name of project": project.get("project_name", "Unknown"),
-                        "Fiscal year": project.get("fiscal_year", "Unknown"),
-                        "Location": location,
+                        
+                        formatted_project = {
+                            "Name of project": project.get("project_name", "Unknown"),
+                            "Fiscal year": project.get("fiscal_year", "Unknown"),
+                            "Location": location,
                             "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
-                        "Status": project.get("status", "Unknown"),
-                        "Project Sector": project.get("project_sector", "Unknown")
-                    }
-                    formatted_projects.append(formatted_project)
+                            "Status": project.get("status", "Unknown"),
+                            "Project Sector": project.get("project_sector", "Unknown")
+                        }
+                        formatted_projects.append(formatted_project)
                     except Exception as e:
                         logger.error(f"Error formatting project: {str(e)}")
                         continue
