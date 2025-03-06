@@ -346,26 +346,28 @@ Just ask me what you'd like to know about these projects!"""
     async def generate_sql_query(self, user_query: str) -> Tuple[str, str]:
         """Generate a SQL query from a natural language query"""
         try:
-            # Check if this is a sector query
-            sector_patterns = [
-                r'(?:which|what|show|list|tell me about)(?: the)? projects?(?: are)? (?:in|from|about) (?:the )?([\w\s]+?) sector',
-                r'(?:which|what|show|list|tell me about)(?: the)? ([\w\s]+?) sector projects',
-                r'projects in (?:the )?([\w\s]+?) sector'
-            ]
+            logger.info(f"Generating SQL query for: {user_query}")
             
-            for pattern in sector_patterns:
-                match = re.search(pattern, user_query.lower(), re.IGNORECASE)
-                if match:
-                    sector_name = match.group(1).strip()
-                    # First get total count
-                    count_query = f"""
+            # Check for greetings
+            greetings = ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]
+            if user_query.lower().strip() in greetings:
+                return ("", ""), "greeting"
+            
+            # Try to extract district
+            district = await self._extract_district(user_query)
+            logger.info(f"Extracted district: {district}")
+            
+            if district:
+                # Build district query
+                count_query = f"""
                     SELECT COUNT(*) as total_count
                     FROM proj_dashboard
-                    WHERE LOWER(projectsector) LIKE '%{sector_name.lower()}%';
-                    """
-                    
-                    # Then get limited results
-                    results_query = f"""
+                    WHERE LOWER(DISTRICT) = LOWER('{district}')
+                       OR LOWER(DISTRICT) LIKE LOWER('%{district}%')
+                       OR similarity(LOWER(DISTRICT), LOWER('{district}')) > 0.4;
+                """
+                
+                results_query = f"""
                     SELECT 
                         projectname as project_name,
                         projectcode as project_code,
@@ -386,31 +388,134 @@ Just ask me what you'd like to know about these projects!"""
                         signingdate as contract_signing_date,
                         projectdesc as description,
                         fiscalyear as fiscal_year
-                    FROM 
-                        proj_dashboard
-                    WHERE 
-                        LOWER(projectsector) LIKE '%{sector_name.lower()}%'
-                    ORDER BY
+                    FROM proj_dashboard
+                    WHERE LOWER(DISTRICT) = LOWER('{district}')
+                       OR LOWER(DISTRICT) LIKE LOWER('%{district}%')
+                       OR similarity(LOWER(DISTRICT), LOWER('{district}')) > 0.4
+                    ORDER BY 
+                        CASE 
+                            WHEN LOWER(DISTRICT) = LOWER('{district}') THEN 1
+                            WHEN LOWER(DISTRICT) LIKE LOWER('%{district}%') THEN 2
+                            ELSE 3
+                        END,
                         budget DESC NULLS LAST
                     LIMIT 10;
-                    """
-                    return (count_query, results_query), "sector_query"
-
-            # Check if this is a greeting or general conversation
-            if self._is_greeting_or_general(user_query):
-                return ("", ""), "greeting"
-                
-            # Check for health sector query
-            if re.search(r'(?:health sector|healthcare|health projects)', user_query.lower()):
-                # First get total count
-                count_query = """
-                SELECT COUNT(*) as total_count
-                FROM proj_dashboard 
-                WHERE LOWER(projectsector) LIKE '%health%';
                 """
                 
-                # Then get limited results
-                results_query = """
+                logger.info(f"Generated district queries: {count_query}, {results_query}")
+                return (count_query, results_query), "district_query"
+            
+            # Try to extract sector
+            sector = await self._extract_sector(user_query)
+            logger.info(f"Extracted sector: {sector}")
+            
+            if sector:
+                # Build sector query
+                count_query = f"""
+                    SELECT COUNT(*) as total_count
+                    FROM proj_dashboard
+                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
+                       OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
+                       OR similarity(LOWER(PROJECTSECTOR), LOWER('{sector}')) > 0.4;
+                """
+                
+                results_query = f"""
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM proj_dashboard
+                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
+                       OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
+                       OR similarity(LOWER(PROJECTSECTOR), LOWER('{sector}')) > 0.4
+                    ORDER BY 
+                        CASE 
+                            WHEN LOWER(PROJECTSECTOR) = LOWER('{sector}') THEN 1
+                            WHEN LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%') THEN 2
+                            ELSE 3
+                        END,
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                """
+                
+                logger.info(f"Generated sector queries: {count_query}, {results_query}")
+                return (count_query, results_query), "sector_query"
+            
+            # Try to extract project name
+            project_name = await self._extract_project_name(user_query)
+            logger.info(f"Extracted project name: {project_name}")
+            
+            if project_name:
+                # Build project query
+                count_query = f"""
+                    SELECT COUNT(*) as total_count
+                    FROM proj_dashboard
+                    WHERE LOWER(PROJECTNAME) = LOWER('{project_name}')
+                       OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
+                       OR similarity(LOWER(PROJECTNAME), LOWER('{project_name}')) > 0.4;
+                """
+                
+                results_query = f"""
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM proj_dashboard
+                    WHERE LOWER(PROJECTNAME) = LOWER('{project_name}')
+                       OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
+                       OR similarity(LOWER(PROJECTNAME), LOWER('{project_name}')) > 0.4
+                    ORDER BY 
+                        CASE 
+                            WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1
+                            WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 2
+                            ELSE 3
+                        END,
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                """
+                
+                logger.info(f"Generated project queries: {count_query}, {results_query}")
+                return (count_query, results_query), "project_query"
+            
+            # If no specific patterns match, try general query
+            count_query = """
+                SELECT COUNT(*) as total_count
+                FROM proj_dashboard;
+            """
+            
+            results_query = """
                 SELECT 
                     projectname as project_name,
                     projectcode as project_code,
@@ -431,174 +536,17 @@ Just ask me what you'd like to know about these projects!"""
                     signingdate as contract_signing_date,
                     projectdesc as description,
                     fiscalyear as fiscal_year
-                FROM 
-                    proj_dashboard 
-                WHERE 
-                    LOWER(projectsector) LIKE '%health%'
-                ORDER BY 
-                    budget DESC NULLS LAST
+                FROM proj_dashboard
+                ORDER BY budget DESC NULLS LAST
                 LIMIT 10;
-                """
-                return (count_query, results_query), "sector_query"
+            """
             
-            # Check if this is a district query
-            district_patterns = [
-                r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district',
-                r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?)(?:\s+$|\?|\.)'  # New pattern for queries without "district"
-            ]
+            logger.info(f"Generated general queries: {count_query}, {results_query}")
+            return (count_query, results_query), "general_query"
             
-            for pattern in district_patterns:
-                district_match = re.search(pattern, user_query.lower())
-                if district_match:
-                    district_name = district_match.group(1).strip()
-                    # First get total count
-                    count_query = f"""
-                    SELECT COUNT(*) as total_count
-                    FROM proj_dashboard
-                    WHERE LOWER(district) LIKE '%{district_name.lower()}%';
-                    """
-                    
-                    # Then get limited results
-                    results_query = f"""
-                    SELECT 
-                        projectname as project_name,
-                        projectcode as project_code,
-                        projectsector as project_sector,
-                        projectstatus as status,
-                        stage,
-                        region,
-                        district,
-                        traditionalauthority,
-                        budget as total_budget,
-                        TOTALEXPENDITUREYEAR as total_expenditure,
-                        fundingsource as funding_source,
-                        startdate as start_date,
-                        completionestidate as completion_date,
-                        lastvisit as last_monitoring_visit,
-                        completionpercentage as completion_progress,
-                        contractorname as contractor,
-                        signingdate as contract_signing_date,
-                        projectdesc as description,
-                        fiscalyear as fiscal_year
-                    FROM 
-                        proj_dashboard
-                    WHERE 
-                        LOWER(district) LIKE '%{district_name.lower()}%'
-                    ORDER BY 
-                        budget DESC NULLS LAST
-                    LIMIT 10;
-                    """
-                    return (count_query, results_query), "district_query"
-
-            # Check for follow-up queries about budget/cost
-            budget_patterns = [
-                r'(?:which|what|show|tell me).*(?:highest|most expensive|largest|biggest).*(?:budget|cost)',
-                r'(?:which|what|show|tell me).*(?:budget|cost).*(?:highest|most expensive|largest|biggest)',
-                r'(?:highest|most expensive|largest|biggest).*(?:budget|cost)'
-            ]
-            
-            for pattern in budget_patterns:
-                if re.search(pattern, user_query.lower()):
-                    # Get the sector or district from previous query context if available
-                    if query_type == "sector_query" and "health" in user_query.lower():
-                        count_query = """
-                        SELECT COUNT(*) as total_count
-                        FROM proj_dashboard 
-                        WHERE LOWER(projectsector) LIKE '%health%';
-                        """
-                        
-                        results_query = """
-                        SELECT 
-                            projectname as project_name,
-                            projectcode as project_code,
-                            projectsector as project_sector,
-                            projectstatus as status,
-                            stage,
-                            region,
-                            district,
-                            traditionalauthority,
-                            budget as total_budget,
-                            TOTALEXPENDITUREYEAR as total_expenditure,
-                            fundingsource as funding_source,
-                            startdate as start_date,
-                            completionestidate as completion_date,
-                            lastvisit as last_monitoring_visit,
-                            completionpercentage as completion_progress,
-                            contractorname as contractor,
-                            signingdate as contract_signing_date,
-                            projectdesc as description,
-                            fiscalyear as fiscal_year
-                        FROM 
-                            proj_dashboard 
-                        WHERE 
-                            LOWER(projectsector) LIKE '%health%'
-                        ORDER BY 
-                            budget DESC NULLS LAST
-                        LIMIT 10;
-                        """
-                        return (count_query, results_query), "sector_query"
-            
-            # Check if this is a specific project query
-            project_patterns = [
-                r'(?:tell|show|give) (?:me|us) (?:about|details of|information about) (?:the )?([\w\s-]+?)(?:\s+project)?\s*(?:$|[?.])',
-                r'(?:what|how) (?:is|about) (?:the )?([\w\s-]+?)(?:\s+project)?\s*(?:$|[?.])',
-                r'(?:details|information|status) (?:for|of) (?:the )?([\w\s-]+?)(?:\s+project)?\s*(?:$|[?.])'
-            ]
-            
-            for pattern in project_patterns:
-                match = re.search(pattern, user_query, re.IGNORECASE)
-                if match:
-                    project_name = match.group(1).strip()
-                    # First get total count
-                    count_query = f"""
-                    SELECT COUNT(*) as total_count
-                    FROM proj_dashboard
-                    WHERE LOWER(projectname) LIKE '%{project_name.lower()}%';
-                    """
-                    
-                    # Then get limited results
-                    results_query = f"""
-                    SELECT 
-                        projectname as project_name,
-                        projectcode as project_code,
-                        projectsector as project_sector,
-                        projectstatus as status,
-                        stage,
-                        region,
-                        district,
-                        traditionalauthority,
-                        budget as total_budget,
-                        TOTALEXPENDITUREYEAR as total_expenditure,
-                        fundingsource as funding_source,
-                        startdate as start_date,
-                        completionestidate as completion_date,
-                        lastvisit as last_monitoring_visit,
-                        completionpercentage as completion_progress,
-                        contractorname as contractor,
-                        signingdate as contract_signing_date,
-                        projectdesc as description,
-                        fiscalyear as fiscal_year
-                    FROM 
-                        proj_dashboard
-                    WHERE 
-                        LOWER(projectname) LIKE '%{project_name.lower()}%'
-                    ORDER BY
-                        CASE 
-                            WHEN LOWER(projectname) = '{project_name.lower()}' THEN 1
-                            ELSE 2
-                        END,
-                        budget DESC
-                    LIMIT 10;
-                    """
-                    return (count_query, results_query), "specific_project"
-            
-            # If no specific patterns match, return empty query
-            return ("", ""), "unknown"
-                
         except Exception as e:
-            logger.error(f"Error in generate_sql_query: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            return ("", ""), "error"
+            logger.error(f"Error generating SQL query: {str(e)}")
+            raise
 
     async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None, query_type: str = None) -> Dict[str, Any]:
         """Generate a natural language response from query results."""
@@ -1041,9 +989,26 @@ Just ask me what you'd like to know about these projects!"""
         """Process a natural language query and return formatted results"""
         try:
             start_time = time.time()
+            logger.info(f"Processing query: {user_query}")
             
             # Generate SQL query
-            sql_query, query_type = await self.generate_sql_query(user_query)
+            try:
+                sql_query, query_type = await self.generate_sql_query(user_query)
+                logger.info(f"Generated SQL query: {sql_query}, type: {query_type}")
+            except Exception as e:
+                logger.error(f"SQL query generation failed: {str(e)}")
+                return {
+                    "results": [{
+                        "type": "error",
+                        "message": "I had trouble understanding your query. Could you rephrase it or be more specific about what information you're looking for?",
+                        "data": {}
+                    }],
+                    "metadata": {
+                        "total_results": 0,
+                        "query_time": f"{time.time() - start_time:.2f}s",
+                        "error": str(e)
+                    }
+                }
             
             if not sql_query or (isinstance(sql_query, tuple) and not sql_query[0] and not sql_query[1]):
                 if query_type == "greeting":
@@ -1070,26 +1035,31 @@ Just ask me what you'd like to know about these projects!"""
                     }
                 }
                     
-                    # Execute query
+            # Execute query
             try:
+                logger.info(f"Executing SQL query: {sql_query}")
                 results = await self.execute_query(sql_query)
+                logger.info(f"Query execution results: {results}")
                 query_time = time.time() - start_time
                 
                 # Format the response
-                return await self.format_response(results, sql_query, query_time, user_query, query_type)
+                response = await self.format_response(results, sql_query, query_time, user_query, query_type)
+                logger.info(f"Formatted response: {response}")
+                return response
                 
             except Exception as e:
                 logger.error(f"Query execution error: {str(e)}")
                 return {
                     "results": [{
                         "type": "error",
-                        "message": f"Error executing query: {str(e)}",
+                        "message": f"I encountered an error while retrieving the information. Please try rephrasing your question.",
                         "data": {}
                     }],
                     "metadata": {
                         "total_results": 0,
                         "query_time": f"{time.time() - start_time:.2f}s",
-                        "sql_query": sql_query[1] if isinstance(sql_query, tuple) else sql_query
+                        "sql_query": sql_query[1] if isinstance(sql_query, tuple) else sql_query,
+                        "error": str(e)
                     }
                 }
                 
@@ -1098,12 +1068,13 @@ Just ask me what you'd like to know about these projects!"""
             return {
                 "results": [{
                     "type": "error",
-                    "message": f"An error occurred while processing your query. Please try rephrasing your question or ask about projects in a specific district or sector.",
+                    "message": "An error occurred while processing your query. Please try rephrasing your question or ask about projects in a specific district or sector.",
                     "data": {}
                 }],
                 "metadata": {
                     "total_results": 0,
-                    "query_time": "0.00s"
+                    "query_time": "0.00s",
+                    "error": str(e)
                 }
             }
 
