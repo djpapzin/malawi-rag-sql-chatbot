@@ -1,0 +1,67 @@
+ID,Natural Query,Query Type,Expected Response,SQL Query,Actual Response,Status,Category,Full Response
+"D01","Show me all projects in Dowa district","specific","Found 53 projects in Dowa district","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%dowa%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","Found 53 projects in Dowa district, showing the first 10.
+Project Details
+Type 'show more' to see ad...","PASS","District","Found 53 projects in Dowa district, showing the first 10.
+Project Details
+Type 'show more' to see additional results."
+"D02","Which projects are in Dowa?","specific","Found 53 projects in Dowa district","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%dowa%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","Found 53 projects in specified district district, showing the first 10.
+Project Details
+Type 'show m...","FAIL","District","Found 53 projects in specified district district, showing the first 10.
+Project Details
+Type 'show more' to see additional results."

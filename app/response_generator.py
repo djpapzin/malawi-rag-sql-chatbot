@@ -46,7 +46,7 @@ class ResponseGenerator:
             
             # Financial Information
             'TOTALBUDGET',             # Budget
-            'TOTALEXPENDITUREYEAR',  # Expenditure to date
+            'TOTALEXPENDITUREYEAR',    # Expenditure to date
             'FUNDINGSOURCE',           # Source of funding
             
             # Timeline Information
@@ -98,117 +98,17 @@ class ResponseGenerator:
         except:
             return self.NULL_VALUE
             
-    def _format_metadata(self, query_time: datetime, total_results: int, filters_applied: List[str] = None) -> str:
-        """Format metadata section of response"""
-        metadata = [
-            "\nMetadata:",
-            f"Results Found: {total_results}",
-            f"Query Time: {query_time.total_seconds():.3f} seconds"
-        ]
-        
-        if filters_applied:
-            metadata.append("Filters Applied:")
-            for filter_info in filters_applied:
-                metadata.append(f"- {filter_info}")
-                
-        return "\n".join(metadata)
-        
-    def format_budget(self, value: float) -> str:
-        """Format budget value with MWK currency and proper formatting"""
-        if isinstance(value, (int, float)):
-            return f"MWK {value:,.2f}"
-        return str(value)
-
-    def format_project_results(self, results: List[Dict]) -> str:
-        """Format project results into a readable response"""
-        if not results:
-            return "I couldn't find any matching projects."
-        
-        total_budget = sum(float(r.get('total_budget', 0)) for r in results)
-        response = [
-            f"I found {len(results)} projects with a total budget of {self.format_budget(total_budget)}. "
-            "The projects include:"
-        ]
-        
-        for project in results[:5]:  # Show first 5 projects
-            budget = self.format_budget(float(project.get('total_budget', 0)))
-            status = project.get('project_status', 'Unknown status')
-            response.append(f"* {project['project_name']} - {status} ({budget})")
-        
-        if len(results) > 5:
-            response.append(f"...and {len(results) - 5} more projects")
-        
-        return " ".join(response)
-
-    def _format_project_list(self, df: pd.DataFrame, query_info: Dict[str, Any] = None) -> str:
-        """Format a list of projects according to general query specification"""
-        try:
-            start_time = datetime.now()
-            
-            if df.empty:
-                return "No projects found matching your criteria."
-            
-            # Format each project with only the required fields for general queries
-            formatted_projects = []
-            for idx, project in df.iterrows():
-                project_details = []
-                for field in self.general_field_order:
-                    if field in project.index:
-                        value = project[field]
-                        formatted_value = (
-                            self._format_currency(value) if field in self.currency_columns
-                            else self._format_date(value) if field in self.date_columns
-                            else self._format_value(value)
-                        )
-                        # Use more user-friendly field names
-                        display_name = {
-                            'PROJECTNAME': 'Name',
-                            'FISCALYEAR': 'Fiscal Year',
-                            'DISTRICT': 'Location',
-                            'TOTALBUDGET': 'Budget',
-                            'PROJECTSTATUS': 'Status',
-                            'PROJECTSECTOR': 'Sector'
-                        }.get(field, field)
-                        project_details.append(f"- {display_name}: {formatted_value}")
-                
-                formatted_projects.append("\n".join(project_details))
-            
-            # Calculate total budget for summary
-            total_budget = 0
-            if 'TOTALBUDGET' in df.columns:
-                total_budget = df['TOTALBUDGET'].sum()
-            
-            # Create summary message
-            total_results = len(df)
-            if query_info and query_info.get('total_count', total_results) > total_results:
-                total_count = query_info['total_count']
-                summary = f"Found {total_count} projects"
-                if total_budget > 0:
-                    summary += f" with a total budget of {self._format_currency(total_budget)}"
-                summary += f", showing {total_results}:\n\n"
+    def _format_no_results(self, query_type: str, query_info: Dict[str, Any]) -> str:
+        """Format response when no results are found"""
+        if query_type == "specific":
+            project_identifier = query_info.get("project_identifier", "")
+            if project_identifier.startswith("MW-"):
+                return f"No project found with code {project_identifier}. Please verify the project code and try again."
             else:
-                summary = f"Found {total_results} projects"
-                if total_budget > 0:
-                    summary += f" with a total budget of {self._format_currency(total_budget)}"
-                summary += ":\n\n"
+                return f"No project found matching '{project_identifier}'. Please verify the project name and try again."
+        else:
+            return "No projects found matching your criteria. Please try different search terms."
             
-            # Join all projects with clear separation
-            projects_text = "\n\n".join([
-                f"Project {i+1}:\n{details}"
-                for i, details in enumerate(formatted_projects)
-            ])
-            
-            # Add pagination information if needed
-            if query_info and query_info.get('total_count', total_results) > total_results:
-                remaining = query_info['total_count'] - total_results
-                projects_text += f"\n\nType 'show more' to see the remaining {remaining} projects."
-            
-            return summary + projects_text
-            
-        except Exception as e:
-            logger.error(f"Error formatting project list: {str(e)}")
-            return "Error: Unable to format project list"
-        
     def _format_specific_project(self, project: pd.Series, is_code_query: bool = False) -> str:
         """Format a specific project's details according to specification"""
         try:
@@ -263,7 +163,7 @@ class ResponseGenerator:
             # Add project name as header
             project_name = formatted_values.get('PROJECTNAME', 'Project Details')
             response_parts.append(f"# {project_name}")
-            response_parts.append("")  # Empty line after header
+            response_parts.append("")
             
             # Add each section
             for section_name, fields in sections.items():
@@ -292,7 +192,7 @@ class ResponseGenerator:
         except Exception as e:
             logger.error(f"Error formatting specific project: {str(e)}")
             return "Error: Unable to format project details"
-        
+            
     def format_response(self, query_type: str, results: pd.DataFrame, query_info: Dict[str, Any]) -> str:
         """Format the response based on query type and results"""
         try:
@@ -305,10 +205,17 @@ class ResponseGenerator:
                 
                 # Check if this was a project code query
                 is_code_query = False
-                if query_info.get("project_name", "").upper().startswith("MW-"):
+                if query_info.get("project_identifier", "").upper().startswith("MW-"):
                     is_code_query = True
                     
-                return self._format_specific_project(project, is_code_query)
+                # Format the response with all required fields
+                response = self._format_specific_project(project, is_code_query)
+                
+                # Add metadata about the query
+                if query_info.get("project_identifier"):
+                    response += f"\n\nQuery matched project: {query_info['project_identifier']}"
+                
+                return response
             
             else:
                 return self._format_project_list(results, query_info)
@@ -316,7 +223,7 @@ class ResponseGenerator:
         except Exception as e:
             logger.error(f"Error formatting response: {str(e)}")
             return "Error: Unable to format response"
-        
+            
     def generate_response(
         self,
         df: pd.DataFrame,
@@ -361,4 +268,4 @@ class ResponseGenerator:
             
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}")
-            raise
+            raise 

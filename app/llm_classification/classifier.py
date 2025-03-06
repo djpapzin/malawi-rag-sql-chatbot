@@ -22,34 +22,22 @@ from together import Together
 logger = logging.getLogger(__name__)
 
 class QueryType(str, Enum):
-    """Enum for query types"""
-    GENERAL = "general"
-    DISTRICT = "district"
-    PROJECT = "project"
-    SECTOR = "sector"
-    BUDGET = "budget"
-    STATUS = "status"
-    TIME = "time"
-    COMBINED = "combined"
-    UNKNOWN = "unknown"
+    """Simplified query types for classification"""
+    UNRELATED = "unrelated"  # General conversation, greetings, etc.
+    GENERAL = "general"      # Questions about multiple projects
+    SPECIFIC = "specific"    # Questions about a specific project
 
 class QueryParameters(BaseModel):
-    """Parameters extracted from a query"""
-    districts: List[str] = Field(default_factory=list)
-    projects: List[str] = Field(default_factory=list)
-    sectors: List[str] = Field(default_factory=list)
-    budget_range: Dict[str, Optional[float]] = Field(default_factory=lambda: {"min": None, "max": None})
-    status: List[str] = Field(default_factory=list)
-    time_range: Dict[str, Optional[str]] = Field(default_factory=lambda: {"start": None, "end": None})
+    """Parameters extracted from the query"""
+    project_identifier: Optional[str] = None  # For specific queries
+    filters: Dict[str, Any] = Field(default_factory=dict)  # For general queries
+    context: Dict[str, Any] = Field(default_factory=dict)  # For follow-up questions
 
 class QueryClassification(BaseModel):
-    """Classification result for a query"""
+    """Result of query classification"""
     query_type: QueryType
-    parameters: QueryParameters
-    confidence: float = 0.0
-    original_query: str
-    llm_response: Optional[str] = None
-    processing_time: float = 0.0
+    confidence: float
+    parameters: QueryParameters = Field(default_factory=QueryParameters)
 
 class LLMClassifier:
     """LLM-based query classifier"""
@@ -81,21 +69,32 @@ class LLMClassifier:
     
     def __init__(self):
         """Initialize the classifier"""
-        # Get model from environment variables
-        self.model = os.getenv("LLM_MODEL", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K")
-        self.temperature = float(os.getenv("LLM_TEMPERATURE", "0.1"))
-        
-        # Get API key from environment
-        api_key = os.getenv("TOGETHER_API_KEY", "f7119711abb83c4ec5e9b2339eb06c66c87d4958f4ce6cc348ed3ad0c6cb7101")
-        
-        # Set the API key directly
-        import together
-        together.api_key = api_key
-        
-        # Initialize Together client
-        self.client = Together()
-        
-        logger.info(f"Initialized LLM Classifier with model: {self.model}")
+        self.prompt_template = """
+You are an assistant for a Malawi infrastructure project database.
+Classify this user query into one of three types:
+
+1. UNRELATED: General conversation, greetings, or questions about capabilities
+2. GENERAL: Questions about projects that may include filters (district, sector, status, etc.)
+3. SPECIFIC: Questions about a specific project or follow-up questions about a previously discussed project
+
+Return a JSON object with:
+{
+    "query_type": "unrelated|general|specific",
+    "confidence": 0.0 to 1.0,
+    "project_identifier": null or project name/code if specific,
+    "filters": {
+        "districts": [],
+        "sectors": [],
+        "status": [],
+        "budget_range": {"min": null, "max": null},
+        "time_range": {"start": null, "end": null}
+    }
+}
+
+Query: {query}
+
+Previous context: {context}
+"""
     
     def match_district(self, input_name, min_ratio=75):
         """
@@ -310,210 +309,100 @@ class LLMClassifier:
         # If no parameters, return unknown
         return QueryType.UNKNOWN
     
-    async def _call_llm(self, prompt: str) -> str:
-        """Call the LLM API to get a response"""
-        try:
-            import together
-            logger.info(f"Sending prompt to LLM: {repr(prompt[:100])}...")
-            
-            # Use the Together API directly with the completion endpoint
-            response = together.Complete.create(
-                prompt=prompt,
-                model=self.model,
-                max_tokens=1024,
-                temperature=self.temperature,
-                top_k=50,
-                top_p=0.7,
-                repetition_penalty=1.1
-            )
-            
-            # Extract the raw text from the response
-            raw_text = response['output']['choices'][0]['text']
-            logger.info(f"Raw LLM response: {repr(raw_text[:100])}...")
-            
-            return raw_text
-            
-        except Exception as e:
-            logger.error(f"Error calling LLM: {str(e)}")
-            raise
-    
-    def _extract_json_from_text(self, text: str) -> Dict[str, Any]:
-        """Extract JSON from LLM response text"""
-        # Try to find JSON in the response
-        json_pattern = r'```json\s*(.*?)\s*```'
-        json_matches = re.findall(json_pattern, text, re.DOTALL)
-        
-        if json_matches:
-            try:
-                return json.loads(json_matches[0])
-            except json.JSONDecodeError:
-                logger.warning(f"Failed to parse JSON from match: {json_matches[0]}")
-        
-        # Try to find any JSON-like structure
-        try:
-            # Look for opening and closing braces
-            start_idx = text.find('{')
-            end_idx = text.rfind('}')
-            
-            if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
-                json_str = text[start_idx:end_idx+1]
-                return json.loads(json_str)
-        except json.JSONDecodeError:
-            logger.warning(f"Failed to parse JSON from text: {text}")
-        
-        # Return empty dict if no JSON found
-        return {}
-    
-    async def classify_query(self, query: str) -> QueryClassification:
+    async def classify_query(self, query: str, context: Optional[Dict[str, Any]] = None) -> QueryClassification:
         """
-        Classify a natural language query using LLM
+        Classify a query using LLM
         
         Args:
-            query: The natural language query to classify
+            query: The query to classify
+            context: Optional conversation context
             
         Returns:
-            QueryClassification object with query type and parameters
+            QueryClassification object
         """
-        start_time = time.time()
+        # Format context for prompt
+        context_str = "None" if not context else str(context)
         
-        # Create the prompt for the LLM
-        prompt = f"""
-        You are an assistant for a Malawi infrastructure project database.
-        Classify this user query: "{query}"
-        
-        Consider these common query patterns and variations:
-        1. District queries:
-           - "Which projects are in Dowa?"
-           - "Show me all projects in Dowa district"
-           - "List projects from Dowa"
-           - "What projects exist in Dowa?"
-           - "Projects located in Dowa"
-           - "I want to see projects in Dowa"
-           - "Tell me about projects in Dowa"
-           - "Are there any projects in Dowa?"
-        
-        2. Sector queries:
-           - "Show me health sector projects"
-           - "What education projects are there?"
-           - "List all water projects"
-           - "Tell me about transport projects"
-           - "I need information about agriculture projects"
-        
-        3. Specific project queries:
-           - "Tell me about the [project name]"
-           - "What is the status of [project name]?"
-           - "Show details for [project name]"
-           - "Give me information about [project name]"
-        
-        4. Combined queries:
-           - "Show me health projects in Dowa"
-           - "List completed education projects"
-           - "What are the ongoing water projects?"
-        
-        Return a JSON object with the following structure:
-        {{
-            "query_type": "district|project|sector|budget|status|time|combined",
-            "parameters": {{
-                "districts": ["district_name1", "district_name2"],
-                "projects": ["project_name1", "project_name2"],
-                "sectors": ["sector_name1", "sector_name2"],
-                "budget_range": {{"min": null, "max": null}},
-                "status": ["completed", "in_progress", "planned"],
-                "time_range": {{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}}
-            }},
-            "confidence": 0.0 to 1.0,
-            "explanation": "Brief explanation of why this classification was chosen"
-        }}
-        
-        Only include parameters that are relevant to the query.
-        For project names, extract the full project name as mentioned in the query.
-        For districts, extract the district names mentioned.
-        For sectors, identify the sectors like education, health, water, transport, etc.
-        For budget queries, extract any minimum or maximum values mentioned.
-        For status queries, identify if the user is asking about completed, ongoing, or planned projects.
-        For time queries, extract any date ranges or years mentioned.
-        
-        Format your response as valid JSON inside ```json ``` code blocks.
-        """
-        
-        # Call the LLM
-        llm_response = await self._call_llm(prompt)
-        
-        # Extract JSON from the response
-        classification_data = self._extract_json_from_text(llm_response)
-        
-        # Default classification
-        classification = QueryClassification(
-            query_type=QueryType.UNKNOWN,
-            parameters=QueryParameters(),
-            original_query=query,
-            llm_response=llm_response,
-            confidence=0.5
+        # Create prompt
+        prompt = self.prompt_template.format(
+            query=query,
+            context=context_str
         )
         
-        # Update with LLM classification if available
-        if classification_data:
-            try:
-                # Extract query type
-                if "query_type" in classification_data:
-                    query_type = classification_data["query_type"].lower()
-                    if query_type in [e.value for e in QueryType]:
-                        classification.query_type = QueryType(query_type)
-                
-                # Extract parameters
-                if "parameters" in classification_data:
-                    params = classification_data["parameters"]
-                    
-                    # Extract districts
-                    if "districts" in params and isinstance(params["districts"], list):
-                        classification.parameters.districts = params["districts"]
-                    
-                    # Extract projects
-                    if "projects" in params and isinstance(params["projects"], list):
-                        classification.parameters.projects = params["projects"]
-                    
-                    # Extract sectors
-                    if "sectors" in params and isinstance(params["sectors"], list):
-                        classification.parameters.sectors = params["sectors"]
-                    
-                    # Extract budget range
-                    if "budget_range" in params and isinstance(params["budget_range"], dict):
-                        classification.parameters.budget_range = params["budget_range"]
-                    
-                    # Extract status
-                    if "status" in params and isinstance(params["status"], list):
-                        classification.parameters.status = params["status"]
-                    
-                    # Extract time range
-                    if "time_range" in params and isinstance(params["time_range"], dict):
-                        classification.parameters.time_range = params["time_range"]
-                
-                # Validate parameters
-                classification.parameters = self._validate_parameters(classification.parameters)
-                
-                # Determine query type if not provided
-                if classification.query_type == QueryType.UNKNOWN:
-                    classification.query_type = self._determine_query_type(classification.parameters)
-                
-                # Set confidence based on parameter extraction
-                param_count = (
-                    len(classification.parameters.districts) +
-                    len(classification.parameters.projects) +
-                    len(classification.parameters.sectors) +
-                    len(classification.parameters.status) +
-                    (1 if classification.parameters.budget_range["min"] is not None or 
-                         classification.parameters.budget_range["max"] is not None else 0) +
-                    (1 if classification.parameters.time_range["start"] is not None or 
-                         classification.parameters.time_range["end"] is not None else 0)
+        try:
+            # Call LLM (placeholder - implement actual LLM call)
+            response = await self._call_llm(prompt)
+            
+            # Parse response
+            result = self._parse_llm_response(response)
+            
+            # Create classification
+            classification = QueryClassification(
+                query_type=QueryType(result["query_type"]),
+                confidence=result["confidence"],
+                parameters=QueryParameters(
+                    project_identifier=result.get("project_identifier"),
+                    filters=result.get("filters", {}),
+                    context=context or {}
                 )
-                
-                if param_count > 0:
-                    classification.confidence = min(0.9, 0.5 + param_count * 0.1)
-                
-            except Exception as e:
-                logger.error(f"Error processing LLM classification: {str(e)}")
-        
-        # Calculate processing time
-        classification.processing_time = time.time() - start_time
-        
-        return classification
+            )
+            
+            return classification
+            
+        except Exception as e:
+            logger.error(f"Error classifying query: {e}")
+            # Return default classification for errors
+            return QueryClassification(
+                query_type=QueryType.GENERAL,
+                confidence=0.0,
+                parameters=QueryParameters()
+            )
+    
+    async def _call_llm(self, prompt: str) -> str:
+        """Call the LLM service (placeholder)"""
+        # TODO: Implement actual LLM call
+        return """
+        {
+            "query_type": "general",
+            "confidence": 0.8,
+            "project_identifier": null,
+            "filters": {
+                "districts": [],
+                "sectors": [],
+                "status": [],
+                "budget_range": {"min": null, "max": null},
+                "time_range": {"start": null, "end": null}
+            }
+        }
+        """
+    
+    def _parse_llm_response(self, response: str) -> Dict[str, Any]:
+        """Parse LLM response into structured data"""
+        try:
+            # Extract JSON from response
+            json_str = response.strip()
+            if json_str.startswith("```json"):
+                json_str = json_str[7:]
+            if json_str.endswith("```"):
+                json_str = json_str[:-3]
+            
+            # Parse JSON
+            result = json.loads(json_str)
+            
+            # Validate required fields
+            required_fields = ["query_type", "confidence", "filters"]
+            for field in required_fields:
+                if field not in result:
+                    raise ValueError(f"Missing required field: {field}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error parsing LLM response: {e}")
+            # Return default result for errors
+            return {
+                "query_type": "general",
+                "confidence": 0.0,
+                "project_identifier": None,
+                "filters": {}
+            }

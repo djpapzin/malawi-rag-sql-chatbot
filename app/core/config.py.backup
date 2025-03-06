@@ -28,44 +28,37 @@ class Settings(BaseSettings):
     APP_NAME: str = "Malawi Infrastructure Projects Chatbot"
     VERSION: str = "1.0.0"
     DEBUG: bool = True
-    PORT: str = "5000"
+    API_PREFIX: str = "/api/v1"
+    PORT: str = "8000"
     HOST: str = "0.0.0.0"
-    NODE_ENV: str = "production"
+    NODE_ENV: str = "development"
     
     # Database Settings
-    DATABASE_URL: str = "sqlite:///malawi_projects1.db"
+    DATABASE_URL: str = os.path.join(BASE_DIR, "pmisProjects.db")
     DATABASE_TYPE: str = "sqlite"
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 10
     
-    # API Settings
-    API_PREFIX: str = "/api"
-    CORS_ORIGINS: List[str] = ["http://localhost:5000", "http://154.0.164.254:5000", "https://dziwani.kwantu.support"]
-    
     # API Keys and External Services
-    TOGETHER_API_KEY: str = ""
-    AZURE_TRANSLATION_KEY: str = ""
-    AZURE_TRANSLATION_REGION: str = ""
+    TOGETHER_API_KEY: str = "your_key_here"
+    AZURE_TRANSLATION_KEY: str = "your_key_here"
+    AZURE_TRANSLATION_REGION: str = "your_region"
     AZURE_TRANSLATION_ENDPOINT: str = "https://api.cognitive.microsofttranslator.com/"
+    
+    # CORS Settings
+    CORS_ORIGINS: str = '["http://localhost:3000", "https://ai.kwantu.support"]'
     
     # Model Configuration
     EMBEDDING_MODEL: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
     LLM_MODEL: str = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K"
-    LLM_TEMPERATURE: float = 0.1
+    LLM_TEMPERATURE: str = "0.1"
     MAX_SEARCH_RESULTS: int = 3
     
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     LOG_DIR: str = os.path.join(BASE_DIR, "logs")
-    LOG_FILE: str = "app.log"
-
-    # LangSmith Configuration
-    LANGSMITH_API_KEY: str = ""
-    LANGSMITH_ENDPOINT_URL: str = "https://api.smith.langchain.com"
-    LANGSMITH_PROJECT: str = "rag-sql-chatbot"
-    ENABLE_TRACING: bool = True
-    ENABLE_DEBUG: bool = True
+    LOG_FILE: str = os.path.join(LOG_DIR, "app.log")
 
     # Pagination Settings
     DEFAULT_PAGE_SIZE: int = 3
@@ -206,7 +199,7 @@ class Settings(BaseSettings):
     model_config = {
         "env_file": ".env",
         "case_sensitive": True,
-        "extra": "ignore"
+        "extra": "allow"
     }
 
     def get_language_code(self, language_name: str) -> str:

@@ -1,6 +1,10 @@
 import re
-from typing import Optional
+from typing import Optional, Dict
 from difflib import get_close_matches
+from llm_service import LLMService
+
+# Initialize LLM service
+llm_service = LLMService()
 
 # Complete list of Malawi districts
 MALAWI_DISTRICTS = [
@@ -76,49 +80,73 @@ def parse_query(query: str) -> dict:
     """Parse the input query and return the appropriate SQL query components."""
     query = query.strip()
     
-    # Extract quoted project name if present
-    quoted_pattern = r"'([^']+)'"
-    quoted_matches = re.findall(quoted_pattern, query)
-    
-    # Extract project code if present
-    code_pattern = r'\b(?:MW-)?[A-Z]{2}-[A-Z0-9]{2}\b'
-    code_matches = re.findall(code_pattern, query.upper())
+    # Use LLM to classify the query
+    classification = llm_service.classify_query(query)
+    query_type = classification["query_type"]
+    extracted_info = classification["extracted_info"]
     
     conditions = []
     order_by = []
     
-    # Check for district first
-    district_name = extract_district_from_query(query)
-    if district_name:
-        validated_district = validate_district(district_name)
-        if validated_district:
-            conditions.append(f"LOWER(DISTRICT) LIKE '%{validated_district.lower()}%'")
-    
-    # Determine query type and select appropriate columns
-    if re.search(r'\b(progress|status)\b', query, re.IGNORECASE):
+    # Build base query based on classification
+    if query_type == "specific_project":
         base_query = """
             SELECT DISTINCT
-                PROJECTNAME, PROJECTSTATUS, COMPLETIONPERCENTAGE,
+                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
+                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
                 STAGE, STARTDATE, COMPLETIONESTIDATE
             FROM proj_dashboard
             WHERE ISLATEST = 1
         """
-    elif re.search(r'\b(budget|cost)\b', query, re.IGNORECASE):
+        
+        # Add conditions based on extracted info
+        if extracted_info.get("project_name"):
+            project_name = extracted_info["project_name"].strip()
+            conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')")
+            order_by.append(f"CASE WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1 "
+                          f"WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 2 "
+                          "ELSE 3 END")
+    
+    elif query_type == "district_query":
         base_query = """
             SELECT DISTINCT
-                PROJECTNAME, TOTALBUDGET, TOTALEXPENDITURETODATE,
-                FUNDINGSOURCE
+                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
+                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
+                STAGE, STARTDATE, COMPLETIONESTIDATE
             FROM proj_dashboard
             WHERE ISLATEST = 1
         """
-    elif re.search(r'\b(contractor|who)\b', query, re.IGNORECASE):
+        
+        if extracted_info.get("district"):
+            district = extracted_info["district"].strip()
+            validated_district = validate_district(district)
+            if validated_district:
+                conditions.append(f"LOWER(DISTRICT) LIKE '%{validated_district.lower()}%'")
+    
+    elif query_type == "sector_query":
         base_query = """
             SELECT DISTINCT
-                PROJECTNAME, CONTRACTORNAME, SIGNINGDATE
+                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
+                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
+                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITURETODATE,
+                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
+                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
+                STAGE, STARTDATE, COMPLETIONESTIDATE
             FROM proj_dashboard
             WHERE ISLATEST = 1
         """
-    else:
+        
+        if extracted_info.get("sector"):
+            sector = extracted_info["sector"].strip()
+            conditions.append(f"LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')")
+    
+    else:  # general_query
         base_query = """
             SELECT DISTINCT
                 PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
@@ -131,28 +159,14 @@ def parse_query(query: str) -> dict:
             WHERE ISLATEST = 1
         """
     
-    if quoted_matches:
-        project_name = quoted_matches[0].strip()
-        # Remove 'project' keyword if it appears at the end
-        project_name = re.sub(r'\s+project$', '', project_name, flags=re.IGNORECASE)
-        
-        # Add exact match condition with high priority
-        conditions.append(f"LOWER(PROJECTNAME) = LOWER('{project_name}')")
-        # Add partial match condition with lower priority
-        conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')")
-        
-        order_by.append(f"CASE WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1 "
-                       f"WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 2 "
-                       "ELSE 3 END")
+    # Add additional conditions based on extracted info
+    if extracted_info.get("status"):
+        status = extracted_info["status"].strip()
+        conditions.append(f"LOWER(PROJECTSTATUS) LIKE LOWER('%{status}%')")
     
-    elif code_matches:
-        project_code = code_matches[0]
-        if not project_code.startswith('MW-'):
-            project_code = f'MW-{project_code}'
-            
-        # Add exact match condition for project code
-        conditions.append(f"UPPER(PROJECTCODE) = '{project_code}'")
-        order_by.append("1")
+    if extracted_info.get("budget"):
+        budget = extracted_info["budget"].strip()
+        conditions.append(f"TOTALBUDGET LIKE '%{budget}%'")
     
     # Build the final query
     sql_query = base_query
@@ -167,5 +181,7 @@ def parse_query(query: str) -> dict:
     
     return {
         "query": sql_query,
-        "is_specific_project": bool(quoted_matches or code_matches)
+        "is_specific_project": classification["is_specific_project"],
+        "query_type": query_type,
+        "confidence": classification["confidence"]
     } 

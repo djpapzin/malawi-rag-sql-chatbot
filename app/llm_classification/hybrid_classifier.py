@@ -97,7 +97,12 @@ class HybridClassifier:
             # Agriculture sector
             re.compile(r'(?:agriculture|farming|crop|livestock|food) (?:sector|projects|initiatives)?', re.IGNORECASE),
             re.compile(r'(?:show|list|find) (?:me|all) (?:agriculture|farming|crop|livestock|food) (?:projects)?', re.IGNORECASE),
-            re.compile(r'(?:agriculture|farming|crop|livestock|food) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE)
+            re.compile(r'(?:agriculture|farming|crop|livestock|food) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            
+            # Combined patterns
+            re.compile(r'(?:show|list|find) (?:me|all) (?:health|education|water|transport|agriculture) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            re.compile(r'(?:health|education|water|transport|agriculture) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE),
+            re.compile(r'(?:completed|ongoing|approved) (?:health|education|water|transport|agriculture) projects (?:in|at) (\w+)(?: district)?', re.IGNORECASE)
         ]
         
         # Status patterns
@@ -189,6 +194,12 @@ class HybridClassifier:
                 if 'projects' in query.lower():
                     confidence += 0.05
                 
+                # Increase confidence for combined queries
+                if any(term in query.lower() for term in ["health", "education", "water", "transport", "agriculture"]):
+                    confidence += 0.1
+                if any(term in query.lower() for term in ["sector", "projects"]):
+                    confidence += 0.05
+                
                 # Update best match if this one has higher confidence
                 if confidence > best_confidence:
                     best_match = district
@@ -232,6 +243,12 @@ class HybridClassifier:
                 elif any(term in matched_text for term in ["agriculture", "farming", "crop", "livestock", "food"]):
                     sectors.append("agriculture")
                     confidence = max(confidence, 0.8)
+                
+                # Increase confidence for combined queries
+                if "in" in matched_text or "at" in matched_text:
+                    confidence = min(confidence + 0.1, 1.0)
+                if "district" in matched_text:
+                    confidence = min(confidence + 0.1, 1.0)
         
         # Remove duplicates while preserving order
         sectors = list(dict.fromkeys(sectors))
@@ -366,75 +383,104 @@ class HybridClassifier:
         Returns:
             QueryClassification object
         """
-        # Initialize result
-        result = QueryClassification(
+        # Initialize classification
+        classification = QueryClassification(
             query_type=QueryType.GENERAL,
             confidence=0.0,
-            parameters=QueryParameters(),
-            original_query=query
+            parameters=QueryParameters()
         )
         
-        # Try to classify project
+        # Try project classification first
         projects, project_confidence = self._regex_classify_project(query)
         if projects:
-            result.parameters.projects = projects
-            result.confidence = max(result.confidence, project_confidence)
+            classification.parameters.projects = projects
+            classification.query_type = QueryType.PROJECT
+            classification.confidence = project_confidence
+            return classification
         
-        # Try to classify district
+        # Try district classification
         districts, district_confidence = self._regex_classify_district(query)
         if districts:
-            result.parameters.districts = districts
-            result.confidence = max(result.confidence, district_confidence)
+            classification.parameters.districts = districts
+            classification.query_type = QueryType.DISTRICT
+            classification.confidence = district_confidence
         
-        # Try to classify sector
+        # Try sector classification
         sectors, sector_confidence = self._regex_classify_sector(query)
         if sectors:
-            result.parameters.sectors = sectors
-            result.confidence = max(result.confidence, sector_confidence)
+            classification.parameters.sectors = sectors
+            # If we already have districts, this is a combined query
+            if classification.parameters.districts:
+                classification.query_type = QueryType.COMBINED
+                classification.confidence = max(district_confidence, sector_confidence)
+            else:
+                classification.query_type = QueryType.SECTOR
+                classification.confidence = sector_confidence
         
-        # Try to classify budget
+        # Try status classification
+        status, status_confidence = self._regex_classify_status(query)
+        if status:
+            classification.parameters.status = status
+            # If we already have districts or sectors, this is a combined query
+            if classification.parameters.districts or classification.parameters.sectors:
+                classification.query_type = QueryType.COMBINED
+                classification.confidence = max(
+                    classification.confidence,
+                    status_confidence
+                )
+            else:
+                classification.query_type = QueryType.STATUS
+                classification.confidence = status_confidence
+        
+        # Try budget classification
         budget, budget_confidence = self._regex_classify_budget(query)
         if budget["min"] is not None or budget["max"] is not None:
-            result.parameters.budget = budget
-            result.confidence = max(result.confidence, budget_confidence)
+            classification.parameters.budget_range = budget
+            # If we already have other parameters, this is a combined query
+            if classification.parameters.districts or classification.parameters.sectors or classification.parameters.status:
+                classification.query_type = QueryType.COMBINED
+                classification.confidence = max(
+                    classification.confidence,
+                    budget_confidence
+                )
+            else:
+                classification.query_type = QueryType.BUDGET
+                classification.confidence = budget_confidence
         
-        # Try to classify status
-        statuses, status_confidence = self._regex_classify_status(query)
-        if statuses:
-            result.parameters.status = statuses
-            result.confidence = max(result.confidence, status_confidence)
-        
-        # Try to classify time
-        time, time_confidence = self._regex_classify_time(query)
-        if time["start"] is not None or time["end"] is not None:
-            result.parameters.time = time
-            result.confidence = max(result.confidence, time_confidence)
-        
-        # Determine query type based on parameters
-        param_count = sum(1 for p in [projects, districts, sectors, statuses] if p)
-        if param_count == 0:
-            result.query_type = QueryType.GENERAL
-        elif param_count == 1:
-            if projects:
-                result.query_type = QueryType.PROJECT
-            elif districts:
-                result.query_type = QueryType.DISTRICT
-            elif sectors:
-                result.query_type = QueryType.SECTOR
-            elif statuses:
-                result.query_type = QueryType.STATUS
-            elif budget["min"] is not None or budget["max"] is not None:
-                result.query_type = QueryType.BUDGET
-            elif time["start"] is not None or time["end"] is not None:
-                result.query_type = QueryType.TIME
-        else:
-            result.query_type = QueryType.COMBINED
+        # Try time classification
+        time_range, time_confidence = self._regex_classify_time(query)
+        if time_range["start"] is not None or time_range["end"] is not None:
+            classification.parameters.time_range = time_range
+            # If we already have other parameters, this is a combined query
+            if (classification.parameters.districts or 
+                classification.parameters.sectors or 
+                classification.parameters.status or 
+                classification.parameters.budget_range["min"] is not None or 
+                classification.parameters.budget_range["max"] is not None):
+                classification.query_type = QueryType.COMBINED
+                classification.confidence = max(
+                    classification.confidence,
+                    time_confidence
+                )
+            else:
+                classification.query_type = QueryType.TIME
+                classification.confidence = time_confidence
         
         # Update confidence based on number of parameters
-        if param_count > 0:
-            result.confidence = min(result.confidence + (param_count * 0.1), 1.0)
+        param_count = (
+            len(classification.parameters.districts) +
+            len(classification.parameters.sectors) +
+            len(classification.parameters.status) +
+            (1 if classification.parameters.budget_range["min"] is not None or 
+                 classification.parameters.budget_range["max"] is not None else 0) +
+            (1 if classification.parameters.time_range["start"] is not None or 
+                 classification.parameters.time_range["end"] is not None else 0)
+        )
         
-        return result
+        if param_count > 0:
+            classification.confidence = min(classification.confidence + (param_count * 0.1), 1.0)
+        
+        return classification
     
     async def classify_query(self, query: str, use_llm: bool = True) -> QueryClassification:
         """

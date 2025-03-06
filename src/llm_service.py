@@ -213,3 +213,129 @@ Response:"""
                 },
                 "session_id": session_id
             }
+
+    def classify_query(self, query: str, chat_history: List[Dict] = None) -> Dict:
+        """
+        Classify the query type and extract key information using LLM
+        
+        Args:
+            query: User's query
+            chat_history: Optional list of previous chat messages for context
+            
+        Returns:
+            Dict containing query classification and extracted information
+        """
+        try:
+            # Format chat history for context
+            context = ""
+            if chat_history:
+                context = "Previous conversation:\n"
+                for msg in chat_history[-3:]:  # Last 3 messages for context
+                    role = "User" if msg.get("type") == "query" else "Assistant"
+                    text = msg.get("text", "")
+                    if text:
+                        context += f"{role}: {text}\n"
+            
+            prompt = f"""Analyze this query about Malawi infrastructure projects and classify it:
+"{query}"
+
+{context}
+
+Please classify the query and extract key information in the following JSON format:
+{{
+    "query_type": "unrelated" | "general" | "specific",
+    "context": {{
+        "previous_project": "string or null",  // Name of project from previous messages
+        "conversation_topic": "string",         // Current topic being discussed
+        "extracted_filters": {{                 // Any filters mentioned in the query
+            "district": "string or null",
+            "sector": "string or null",
+            "status": "string or null",
+            "budget": "string or null",
+            "date": "string or null"
+        }}
+    }},
+    "confidence": float between 0 and 1,
+    "requires_db_query": boolean
+}}
+
+Guidelines:
+1. Query Types:
+   - unrelated: General conversation, greetings, or questions about system capabilities
+   - general: Questions about multiple projects or general project information
+   - specific: Questions about a specific project or follow-up questions about a project
+
+2. Context Rules:
+   - previous_project: Extract from chat history if available
+   - conversation_topic: Current subject being discussed
+   - extracted_filters: Any filters mentioned in the query
+
+3. Examples:
+   - unrelated: "hello", "what can you do?", "how are you?"
+   - general: "show me projects in Lilongwe", "list all health projects"
+   - specific: "tell me about the Water Project", "what's its budget?"
+
+4. Confidence Scoring:
+   - 1.0: Clear, unambiguous query
+   - 0.7-0.9: Query with some ambiguity
+   - 0.5-0.6: Unclear query requiring fallback
+   - <0.5: Likely unrelated or invalid query
+
+Response:"""
+            
+            response = self.llm.invoke(prompt)
+            try:
+                # Parse the JSON response
+                import json
+                classification = json.loads(response.strip())
+                
+                # Validate and clean the classification
+                if not isinstance(classification, dict):
+                    raise ValueError("Invalid classification format")
+                
+                # Ensure required fields exist
+                required_fields = ["query_type", "context", "confidence", "requires_db_query"]
+                for field in required_fields:
+                    if field not in classification:
+                        raise ValueError(f"Missing required field: {field}")
+                
+                # Validate query_type
+                valid_types = ["unrelated", "general", "specific"]
+                if classification["query_type"] not in valid_types:
+                    raise ValueError(f"Invalid query_type: {classification['query_type']}")
+                
+                # Validate confidence
+                if not 0 <= classification["confidence"] <= 1:
+                    raise ValueError("Confidence must be between 0 and 1")
+                
+                # Log the classification
+                logger.info(f"Query classification: {json.dumps(classification, indent=2)}")
+                
+                return classification
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse LLM classification response: {str(e)}")
+                return self._get_default_classification()
+                
+        except Exception as e:
+            logger.error(f"Error classifying query: {str(e)}")
+            return self._get_default_classification()
+    
+    def _get_default_classification(self) -> Dict:
+        """Return a default classification for error cases"""
+        return {
+            "query_type": "general",
+            "context": {
+                "previous_project": None,
+                "conversation_topic": "general",
+                "extracted_filters": {
+                    "district": None,
+                    "sector": None,
+                    "status": None,
+                    "budget": None,
+                    "date": None
+                }
+            },
+            "confidence": 0.5,
+            "requires_db_query": True
+        }

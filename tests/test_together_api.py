@@ -1,122 +1,139 @@
-import requests
-import json
-from datetime import datetime
+#!/usr/bin/env python3
 import os
+import sys
+from dotenv import load_dotenv
+import logging
 
-def test_query_endpoint():
-    # Test setup
-    url = "http://localhost:5000/api/rag-sql-chatbot/chat"
-    test_cases = [
-        {
-            "name": "Basic SQL Query",
-            "message": "How many records are in the dataset?",
-            "expected_status": 200,
-            "expected_type": "chat"
-        },
-        {
-            "name": "Greeting Test",
-            "message": "Hello, how are you?",
-            "expected_status": 200,
-            "expected_type": "chat"
-        },
-        {
-            "name": "Invalid Query",
-            "message": "What is the average age of people in the dataset?",
-            "expected_status": 200,
-            "expected_type": "chat"  # Should return chat explaining we don't have age data
-        },
-        {
-            "name": "District Query",
-            "message": "Show me all projects in Lilongwe",
-            "expected_status": 200,
-            "expected_type": "sql"
-        },
-        {
-            "name": "Budget Query",
-            "message": "What is the total budget for all projects?",
-            "expected_status": 200,
-            "expected_type": "sql"
-        },
-        {
-            "name": "General Question",
-            "message": "What kind of information can I ask about?",
-            "expected_status": 200,
-            "expected_type": "chat"
-        }
-    ]
-    
-    # Create results directory if it doesn't exist
-    results_dir = "test_results"
-    if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
+
+def test_together_api():
+    """Test the Together API connection"""
+    try:
+        # Get API key from environment
+        api_key = os.getenv("TOGETHER_API_KEY", "f7119711abb83c4ec5e9b2339eb06c66c87d4958f4ce6cc348ed3ad0c6cb7101")
+        model = os.getenv("LLM_MODEL", "meta-llama/Meta-Llama-3-8B-Instruct-Turbo")
         
-    # Generate timestamp for the results file
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_file = os.path.join(results_dir, f"together_api_test_results_{timestamp}.md")
-    
-    with open(results_file, "w", encoding='utf-8') as f:
-        # Write header
-        f.write("# Together API Integration Test Results\n\n")
-        f.write(f"Test Run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        # Import together
+        try:
+            import together
+            logger.info("Successfully imported together module")
+        except ImportError:
+            logger.error("Failed to import together module. Is it installed?")
+            return False
         
-        # Run tests
-        for test_case in test_cases:
-            f.write(f"## Test Case: {test_case['name']}\n\n")
-            f.write(f"Input Message: `{test_case['message']}`\n\n")
+        # Set API key
+        together.api_key = api_key
+        logger.info(f"Set API key: {api_key[:5]}...{api_key[-5:]}")
+        
+        # Test listing models
+        try:
+            models = together.Models.list()
+            logger.info(f"Successfully listed {len(models)} models")
             
-            try:
-                response = requests.post(url, json={"message": test_case['message']})
+            # Check if our model is available
+            model_names = [m['name'] for m in models]
+            
+            # Check for exact match
+            if model in model_names:
+                logger.info(f"✅ Model {model} is available")
+            else:
+                logger.warning(f"❌ Model {model} not found in available models")
                 
-                f.write(f"Status Code: {response.status_code}\n\n")
-                f.write("Response:\n```json\n")
-                try:
-                    formatted_response = json.dumps(response.json(), indent=2)
-                    f.write(formatted_response)
-                except:
-                    f.write(str(response.text))
-                f.write("\n```\n\n")
-                
-                # Test validation
-                passed = True
-                reasons = []
-                
-                # Check status code
-                if response.status_code != test_case['expected_status']:
-                    passed = False
-                    reasons.append(f"Expected status {test_case['expected_status']}, got {response.status_code}")
-                
-                # Check response type
-                try:
-                    response_json = response.json()
-                    if 'response' in response_json:
-                        response_type = response_json['response'].get('query_type')
-                        if response_type != test_case['expected_type']:
-                            passed = False
-                            reasons.append(f"Expected type {test_case['expected_type']}, got {response_type}")
-                except:
-                    passed = False
-                    reasons.append("Could not parse response JSON")
-                
-                if passed:
-                    f.write("[PASS] Test Passed\n\n")
-                else:
-                    f.write("[FAIL] Test Failed\n")
-                    for reason in reasons:
-                        f.write(f"- {reason}\n")
-                    f.write("\n")
+                # Check for similar models
+                similar_models = [m for m in model_names if "llama" in m.lower() and "instruct" in m.lower()]
+                if similar_models:
+                    logger.info(f"Similar available models: {', '.join(similar_models)}")
                     
-            except Exception as e:
-                f.write(f"[ERROR] {str(e)}\n\n")
+                    # Find best alternative
+                    if any("meta-llama/Meta-Llama-3" in m for m in similar_models):
+                        best_alternative = next((m for m in similar_models if "meta-llama/Meta-Llama-3" in m), similar_models[0])
+                        logger.info(f"Recommended alternative: {best_alternative}")
+                else:
+                    logger.info(f"Available models: {', '.join(model_names[:5])}...")
+                
+            # Print all available Llama models
+            llama_models = [m for m in model_names if "llama" in m.lower()]
+            logger.info(f"All available Llama models: {', '.join(llama_models)}")
+                
+        except Exception as e:
+            logger.error(f"Error listing models: {str(e)}")
+            return False
+        
+        # Test simple completion with the actual model
+        try:
+            prompt = "Generate a simple SQL query to count all projects in a database."
+            logger.info(f"Testing completion with prompt: {prompt}")
             
-            f.write("---\n\n")
+            # Use the model that's actually available
+            test_model = model if model in model_names else "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K"
+            logger.info(f"Using model for test: {test_model}")
             
-        # Write summary
-        f.write("# Test Summary\n\n")
-        f.write(f"- Test file: `{os.path.basename(__file__)}`\n")
-        f.write(f"- Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"- Server URL: {url}\n")
-    
-    print(f"Test results saved to: {results_file}")
+            response = together.Complete.create(
+                prompt=prompt,
+                model=test_model,
+                temperature=0.1,
+                max_tokens=100
+            )
+            
+            # Extract the raw text from the response
+            raw_text = response['output']['choices'][0]['text']
+            logger.info(f"Received response: {raw_text[:100]}...")
+            
+            # Test SQL generation specifically
+            sql_prompt = """You are a SQL expert. Generate a SQL query to answer the following question:
+
+Question: What is the total budget for infrastructure projects?
+
+Use this database schema:
+Table: proj_dashboard
+Columns: 
+- projectname (TEXT)
+- district (TEXT)
+- projectsector (TEXT)
+- projectstatus (TEXT)
+- budget (NUMERIC)
+- completionpercentage (NUMERIC)
+- startdate (NUMERIC)
+- completiondata (NUMERIC)
+
+Return ONLY the SQL query, nothing else.
+"""
+            logger.info(f"Testing SQL generation...")
+            
+            sql_response = together.Complete.create(
+                prompt=sql_prompt,
+                model=test_model,
+                temperature=0.1,
+                max_tokens=200
+            )
+            
+            # Extract the SQL query
+            sql_text = sql_response['output']['choices'][0]['text']
+            logger.info(f"Generated SQL: {sql_text}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error testing completion: {str(e)}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error testing Together API: {str(e)}")
+        return False
 
 if __name__ == "__main__":
-    test_query_endpoint()
+    success = test_together_api()
+    if success:
+        logger.info("✅ Together API test successful")
+        sys.exit(0)
+    else:
+        logger.error("❌ Together API test failed")
+        sys.exit(1)

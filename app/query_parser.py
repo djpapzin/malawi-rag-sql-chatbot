@@ -252,6 +252,8 @@ class QueryParser:
     
     def is_specific_project_query(self, query: str) -> Tuple[bool, str]:
         """Check if this is a query for a specific project"""
+        logger.info(f"Checking query: {query}")
+
         # First check for project codes
         code_patterns = [
             r"(?:project|code)\s+(?:code\s+)?(?:MW-)?([A-Za-z]{2}-[A-Z0-9]{2})",
@@ -270,62 +272,73 @@ class QueryParser:
                         code = f"MW-{code}"
                     elif re.match(r'^[A-Z]{2}$', code):
                         code = f"MW-{code}"
+                logger.info(f"Found project code: {code}")
                 return True, code
                 
-        # Then check for quoted project names
-        project_name, is_quoted = self._extract_project_name(query)
-        if project_name:
-            return True, project_name
+        # Then check for specific project name patterns
+        specific_patterns = [
+            r"tell me about (?:the )?([^\.]+?)(?:\s+project)?$",
+            r"show me details about (?:the )?([^\.]+?)(?:\s+project)?$",
+            r"what is (?:the )?([^\.]+?)(?:\s+project)?$",
+            r"details of (?:the )?([^\.]+?)(?:\s+project)?$",
+            r"information about (?:the )?([^\.]+?)(?:\s+project)?$",
+            r"tell me about (?:the )?([^\.]+?)(?:\s+construction)?$",
+            r"show me details about (?:the )?([^\.]+?)(?:\s+construction)?$",
+            r"what is (?:the )?([^\.]+?)(?:\s+construction)?$",
+            r"details of (?:the )?([^\.]+?)(?:\s+construction)?$",
+            r"information about (?:the )?([^\.]+?)(?:\s+construction)?$"
+        ]
+        
+        for pattern in specific_patterns:
+            name_match = re.search(pattern, query, re.IGNORECASE)
+            if name_match:
+                project_name = name_match.group(1).strip()
+                # Clean up the project name
+                project_name = re.sub(r'\s+project$', '', project_name, flags=re.IGNORECASE)
+                project_name = re.sub(r'\s+construction$', '', project_name, flags=re.IGNORECASE)
+                project_name = re.sub(r'^\s+|\s+$', '', project_name)
+                logger.info(f"Found project name: {project_name}")
+                return True, project_name
                 
+        logger.info("No specific project query found.")
         return False, ""
 
     def _build_specific_project_sql(self, project_name: str = "", project_code: str = "") -> str:
         """Build SQL for specific project query"""
-        conditions = []
+        where_clause = "1=1"  # Default to true if no conditions
         
-        if project_name:
-            # Escape single quotes
-            project_name = project_name.replace("'", "''")
-            
-            # Try exact match first
-            conditions.append(f"LOWER(PROJECTNAME) = LOWER('{project_name}')")
-            
-            # Then try partial matches
-            conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('{project_name}%')")
-            conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')")
-            
-            # Then try word matching for multi-word queries
-            words = project_name.split()
-            if len(words) > 1:
-                word_conditions = []
-                for word in words:
-                    if len(word) >= 2 and word.lower() not in {'the', 'and', 'or', 'in', 'at', 'of', 'to', 'for', 'with', 'by'}:
-                        word_conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('% {word} %')")
-                if word_conditions:
-                    conditions.append(f"({' AND '.join(word_conditions)})")
-                    
         if project_code:
-            code_conditions = []
-            # Exact match
-            code_conditions.append(f"PROJECTCODE = '{project_code}'")
-            # Case-insensitive match
-            code_conditions.append(f"LOWER(PROJECTCODE) = LOWER('{project_code}')")
-            # Partial match
-            code_conditions.append(f"LOWER(PROJECTCODE) LIKE LOWER('%{project_code}%')")
-            conditions.append(f"({' OR '.join(code_conditions)})")
-            
-        where_clause = f"({' OR '.join(conditions)})" if conditions else "1=1"
+            where_clause = f"UPPER(PROJECTCODE) = '{project_code}'"
+        elif project_name:
+            # Use more flexible matching for project names
+            where_clause = f"""
+                LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
+                OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name.replace(" ", "%")}%')
+            """
         
         sql = f"""
             SELECT 
-                PROJECTNAME, FISCALYEAR, REGION, DISTRICT,
-                TOTALBUDGET, PROJECTSTATUS, PROJECTSECTOR,
-                CONTRACTORNAME, SIGNINGDATE, TOTALEXPENDITUREYEAR,
-                FUNDINGSOURCE, PROJECTCODE, LASTVISIT,
-                COMPLETIONPERCENTAGE, PROJECTDESC, TRADITIONALAUTHORITY,
-                STAGE, STARTDATE, COMPLETIONESTIDATE
-                FROM proj_dashboard
-                WHERE ISLATEST = 1
+                projectname as project_name,
+                projectcode as project_code,
+                projectsector as project_sector,
+                projectstatus as status,
+                stage,
+                region,
+                district,
+                traditionalauthority,
+                budget as total_budget,
+                totalexpenditureyear as total_expenditure,
+                fundingsource as funding_source,
+                startdate as start_date,
+                completionestidate as completion_date,
+                lastvisit as last_monitoring_visit,
+                completionpercentage as completion_progress,
+                contractorname as contractor,
+                signingdate as contract_signing_date,
+                projectdesc as description,
+                fiscalyear as fiscal_year
+            FROM proj_dashboard
+            WHERE ISLATEST = 1
             AND {where_clause}
             ORDER BY
                 CASE 
@@ -338,7 +351,8 @@ class QueryParser:
                     WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1
                     WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2
                     ELSE 3
-                END
+                END,
+                budget DESC
             LIMIT 1
         """
         return sql
@@ -606,7 +620,20 @@ class QueryParser:
             }
         }
         
-        # Get classification from hybrid classifier
+        # First check if this is a specific project query
+        is_specific, project_identifier = self.is_specific_project_query(query)
+        
+        if is_specific:
+            # Build specific project query
+            if project_identifier.startswith('MW-'):
+                response["query"] = self._build_specific_project_sql(project_code=project_identifier)
+            else:
+                response["query"] = self._build_specific_project_sql(project_name=project_identifier)
+            response["type"] = "specific"
+            response["metadata"]["project_identifier"] = project_identifier
+            return response
+        
+        # Get classification from hybrid classifier for non-specific queries
         classification = await self.classifier.classify_query(query)
         
         # Build base query based on classification

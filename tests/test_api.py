@@ -1,112 +1,81 @@
+#!/usr/bin/env python3
 import requests
 import json
 import time
-from datetime import datetime
+import sys
+import os
+from dotenv import load_dotenv
 
-def test_query(query):
-    url = "http://localhost:5000/api/rag-sql-chatbot/chat"
-    headers = {"Content-Type": "application/json"}
-    data = {"message": query}
+# Load environment variables
+load_dotenv()
+
+# Configuration
+API_URL = "http://154.0.164.254:5000/api/rag-sql-chatbot/chat"
+HEADERS = {"Content-Type": "application/json"}
+
+# Test queries from UI tiles
+TEST_QUERIES = [
+    {"name": "Total Budget Query (Tile 1)", "message": "What is the total budget for infrastructure projects?"},
+    {"name": "District Query (Tile 2)", "message": "Show me all projects in Zomba district"},
+    {"name": "Completion Status Query (Tile 3)", "message": "List all completed projects"}
+]
+
+def test_query(query_name, message):
+    """Test a single query and print the response"""
+    print(f"\n\n{'=' * 50}")
+    print(f"Testing: {query_name}")
+    print(f"Query: {message}")
+    print(f"{'-' * 50}")
     
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=10)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        error_msg = str(e)
-        try:
-            if hasattr(e.response, 'json'):
-                error_details = e.response.json()
-                if isinstance(error_details, dict) and 'detail' in error_details:
-                    error_msg = error_details['detail']
-                else:
-                    error_msg = json.dumps(error_details, indent=2)
-        except:
-            pass
-        return {"error": error_msg}
-
-def save_test_results(results):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"test_results_{timestamp}.md"
-    
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write("# API Test Results\n\n")
-        f.write(f"Test run at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        # Make the request
+        start_time = time.time()
+        response = requests.post(
+            API_URL,
+            headers=HEADERS,
+            json={"message": message},
+            timeout=30
+        )
+        elapsed = time.time() - start_time
         
-        for result in results:
-            f.write(f"## Query: {result['query']}\n\n")
-            
-            if "error" in result['response']:
-                f.write("### ❌ ERROR:\n")
-                f.write(f"```\n{result['response']['error']}\n```\n\n")
-            else:
-                f.write("### ✅ SUCCESS:\n")
-                response_data = result['response']
+        # Print response status
+        print(f"Status Code: {response.status_code} (in {elapsed:.2f}s)")
+        
+        # Print formatted response
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                print(f"Response: {json.dumps(data, indent=2)}")
                 
-                if not isinstance(response_data, dict):
-                    f.write(f"**Raw Response:**\n```\n{json.dumps(response_data, indent=2)}\n```\n\n")
-                    continue
+                # Extract and print just the message for readability
+                if "response" in data and "results" in data["response"] and len(data["response"]["results"]) > 0:
+                    message = data["response"]["results"][0].get("message", "")
+                    print(f"\nExtracted Message: {message}")
                     
-                query_type = response_data.get('query_type', 'unknown')
-                f.write(f"**Response Type:** {query_type}\n\n")
+                    # Print SQL query if available
+                    if "metadata" in data["response"] and "sql_query" in data["response"]["metadata"]:
+                        sql = data["response"]["metadata"]["sql_query"]
+                        if sql:
+                            print(f"\nSQL Query: {sql}")
                 
-                if 'results' in response_data:
-                    if query_type == 'chat':
-                        message = response_data['results'][0].get('message', '')
-                        f.write(f"**Message:**\n{message}\n\n")
-                    else:
-                        f.write("**Results:**\n")
-                        f.write("```json\n")
-                        f.write(json.dumps(response_data['results'], indent=2))
-                        f.write("\n```\n\n")
-                
-                if "metadata" in response_data:
-                    metadata = response_data["metadata"]
-                    if isinstance(metadata, dict):
-                        if "sql_query" in metadata:
-                            f.write("**SQL Query:**\n")
-                            f.write("```sql\n")
-                            f.write(metadata["sql_query"])
-                            f.write("\n```\n\n")
-                        if "total_results" in metadata:
-                            f.write(f"**Total Results:** {metadata['total_results']}\n\n")
-                        if "query_time" in metadata:
-                            f.write(f"**Query Time:** {metadata['query_time']}\n\n")
+            except json.JSONDecodeError:
+                print(f"Response (not JSON): {response.text}")
+        else:
+            print(f"Error Response: {response.text}")
             
-            f.write("---\n\n")
-        
-        f.write("\n## Summary\n\n")
-        total = len(results)
-        successful = sum(1 for r in results if "error" not in r['response'])
-        f.write(f"- Total Tests: {total}\n")
-        f.write(f"- Successful: {successful}\n")
-        f.write(f"- Failed: {total - successful}\n")
+    except Exception as e:
+        print(f"Error: {str(e)}")
     
-    return filename
+    print(f"{'=' * 50}")
 
-def run_tests():
-    print("Starting API test...")
-    results = []
+def main():
+    """Run all tests"""
+    print(f"Testing API at: {API_URL}")
     
-    # Test cases
-    queries = [
-        "What is the total budget for infrastructure projects?",
-        "Show me all projects in Zomba district",
-        "List all completed projects"
-    ]
-    
-    for query in queries:
-        print(f"\nTesting: {query}")
-        response = test_query(query)
-        results.append({
-            "query": query,
-            "response": response
-        })
-        time.sleep(1)  # Wait between tests to avoid overwhelming the server
-    
-    # Save results to markdown file
-    filename = save_test_results(results)
-    print(f"\nTest results saved to: {filename}")
+    # Run all tests
+    for test in TEST_QUERIES:
+        test_query(test["name"], test["message"])
+        time.sleep(1)  # Small delay between requests
 
 if __name__ == "__main__":
-    run_tests()
+    main()

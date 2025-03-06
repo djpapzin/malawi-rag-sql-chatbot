@@ -1,0 +1,549 @@
+ID,Natural Query,Query Type,Expected Response,SQL Query,Actual Response,Category,Status,Notes
+"UI01","Show me all projects","general","Found all projects","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","UI","FAIL","Expected: 'Found all projects' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"UI02","What projects are available?","general","Found all projects","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%projects are available%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","No matching projects found. Please try different search terms.","UI","FAIL","Expected: 'Found all projects' but got: 'No matching projects found. Please try different search terms.'"
+"UI03","List all projects","general","Found all projects","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","UI","FAIL","Expected: 'Found all projects' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"D01","Show me all projects in Dowa district","specific","Found 53 projects in Dowa district","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%dowa%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","Found 53 projects in Dowa district, showing the first 10.
+Project Details
+Type 'show more' to see additional results.","District","PASS","Test passed successfully"
+"D02","Which projects are in Dowa?","specific","Found 53 projects in Dowa district","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%dowa%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","Found 53 projects in specified district district, showing the first 10.
+Project Details
+Type 'show more' to see additional results.","District","FAIL","Expected: 'Found 53 projects in Dowa district' but got: 'Found 53 projects in specified district district, showing the first 10.
+Project Details
+Type 'show more' to see additional results.'"
+"D03","List Dowa projects","specific","Found 53 projects in Dowa district","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","District","FAIL","Expected: 'Found 53 projects in Dowa district' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"D04","What projects exist in Dowa?","specific","Found 53 projects in Dowa district","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%projects exist in dowa%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","No matching projects found. Please try different search terms.","District","FAIL","Expected: 'Found 53 projects in Dowa district' but got: 'No matching projects found. Please try different search terms.'"
+"D05","Projects located in Dowa","specific","Found 53 projects in Dowa district","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","District","FAIL","Expected: 'Found 53 projects in Dowa district' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"P01","Tell me about the Rehabilitation of Chimulango irrigation scheme","specific","Found 1 project matching Chimulango irrigation scheme","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(projectname) LIKE '%rehabilitation of chimulango irrigation scheme%'
+                    ORDER BY
+                        CASE 
+                            WHEN LOWER(projectname) = 'rehabilitation of chimulango irrigation scheme' THEN 1
+                            ELSE 2
+                        END,
+                        budget DESC
+                    LIMIT 10;
+                    ","Found 1 projects, showing the first 1.
+Project Details","Project","FAIL","Expected: 'Found 1 project matching Chimulango irrigation scheme' but got: 'Found 1 projects, showing the first 1.
+Project Details'"
+"P02","What is the Rehabilitation of Chimulango irrigation scheme?","specific","Found 1 project matching Chimulango irrigation scheme","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%is the rehabilitation of chimulango irrigation scheme%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","No matching projects found. Please try different search terms.","Project","FAIL","Expected: 'Found 1 project matching Chimulango irrigation scheme' but got: 'No matching projects found. Please try different search terms.'"
+"P03","Details of Rehabilitation of Chimulango irrigation scheme","specific","Found 1 project matching Chimulango irrigation scheme","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(projectname) LIKE '%rehabilitation of chimulango irrigation scheme%'
+                    ORDER BY
+                        CASE 
+                            WHEN LOWER(projectname) = 'rehabilitation of chimulango irrigation scheme' THEN 1
+                            ELSE 2
+                        END,
+                        budget DESC
+                    LIMIT 10;
+                    ","Found 1 projects, showing the first 1.
+Project Details","Project","FAIL","Expected: 'Found 1 project matching Chimulango irrigation scheme' but got: 'Found 1 projects, showing the first 1.
+Project Details'"
+"S01","Show me all health projects","general","Found 219 projects in Health sector","
+                SELECT 
+                    projectname as project_name,
+                    projectcode as project_code,
+                    projectsector as project_sector,
+                    projectstatus as status,
+                    stage,
+                    region,
+                    district,
+                    traditionalauthority,
+                    budget as total_budget,
+                    TOTALEXPENDITUREYEAR as total_expenditure,
+                    fundingsource as funding_source,
+                    startdate as start_date,
+                    completionestidate as completion_date,
+                    lastvisit as last_monitoring_visit,
+                    completionpercentage as completion_progress,
+                    contractorname as contractor,
+                    signingdate as contract_signing_date,
+                    projectdesc as description,
+                    fiscalyear as fiscal_year
+                FROM 
+                    proj_dashboard 
+                WHERE 
+                    LOWER(projectsector) LIKE '%health%'
+                ORDER BY 
+                    budget DESC NULLS LAST
+                LIMIT 10;
+                ","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results.","Sector","FAIL","Expected: 'Found 219 projects in Health sector' but got: 'Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results.'"
+"S02","Which projects are in the health sector?","general","Found 219 projects in Health sector","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(projectsector) LIKE '%health%'
+                    ORDER BY
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results.","Sector","FAIL","Expected: 'Found 219 projects in Health sector' but got: 'Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results.'"
+"S03","List health sector projects","general","Found 219 projects in Health sector","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(projectsector) LIKE '%health%'
+                    ORDER BY
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results.","Sector","FAIL","Expected: 'Found 219 projects in Health sector' but got: 'Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results.'"
+"C01","Show me health projects in Dowa district","specific","Found health projects in Dowa district","
+                SELECT 
+                    projectname as project_name,
+                    projectcode as project_code,
+                    projectsector as project_sector,
+                    projectstatus as status,
+                    stage,
+                    region,
+                    district,
+                    traditionalauthority,
+                    budget as total_budget,
+                    TOTALEXPENDITUREYEAR as total_expenditure,
+                    fundingsource as funding_source,
+                    startdate as start_date,
+                    completionestidate as completion_date,
+                    lastvisit as last_monitoring_visit,
+                    completionpercentage as completion_progress,
+                    contractorname as contractor,
+                    signingdate as contract_signing_date,
+                    projectdesc as description,
+                    fiscalyear as fiscal_year
+                FROM 
+                    proj_dashboard 
+                WHERE 
+                    LOWER(projectsector) LIKE '%health%'
+                ORDER BY 
+                    budget DESC NULLS LAST
+                LIMIT 10;
+                ","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results.","Combined","FAIL","Expected: 'Found health projects in Dowa district' but got: 'Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results.'"
+"C02","Which education projects are in Lilongwe?","specific","Found education projects in Lilongwe district","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%lilongwe%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","Found 89 projects in specified district district, showing the first 10.
+Project Details
+Type 'show more' to see additional results.","Combined","FAIL","Expected: 'Found education projects in Lilongwe district' but got: 'Found 89 projects in specified district district, showing the first 10.
+Project Details
+Type 'show more' to see additional results.'"
+"C03","List road projects in Mzuzu","specific","Found road projects in Mzuzu district","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","Combined","FAIL","Expected: 'Found road projects in Mzuzu district' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"B01","What is the total budget for all projects?","general","Total budget for all projects is","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%is the total budget for all projects%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","No matching projects found. Please try different search terms.","Budget","FAIL","Expected: 'Total budget for all projects is' but got: 'No matching projects found. Please try different search terms.'"
+"B02","Show me the highest budget projects","general","Projects with highest budgets are","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","Budget","FAIL","Expected: 'Projects with highest budgets are' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"B03","Which district has the most project funding?","general","District with highest project funding is","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","Budget","FAIL","Expected: 'District with highest project funding is' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"ST01","Show me all completed projects","general","Found completed projects","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","Status","FAIL","Expected: 'Found completed projects' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"ST02","Which projects are currently in progress?","general","Found projects currently in progress","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%progress%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","No matching projects found. Please try different search terms.","Status","FAIL","Expected: 'Found projects currently in progress' but got: 'No matching projects found. Please try different search terms.'"
+"ST03","List delayed projects","general","Found delayed projects","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","Status","FAIL","Expected: 'Found delayed projects' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"T01","Show me projects from 2023","general","Found projects from 2023","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","Time","FAIL","Expected: 'Found projects from 2023' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"T02","Which projects started this fiscal year?","general","Found projects started in current fiscal year","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","Time","FAIL","Expected: 'Found projects started in current fiscal year' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"T03","List projects ending in 2025","general","Found projects ending in 2025","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","Time","FAIL","Expected: 'Found projects ending in 2025' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"EC01","Show me projects in Dowa Distrct","specific","Found 53 projects in Dowa district","No SQL generated","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.","EdgeCase","FAIL","Expected: 'Found 53 projects in Dowa district' but got: 'I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.'"
+"EC02","Tell me about the Fictional Project X","specific","No matching projects found","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(projectname) LIKE '%fictional project x%'
+                    ORDER BY
+                        CASE 
+                            WHEN LOWER(projectname) = 'fictional project x' THEN 1
+                            ELSE 2
+                        END,
+                        budget DESC
+                    LIMIT 10;
+                    ","No matching projects found. Please try different search terms.","EdgeCase","PASS","Test passed successfully"
+"EC03","List projects in Hogwarts district","specific","No matching projects found","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%hogwarts%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","No matching projects found. Please try different search terms.","EdgeCase","PASS","Test passed successfully"
+"EC04","What about projects?","general","Please specify what information you want about projects","
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM 
+                        proj_dashboard
+                    WHERE 
+                        LOWER(district) LIKE '%about projects%'
+                    ORDER BY 
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                    ","No matching projects found. Please try different search terms.","EdgeCase","FAIL","Expected: 'Please specify what information you want about projects' but got: 'No matching projects found. Please try different search terms.'"

@@ -7,6 +7,6 @@ echo "Waiting for processes to terminate..."
 sleep 3
 
 echo "Starting application..."
-bash ./start_production.sh
+bash /home/dj/malawi-rag-sql-chatbot/scripts/start_production.sh
 
 echo "Application restart completed!" 

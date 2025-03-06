@@ -1,0 +1,60 @@
+ID,Query,Expected Result,Actual Result,Status,Category,Full Response
+"D01","Show me all projects in Dowa district","Dowa","Found 53 projects in Dowa district, showing the first 10.
+Project Details
+Type 'show more' to see ad...","PASS","District","Found 53 projects in Dowa district, showing the first 10.
+Project Details
+Type 'show more' to see additional results."
+"D02","Which projects are in Dowa?","Dowa","Found 53 projects in specified district district, showing the first 10.
+Project Details
+Type 'show m...","FAIL","District","Found 53 projects in specified district district, showing the first 10.
+Project Details
+Type 'show more' to see additional results."
+"D03","List Dowa projects","Dowa","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","District","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"D04","What projects exist in Dowa?","Dowa","No matching projects found. Please try different search terms.","FAIL","District","No matching projects found. Please try different search terms."
+"D05","Projects located in Dowa","Dowa","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","District","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"P01","Tell me about the Rehabilitation of Chimulango irrigation scheme","Chimulango","Found 1 projects, showing the first 1.
+Project Details","FAIL","Project","Found 1 projects, showing the first 1.
+Project Details"
+"P02","What is the Rehabilitation of Chimulango irrigation scheme?","Chimulango","No matching projects found. Please try different search terms.","FAIL","Project","No matching projects found. Please try different search terms."
+"P03","Details of Rehabilitation of Chimulango irrigation scheme","Chimulango","Found 1 projects, showing the first 1.
+Project Details","FAIL","Project","Found 1 projects, showing the first 1.
+Project Details"
+"S01","Show me all health projects","health","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see addition...","FAIL","Sector","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results."
+"S02","Which projects are in the health sector?","health","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see addition...","FAIL","Sector","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results."
+"S03","List health sector projects","health","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see addition...","FAIL","Sector","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results."
+"C01","Show me health projects in Dowa district","health","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see addition...","FAIL","Combined","Found 219 projects in Health, showing the first 10.
+Project Details
+Type 'show more' to see additional results."
+"C02","Which education projects are in Lilongwe?","education","Found 89 projects in specified district district, showing the first 10.
+Project Details
+Type 'show m...","FAIL","Combined","Found 89 projects in specified district district, showing the first 10.
+Project Details
+Type 'show more' to see additional results."
+"C03","List road projects in Mzuzu","road","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","Combined","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"B01","What is the total budget for all projects?","budget","No matching projects found. Please try different search terms.","FAIL","Budget","No matching projects found. Please try different search terms."
+"B02","Show me the highest budget projects","budget","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","Budget","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"B03","Which district has the most project funding?","funding","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","Budget","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"ST01","Show me all completed projects","completed","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","Status","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"ST02","Which projects are currently in progress?","progress","No matching projects found. Please try different search terms.","FAIL","Status","No matching projects found. Please try different search terms."
+"ST03","List delayed projects","delayed","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","Status","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"T01","Show me projects from 2023","2023","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","Time","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"T02","Which projects started this fiscal year?","fiscal","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","Time","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"T03","List projects ending in 2025","2025","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","Time","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"EC01","Show me projects in Dowa Distrct","Dowa","I couldn't understand your query. Please try asking about projects in a specific district, sector, o...","FAIL","EdgeCase","I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project."
+"EC02","Tell me about the Fictional Project X","not found","No matching projects found. Please try different search terms.","FAIL","EdgeCase","No matching projects found. Please try different search terms."
+"EC03","List projects in Hogwarts district","not found","No matching projects found. Please try different search terms.","FAIL","EdgeCase","No matching projects found. Please try different search terms."
+"EC04","What about projects?","more specific","No matching projects found. Please try different search terms.","FAIL","EdgeCase","No matching projects found. Please try different search terms."
