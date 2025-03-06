@@ -49,13 +49,23 @@ class QueryParser:
             "query": "",
             "metadata": {
                 "timestamp": datetime.now().isoformat(),
-                "original_query": query
+                "original_query": query,
+                "confidence": 0.0,
+                "intent": {},
+                "entities": []
             }
         }
 
-        # Get query classification from LLM if not provided
+        # Get query classification from LLM
         if not classification:
             classification = await self.llm_service.classify_query(query)
+        
+        # Update metadata with LLM insights
+        response["metadata"].update({
+            "confidence": classification.get("confidence", 0.0),
+            "intent": classification.get("context", {}).get("intent", {}),
+            "entities": classification.get("context", {}).get("entities", [])
+        })
 
         # Extract key information based on classification
         if classification["query_type"] == "specific":
@@ -66,8 +76,25 @@ class QueryParser:
                 response["type"] = "specific"
                 response["metadata"].update(project_info)
         else:
-            # Handle general query
-            filters = await self._extract_filters(query, classification)
+            # Handle general query using both LLM and pattern matching
+            llm_filters = classification.get("context", {}).get("extracted_filters", {})
+            pattern_filters = await self._extract_filters(query, classification)
+            
+            # Merge filters, preferring LLM results when confidence is high
+            filters = {}
+            for key in set(llm_filters.keys()) | set(pattern_filters.keys()):
+                llm_value = llm_filters.get(key)
+                pattern_value = pattern_filters.get(key)
+                
+                # Use LLM value if confidence is high, otherwise use pattern matching
+                entity_confidence = next(
+                    (e["confidence"] for e in response["metadata"]["entities"] 
+                     if e["type"] == key and e["value"] == llm_value),
+                    0.0
+                )
+                
+                filters[key] = llm_value if entity_confidence > 0.7 else pattern_value
+
             response["query"] = self._build_general_query_sql(filters)
             response["metadata"]["filters"] = filters
 
@@ -112,26 +139,26 @@ class QueryParser:
         conditions = []
         
         if project_name := project_info.get("name"):
-            # Use fuzzy matching for project names
+            # Use fuzzy matching for project names with lower threshold
             project_name = project_name.replace("'", "''")
-            conditions.append(f"similarity(LOWER(project_name), LOWER('{project_name}')) > 0.6")
+            conditions.append(f"similarity(LOWER(PROJECTNAME), LOWER('{project_name}')) > 0.4")
         
         if project_code := project_info.get("code"):
-            conditions.append(f"project_code = '{project_code}'")
+            conditions.append(f"PROJECTCODE = '{project_code}'")
             
         if not conditions:
             return ""
             
         return f"""
             SELECT *
-            FROM projects
+            FROM proj_dashboard
             WHERE {' OR '.join(conditions)}
             ORDER BY 
                 CASE 
-                    WHEN LOWER(project_name) = LOWER('{project_info.get("name", "")}') THEN 1
+                    WHEN LOWER(PROJECTNAME) = LOWER('{project_info.get("name", "")}') THEN 1
                     ELSE 2
                 END,
-                similarity(LOWER(project_name), LOWER('{project_info.get("name", "")}')) DESC
+                similarity(LOWER(PROJECTNAME), LOWER('{project_info.get("name", "")}')) DESC
             LIMIT 5
         """
 
@@ -149,27 +176,27 @@ class QueryParser:
         where_clause = " AND ".join(conditions) if conditions else "1=1"
         
         return f"""SELECT *
-            FROM projects
+            FROM proj_dashboard
             WHERE {where_clause}
-            ORDER BY completion_percentage DESC, project_name
+            ORDER BY COMPLETIONPERCENTAGE DESC, PROJECTNAME
             LIMIT 10"""
     
     def _build_district_condition(self, district: str) -> str:
         """Build district filter condition with fuzzy matching"""
         district = district.replace("'", "''")
         return f"""(
-            LOWER(district) = LOWER('{district}') OR 
-            LOWER(district) LIKE LOWER('%{district}%') OR
-            similarity(LOWER(district), LOWER('{district}')) > 0.4
+            LOWER(DISTRICT) = LOWER('{district}') OR 
+            LOWER(DISTRICT) LIKE LOWER('%{district}%') OR
+            similarity(LOWER(DISTRICT), LOWER('{district}')) > 0.4
         )"""
 
     def _build_sector_condition(self, sector: str) -> str:
         """Build sector filter condition with fuzzy matching"""
         sector = sector.replace("'", "''")
         return f"""(
-            LOWER(sector) = LOWER('{sector}') OR
-            LOWER(sector) LIKE LOWER('%{sector}%') OR
-            similarity(LOWER(sector), LOWER('{sector}')) > 0.4
+            LOWER(PROJECTSECTOR) = LOWER('{sector}') OR
+            LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%') OR
+            similarity(LOWER(PROJECTSECTOR), LOWER('{sector}')) > 0.4
         )"""
 
     def _build_status_condition(self, status: str) -> str:
@@ -191,7 +218,7 @@ class QueryParser:
             "on hold": "Pending"
         }
         mapped_status = status_map.get(status.lower(), status)
-        return f"LOWER(status) = LOWER('{mapped_status}')"
+        return f"LOWER(PROJECTSTATUS) = LOWER('{mapped_status}')"
 
     def _extract_sector(self, query: str) -> str:
         """Extract sector from query text"""
@@ -248,50 +275,43 @@ class QueryParser:
         return ""
 
     def _extract_district(self, query: str) -> str:
-        """Extract district name from query text
-        
-        Args:
-            query (str): The query text to extract district from
-            
-        Returns:
-            str: Extracted district name or empty string if not found
-        """
+        """Extract district name from query text"""
         # Common patterns for district queries
         patterns = [
-            # Direct district queries
-            r'(?:in|at|from|of) (?:the )?([a-zA-Z\s]+?) district',
-            r'(?:projects|list).* (?:in|located in|based in|for) ([a-zA-Z\s]+?)(?: district)?',
-            r'([a-zA-Z\s]+?) (?:district|region).* projects',
-            r'show (?:me|all) projects.* ([a-zA-Z\s]+?)',
-            r'(?:what|which|any) projects (?:are|exist|located) (?:in|at) ([a-zA-Z\s]+?)',
+            # Direct district mentions
+            r'(?:in|at|from|of|for)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+district|\s*(?:$|[,\.]|\s+(?:and|or|projects?|sector)))',
+            r'([a-zA-Z\s]+?)\s+district\b',
+            r'\b([a-zA-Z]+)(?:\s+projects?|\s+region|\s+area)\b',
             
             # Question-based patterns
-            r'(?:which|what) projects (?:are|exist|located) (?:in|at) ([a-zA-Z\s]+?)(?: district)?\s*[?]?',
-            r'(?:can you|please) (?:show|list|display) (?:me|all) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:i want|need) to (?:see|find|get) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:which|what|show|list)\s+projects?\s+(?:are|exist|located)\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?\s*[?]?',
+            r'(?:can you|please)\s+(?:show|list|display)\s+(?:me|all)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:i want|need)\s+to\s+(?:see|find|get)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
             
             # Direct patterns
-            r'projects (?:in|at|located in|based in) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:list|show|display) projects (?:from|in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:find|search for) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'projects?\s+(?:in|at|located in|based in)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:list|show|display)\s+projects?\s+(?:from|in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:find|search for)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
             
             # Complex patterns
-            r'(?:tell|give) me (?:about|information about) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:looking for|need information about) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:what are|show me) the projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
+            r'(?:tell|give)\s+me\s+(?:about|information about)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:looking for|need information about)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:what are|show me)\s+the\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
             
             # Additional variations
-            r'(?:what|which) (?:infrastructure|development) projects (?:are|exist) (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:tell me|show me) (?:about|all) (?:the )?projects (?:that are|which are) (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:i am|i\'m) (?:looking for|interested in) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:can you|please) (?:tell me|show me) (?:about|all) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:what|which) (?:kinds of|types of) projects (?:are|exist) (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:give me|show me) a (?:list of|summary of) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:what|which) projects (?:can you|do you) (?:find|show) (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:i need|i want) to (?:know about|see) projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:are there|do you have) (?:any )?projects (?:in|at) ([a-zA-Z\s]+?)(?: district)?',
-            r'(?:please|can you) (?:list|show) (?:all )?projects (?:from|in|at) ([a-zA-Z\s]+?)(?: district)?'
+            r'(?:what|which)\s+(?:infrastructure|development)\s+projects?\s+(?:are|exist)\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:tell me|show me)\s+(?:about|all)\s+(?:the\s+)?projects?\s+(?:that are|which are)\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:i am|i\'m)\s+(?:looking for|interested in)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:can you|please)\s+(?:tell me|show me)\s+(?:about|all)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:what|which)\s+(?:kinds of|types of)\s+projects?\s+(?:are|exist)\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:give me|show me)\s+a\s+(?:list of|summary of)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:what|which)\s+projects?\s+(?:can you|do you)\s+(?:find|show)\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:i need|i want)\s+to\s+(?:know about|see)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:are there|do you have)\s+(?:any\s+)?projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:please|can you)\s+(?:list|show)\s+(?:all\s+)?projects?\s+(?:from|in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?'
         ]
+        
+        query = query.lower()
         
         for pattern in patterns:
             match = re.search(pattern, query, re.IGNORECASE)
@@ -300,22 +320,10 @@ class QueryParser:
                 # Clean up the district name
                 district = re.sub(r'\s+', ' ', district)  # Normalize spaces
                 district = ' '.join(word.title() for word in district.split())  # Title case
-                return district
+                # Remove common words that might be captured
+                district = re.sub(r'\b(The|And|Or|Projects?|In|At|From|Of|For)\b', '', district, flags=re.IGNORECASE)
+                district = district.strip()
+                if district:
+                    return district
         
         return ""
-
-    def _build_district_query(self, district: str) -> str:
-        """Build SQL query fragment for district filtering"""
-        # Escape single quotes
-        district = district.replace("'", "''")
-        
-        # Split district name into words
-        words = district.split()
-        
-        if len(words) == 1:
-            # For single-word districts, use exact match
-            return f"LOWER(district) = LOWER('{district}')"
-        else:
-            # For multi-word districts, use regex pattern with word boundaries
-            pattern = r'\b' + r'\b.*\b'.join(words) + r'\b'
-            return f"LOWER(district) ~ LOWER('{pattern}')"
