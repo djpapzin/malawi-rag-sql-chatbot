@@ -157,22 +157,38 @@ class QueryParser:
     def _build_district_condition(self, district: str) -> str:
         """Build district filter condition with fuzzy matching"""
         district = district.replace("'", "''")
-        return f"similarity(LOWER(district), LOWER('{district}')) > 0.6"
+        return f"""(
+            LOWER(district) = LOWER('{district}') OR 
+            LOWER(district) LIKE LOWER('%{district}%') OR
+            similarity(LOWER(district), LOWER('{district}')) > 0.4
+        )"""
 
     def _build_sector_condition(self, sector: str) -> str:
         """Build sector filter condition with fuzzy matching"""
         sector = sector.replace("'", "''")
-        return f"similarity(LOWER(sector), LOWER('{sector}')) > 0.6"
+        return f"""(
+            LOWER(sector) = LOWER('{sector}') OR
+            LOWER(sector) LIKE LOWER('%{sector}%') OR
+            similarity(LOWER(sector), LOWER('{sector}')) > 0.4
+        )"""
 
     def _build_status_condition(self, status: str) -> str:
         """Build status filter condition"""
         status_map = {
             "ongoing": "In Progress",
             "in progress": "In Progress",
+            "active": "In Progress",
+            "running": "In Progress",
             "complete": "Completed",
             "completed": "Completed",
+            "finished": "Completed",
+            "done": "Completed",
             "planned": "Planned",
-            "pending": "Pending"
+            "upcoming": "Planned",
+            "proposed": "Planned",
+            "pending": "Pending",
+            "delayed": "Pending",
+            "on hold": "Pending"
         }
         mapped_status = status_map.get(status.lower(), status)
         return f"LOWER(status) = LOWER('{mapped_status}')"

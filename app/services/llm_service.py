@@ -87,25 +87,36 @@ class LLMService:
         
         # Extract district
         district_patterns = [
-            r"in\s+([A-Za-z\s]+?)(?:\s+district|\s*$)",
-            r"(?:from|at|near)\s+([A-Za-z\s]+?)(?:\s+district|\s*$)",
+            r"\b(?:in|at|from|of|for)\s+(?:the\s+)?([A-Za-z\s]+?)(?:\s+district|\s*(?:$|[,\.]|\s+(?:and|or|projects?|sector)))",
+            r"([A-Za-z\s]+?)\s+district\b",
+            r"\b([A-Za-z]+)(?:\s+projects?|\s+region|\s+area)\b"
         ]
+        
+        query = query.lower()
         for pattern in district_patterns:
-            if match := re.search(pattern, query):
-                filters["district"] = match.group(1).strip()
-                break
+            if match := re.search(pattern, query, re.IGNORECASE):
+                district = match.group(1).strip()
+                # Clean up district name
+                district = re.sub(r'\s+', ' ', district)  # Normalize spaces
+                district = district.title()  # Title case
+                # Remove common words that might be captured
+                district = re.sub(r'\b(The|And|Or|Projects?|In|At|From|Of|For)\b', '', district, flags=re.IGNORECASE)
+                district = district.strip()
+                if district:
+                    filters["district"] = district
+                    break
                 
         # Extract sector
         sector_mapping = {
-            "health": ["health", "healthcare", "medical", "hospital"],
-            "education": ["education", "school", "training", "learning"],
-            "water": ["water", "irrigation", "dam"],
-            "agriculture": ["agriculture", "farming", "crops"],
-            "infrastructure": ["infrastructure", "building", "construction"],
-            "transport": ["transport", "road", "bridge"],
-            "energy": ["energy", "power", "electricity"],
-            "housing": ["housing", "residential", "homes"],
-            "sanitation": ["sanitation", "sewage", "waste"],
+            "health": ["health", "healthcare", "medical", "hospital", "clinic", "dispensary"],
+            "education": ["education", "school", "training", "learning", "college", "university"],
+            "water": ["water", "irrigation", "dam", "borehole", "sanitation"],
+            "agriculture": ["agriculture", "farming", "crops", "livestock", "irrigation"],
+            "infrastructure": ["infrastructure", "building", "construction", "facility"],
+            "transport": ["transport", "road", "bridge", "highway", "railway"],
+            "energy": ["energy", "power", "electricity", "solar", "grid"],
+            "housing": ["housing", "residential", "homes", "settlement"],
+            "sanitation": ["sanitation", "sewage", "waste", "drainage"],
         }
         
         for sector, keywords in sector_mapping.items():
@@ -115,14 +126,14 @@ class LLMService:
                 
         # Extract status
         status_patterns = [
-            (r"\b(?:ongoing|in progress|current)\b", "ongoing"),
-            (r"\b(?:complete|completed|finished)\b", "completed"),
-            (r"\b(?:planned|upcoming|future)\b", "planned"),
-            (r"\b(?:pending|waiting|delayed)\b", "pending"),
+            (r"\b(?:ongoing|in progress|current|active|running)\b", "ongoing"),
+            (r"\b(?:complete|completed|finished|done)\b", "completed"),
+            (r"\b(?:planned|upcoming|future|proposed)\b", "planned"),
+            (r"\b(?:pending|waiting|delayed|on hold)\b", "pending"),
         ]
         
         for pattern, status in status_patterns:
-            if re.search(pattern, query):
+            if re.search(pattern, query, re.IGNORECASE):
                 filters["status"] = status
                 break
                 
