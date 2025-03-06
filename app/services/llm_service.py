@@ -10,45 +10,97 @@ class LLMService:
         self.logger = logging.getLogger(__name__)
 
     async def classify_query(self, query: str) -> Dict[str, Any]:
-        """Classify a query and extract relevant information
+        """Classify a query and extract relevant information using LLM
         
-        Returns a dict with:
-        - query_type: "specific" or "general"
-        - context: Dict containing extracted information
-            - project_info: Dict for specific queries
-            - extracted_filters: Dict for general queries
+        The LLM analyzes the query to:
+        1. Determine query type (specific/general)
+        2. Extract entities and context
+        3. Understand user intent
+        4. Handle variations in phrasing
         """
         # Normalize query
-        query = query.strip().lower()
+        query = query.strip()
         
         # Initialize response
         classification = {
             "query_type": "general",
             "context": {
                 "project_info": {},
-                "extracted_filters": {}
-            }
+                "extracted_filters": {},
+                "intent": {},
+                "entities": []
+            },
+            "confidence": 0.0
         }
-        
-        # Check for specific project indicators
-        specific_indicators = [
-            "tell me about",
-            "show me details",
-            "what is",
-            "details of",
-            "information about"
-        ]
-        
-        if any(query.startswith(indicator) for indicator in specific_indicators):
-            classification["query_type"] = "specific"
-            # Extract project info
-            project_info = await self._extract_project_info(query)
-            if project_info:
-                classification["context"]["project_info"] = project_info
-        else:
-            # Extract filters for general queries
-            filters = await self._extract_filters(query)
-            classification["context"]["extracted_filters"] = filters
+
+        try:
+            # Prepare prompt for LLM
+            prompt = f"""Analyze this query about infrastructure projects: "{query}"
+
+Instructions:
+1. Determine if this is asking about a specific project or a general query
+2. Extract key information like:
+   - District names
+   - Project sectors (education, health, etc.)
+   - Project status (ongoing, completed, etc.)
+3. Identify the main intent (e.g., location search, sector filter, status check)
+4. Note any entities mentioned (places, organizations, etc.)
+
+Format the response as JSON with these fields:
+{{
+    "query_type": "specific" or "general",
+    "confidence": 0.0 to 1.0,
+    "intent": {{
+        "primary": "main intent",
+        "secondary": ["other intents"]
+    }},
+    "entities": [
+        {{"type": "district/sector/status", "value": "extracted value", "confidence": 0.0 to 1.0}}
+    ],
+    "filters": {{
+        "district": "extracted district",
+        "sector": "extracted sector",
+        "status": "extracted status"
+    }}
+}}"""
+
+            # TODO: Call actual LLM here
+            # For now, fall back to regex-based extraction
+            classification["context"]["extracted_filters"] = await self._extract_filters(query)
+            
+            # Determine if specific query based on patterns
+            specific_indicators = [
+                "tell me about",
+                "show me details",
+                "what is",
+                "details of",
+                "information about"
+            ]
+            
+            if any(query.lower().startswith(indicator) for indicator in specific_indicators):
+                classification["query_type"] = "specific"
+                project_info = await self._extract_project_info(query)
+                if project_info:
+                    classification["context"]["project_info"] = project_info
+                    classification["confidence"] = 0.8
+            else:
+                # For general queries, set confidence based on filter extraction
+                filters = classification["context"]["extracted_filters"]
+                if filters:
+                    classification["confidence"] = 0.7 if len(filters) > 1 else 0.6
+                    classification["context"]["intent"] = {
+                        "primary": "filter_search",
+                        "secondary": [f"{k}_filter" for k in filters.keys()]
+                    }
+                    classification["context"]["entities"] = [
+                        {"type": k, "value": v, "confidence": 0.8}
+                        for k, v in filters.items()
+                    ]
+
+        except Exception as e:
+            self.logger.error(f"Error in LLM classification: {str(e)}")
+            # Fall back to basic classification
+            classification["confidence"] = 0.5
             
         return classification
         
