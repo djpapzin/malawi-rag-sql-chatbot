@@ -16,6 +16,7 @@ from .database.service import DatabaseService
 from .core.config import settings
 from .routers import chat
 from .llm_classification.new_classifier import LLMClassifier
+from .services.llm_service import LLMService
 
 # Configure logging
 logging.basicConfig(
@@ -44,7 +45,8 @@ async def read_root():
 app.include_router(chat.router, prefix="/api/rag-sql-chatbot")
 
 # Initialize services
-query_parser = QueryParser()
+llm_service = LLMService()
+query_parser = QueryParser(llm_service=llm_service)
 response_formatter = ResponseFormatter()
 db_service = DatabaseService()
 classifier = LLMClassifier()

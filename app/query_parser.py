@@ -5,6 +5,7 @@ import sys
 from typing import Dict, Any, Tuple, List
 from datetime import datetime
 from app.llm_classification.hybrid_classifier import HybridClassifier
+from app.services.llm_service import LLMService
 
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -14,8 +15,9 @@ logger = logging.getLogger(__name__)
 class QueryParser:
     """Parser for natural language queries to SQL"""
     
-    def __init__(self):
-        logger.info("Initializing QueryParser")
+    def __init__(self, llm_service: LLMService):
+        self.llm_service = llm_service
+        self.logger = logging.getLogger(__name__)
         self.classifier = HybridClassifier()
         self.specific_query_patterns = [
             # Direct project name queries
@@ -37,325 +39,143 @@ class QueryParser:
             r'show\s+(?:me\s+)?(?:the\s+)?details?\s+(?:about|for|of)\s+(?:the\s+)?([^"\']+?)(?:\s+(?:project|construction))?(?:\s*\?)?$'
         ]
         
-    def _extract_project_name(self, text: str) -> Tuple[str, bool]:
-        """Extract project name from text, handling both quoted and unquoted names"""
-        # First try to find quoted project names (both single and double quotes)
-        quoted_patterns = [
-            r"'([^']+)'",  # Single quotes
-            r'"([^"]+)"',  # Double quotes
-            r"about\s+(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)",
-            r"show\s+(?:me\s+)?(?:the\s+)?(?:details?\s+(?:about|for|of)\s+)?(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)",
-            r"what\s+is\s+(?:the\s+)?(?:status|budget|progress)\s+(?:of|for)\s+(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)",
-            r"tell\s+me\s+about\s+(.+?)(?:\s+(?:project|construction|building|status|budget|details?|progress|contractor|completion)|$)"
-        ]
+    async def parse_query(self, query: str, classification: Dict = None) -> Dict[str, Any]:
+        """Parse a natural language query into SQL"""
+        self.logger.info(f"Parsing query: {query}")
         
-        for pattern in quoted_patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                project_name = match.group(1).strip()
-                # Remove any trailing periods or other punctuation
-                project_name = re.sub(r'[.,;!?]+$', '', project_name)
-                # Remove project/construction keywords if they appear at the end
-                project_name = re.sub(r'\s+(?:project|construction|building)$', '', project_name, flags=re.IGNORECASE)
-                # Remove common prefixes
-                project_name = re.sub(r'^(?:the|a|an)\s+', '', project_name, flags=re.IGNORECASE)
-                return project_name, True
-            
-        # Then try to find unquoted project names after specific phrases
-        phrases = [
-            r"about\s+(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)",
-            r"show\s+(?:me\s+)?(?:the\s+)?(?:details?\s+(?:about|for|of)\s+)?(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)",
-            r"what\s+is\s+(?:the\s+)?(?:status|budget)\s+(?:of|for)\s+(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)",
-            r"tell\s+me\s+about\s+(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)",
-            r"(?:find|search|locate)\s+(?:for\s+)?(.+?)(?:\s+(?:in|at|for|status|budget|details?)|$)"
-        ]
-        
-        for phrase in phrases:
-            match = re.search(phrase, text, re.IGNORECASE)
-            if match:
-                project_name = match.group(1).strip()
-                # Remove any trailing periods or other punctuation
-                project_name = re.sub(r'[.,;!?]+$', '', project_name)
-                # Remove project/construction keywords if they appear at the end
-                project_name = re.sub(r'\s+(?:project|construction|building)$', '', project_name, flags=re.IGNORECASE)
-                # Remove common prefixes
-                project_name = re.sub(r'^(?:the|a|an)\s+', '', project_name, flags=re.IGNORECASE)
-                return project_name, False
-                
-        return "", False
+        # Initialize response
+        response = {
+            "type": "general",
+            "query": "",
+            "metadata": {
+                "timestamp": datetime.now().isoformat(),
+                "original_query": query
+            }
+        }
 
-    def _extract_project_code(self, query: str) -> str:
-        """Extract project code from query text
-        
-        Args:
-            query (str): The query text to extract code from
-            
-        Returns:
-            str: Extracted project code or empty string if not found
-        """
-        # Common patterns for project codes, ordered by specificity
-        patterns = [
-            # Full project code with MW prefix - return with MW prefix
-            (r"(?:project|code)?\s*(?:code\s+)?(?:MW|mw)-([A-Za-z]{2}-[A-Za-z0-9]{2})\b", True),
-            
-            # Full project code without MW prefix - return as is
-            (r"(?:project|code)?\s*(?:code\s+)?([A-Za-z]{2}-[A-Za-z0-9]{2})\b", False),
-            
-            # Regional code with MW prefix - return with MW prefix
-            (r"(?:project|code)?\s*(?:code\s+)?(?:MW|mw)-([A-Za-z]{2})\b", True),
-            
-            # Just the region code - return as is
-            (r"\b([A-Za-z]{2})\b(?:\s+(?:region|projects?|code)|\s+(?:region|projects?|code)\s+|\s*$)", False)
-        ]
-        
-        query = query.upper()  # Convert to upper case for consistent matching
-        
-        for pattern, has_mw_prefix in patterns:
-            match = re.search(pattern, query, re.IGNORECASE)
-            if match:
-                code = match.group(1).upper()
-                # Special handling for region codes
-                if re.match(r'^[A-Z]{2}$', code):
-                    if "REGION" in query or "PROJECTS" in query or "CODE" in query:
-                        return code
-                # Normal handling for other codes
-                if has_mw_prefix:
-                    return f"MW-{code}"
-                return code
-        
-        return ""
+        # Get query classification from LLM if not provided
+        if not classification:
+            classification = await self.llm_service.classify_query(query)
 
-    def _build_project_code_query(self, project_code: str) -> str:
-        """Build SQL query fragment for project code filtering"""
-        if not project_code:
-            return ""
-            
-        project_code = project_code.upper()
-        
-        # Handle different code formats
-        if project_code.startswith('MW-'):
-            # Code already has MW prefix
-            if re.match(r'^MW-[A-Z]{2}-[A-Z0-9]{2}$', project_code):
-                # Full project code
-                return f"AND PROJECTCODE = '{project_code}'"
-            elif re.match(r'^MW-[A-Z]{2}$', project_code):
-                # Regional code
-                return f"AND PROJECTCODE LIKE '{project_code}-%'"
+        # Extract key information based on classification
+        if classification["query_type"] == "specific":
+            # Handle specific project query
+            project_info = await self._extract_project_info(query, classification)
+            if project_info:
+                response["query"] = self._build_specific_project_sql(project_info)
+                response["type"] = "specific"
+                response["metadata"].update(project_info)
         else:
-            # Code needs MW prefix
-            if re.match(r'^[A-Z]{2}-[A-Z0-9]{2}$', project_code):
-                # Full code without MW prefix
-                return f"AND PROJECTCODE LIKE 'MW-{project_code}'"
-            elif re.match(r'^[A-Z]{2}$', project_code):
-                # Just region code
-                return f"AND PROJECTCODE LIKE 'MW-{project_code}-%'"
-        
-        return ""
+            # Handle general query
+            filters = await self._extract_filters(query, classification)
+            response["query"] = self._build_general_query_sql(filters)
+            response["metadata"]["filters"] = filters
 
-    def _build_project_name_query(self, project_name: str, is_quoted: bool) -> str:
-        """Build SQL query for project name search"""
-        if not project_name:
-            return ""
+        return response
+
+    async def _extract_project_info(self, query: str, classification: Dict) -> Dict:
+        """Extract project information using LLM and basic patterns"""
+        # First try LLM extraction
+        project_info = classification.get("context", {}).get("project_info", {})
         
-        # Escape single quotes
-        project_name = project_name.replace("'", "''")
+        if not project_info:
+            # Fallback to basic pattern matching
+            for pattern in [
+                r"(?:about|details?|info(?:rmation)?|tell me about|show me|what is)(?: the)? (.+?)(?:\s*\?|\s*$)",
+                r"(.+?)(?:\s+project|\s+construction)(?:\s*\?|\s*$)",
+            ]:
+                match = re.search(pattern, query, re.IGNORECASE)
+                if match:
+                    project_name = match.group(1).strip()
+                    project_info = {"name": project_name}
+                    break
+
+        return project_info
+
+    async def _extract_filters(self, query: str, classification: Dict) -> Dict:
+        """Extract filter information using LLM and patterns"""
+        # Start with LLM-extracted filters
+        filters = classification.get("context", {}).get("extracted_filters", {})
         
-        # Remove 'project' keyword if it appears at the end
-        project_name = re.sub(r'\s+(?:project|construction|building)$', '', project_name, flags=re.IGNORECASE)
-        
-        # Build conditions with priority
+        # Enhance with pattern matching if needed
+        if not filters.get("district"):
+            filters["district"] = self._extract_district(query)
+        if not filters.get("sector"):
+            filters["sector"] = self._extract_sector(query)
+        if not filters.get("status"):
+            filters["status"] = self._extract_status(query)
+
+        return filters
+
+    def _build_specific_project_sql(self, project_info: Dict) -> str:
+        """Build SQL for specific project query"""
         conditions = []
         
-        # 1. Exact match (highest priority)
-        conditions.append(f"LOWER(PROJECTNAME) = LOWER('{project_name}')")
+        if project_name := project_info.get("name"):
+            # Use fuzzy matching for project names
+            project_name = project_name.replace("'", "''")
+            conditions.append(f"similarity(LOWER(project_name), LOWER('{project_name}')) > 0.6")
         
-        # 2. Exact match with project/construction suffix
-        conditions.append(f"LOWER(PROJECTNAME) = LOWER('{project_name} project')")
-        conditions.append(f"LOWER(PROJECTNAME) = LOWER('{project_name} construction')")
-        
-        # 3. Starts with match
-        conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('{project_name}%')")
-        
-        # 4. Contains match with word boundaries
-        conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('% {project_name} %')")
-        
-        # 5. For unquoted names, also try word matching
-        if not is_quoted:
-            words = [w for w in project_name.split() if len(w) >= 2 and w.lower() not in {'the', 'and', 'or', 'in', 'at', 'of', 'to', 'for', 'with', 'by'}]
-            if words:
-                word_conditions = []
-                for word in words:
-                    word_conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('% {word} %')")
-                conditions.append(f"({' AND '.join(word_conditions)})")
-                    
-        where_clause = f"""AND (
-            {' OR '.join(conditions)}
-        )"""
-        
-        order_clause = f"""ORDER BY
-            CASE 
-                WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1
-                WHEN LOWER(PROJECTNAME) = LOWER('{project_name} project') THEN 2
-                WHEN LOWER(PROJECTNAME) = LOWER('{project_name} construction') THEN 3
-                WHEN LOWER(PROJECTNAME) LIKE LOWER('{project_name}%') THEN 4
-                WHEN LOWER(PROJECTNAME) LIKE LOWER('% {project_name} %') THEN 5
-                ELSE 6
-            END,
-            CASE 
-                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1
-                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2
-                ELSE 3
-            END"""
-        
-        return f"{where_clause}\n{order_clause}"
-
-    def _add_result_limits(self, base_query: str, query_type: str = "general") -> str:
-        """Add LIMIT and ORDER BY clauses to improve result relevance
-        
-        Args:
-            base_query (str): Base SQL query
-            query_type (str): Type of query ("specific" or "general")
+        if project_code := project_info.get("code"):
+            conditions.append(f"project_code = '{project_code}'")
             
-        Returns:
-            str: Enhanced query with sorting and limits
+        if not conditions:
+            return ""
+            
+        return f"""
+            SELECT *
+            FROM projects
+            WHERE {' OR '.join(conditions)}
+            ORDER BY 
+                CASE 
+                    WHEN LOWER(project_name) = LOWER('{project_info.get("name", "")}') THEN 1
+                    ELSE 2
+                END,
+                similarity(LOWER(project_name), LOWER('{project_info.get("name", "")}')) DESC
+            LIMIT 5
         """
-        # Define sort order based on project status
-        status_order = """
-            CASE 
-                WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1
-                WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2
-                WHEN LOWER(PROJECTSTATUS) = 'approved' THEN 3
-                ELSE 4
-            END
-        """
+
+    def _build_general_query_sql(self, filters: Dict) -> str:
+        """Build SQL for general project query"""
+        conditions = []
         
-        # Define relevance sorting based on query type
-        if query_type == "specific":
-            # For specific queries, prioritize exact matches
-            return f"""
-            {base_query}
-            ORDER BY 
-                {status_order},
-                TOTALBUDGET DESC
-                LIMIT 1
-            """
-        else:
-            # For general queries, limit to most relevant results
-            return f"""
-            {base_query}
-            ORDER BY 
-                {status_order},
-                TOTALBUDGET DESC,
-                COMPLETIONPERCENTAGE DESC
-            LIMIT 10
-            """
+        if district := filters.get("district"):
+            conditions.append(self._build_district_condition(district))
+        if sector := filters.get("sector"):
+            conditions.append(self._build_sector_condition(sector))
+        if status := filters.get("status"):
+            conditions.append(self._build_status_condition(status))
+            
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+        
+        return f"""SELECT *
+            FROM projects
+            WHERE {where_clause}
+            ORDER BY completion_percentage DESC, project_name
+            LIMIT 10"""
     
-    def is_specific_project_query(self, query: str) -> Tuple[bool, str]:
-        """Check if this is a query for a specific project"""
-        logger.info(f"Checking query: {query}")
+    def _build_district_condition(self, district: str) -> str:
+        """Build district filter condition with fuzzy matching"""
+        district = district.replace("'", "''")
+        return f"similarity(LOWER(district), LOWER('{district}')) > 0.6"
 
-        # First check for project codes
-        code_patterns = [
-            r"(?:project|code)\s+(?:code\s+)?(?:MW-)?([A-Za-z]{2}-[A-Z0-9]{2})",
-            r"(?:project|code)\s+([A-Za-z]{2}-[A-Z0-9]{2})",
-            r"(?:MW|mw)-([A-Za-z]{2}-[A-Z0-9]{2})",
-            r"(?:project|code)\s+([A-Za-z]{2})"
-        ]
-        
-        for pattern in code_patterns:
-            code_match = re.search(pattern, query, re.IGNORECASE)
-            if code_match:
-                code = code_match.group(1).upper()
-                # Add MW- prefix if missing and matches format
-                if not code.startswith('MW-'):
-                    if re.match(r'^[A-Z]{2}-[A-Z0-9]{2}$', code):
-                        code = f"MW-{code}"
-                    elif re.match(r'^[A-Z]{2}$', code):
-                        code = f"MW-{code}"
-                logger.info(f"Found project code: {code}")
-                return True, code
-                
-        # Then check for specific project name patterns
-        specific_patterns = [
-            r"tell me about (?:the )?([^\.]+?)(?:\s+project)?$",
-            r"show me details about (?:the )?([^\.]+?)(?:\s+project)?$",
-            r"what is (?:the )?([^\.]+?)(?:\s+project)?$",
-            r"details of (?:the )?([^\.]+?)(?:\s+project)?$",
-            r"information about (?:the )?([^\.]+?)(?:\s+project)?$",
-            r"tell me about (?:the )?([^\.]+?)(?:\s+construction)?$",
-            r"show me details about (?:the )?([^\.]+?)(?:\s+construction)?$",
-            r"what is (?:the )?([^\.]+?)(?:\s+construction)?$",
-            r"details of (?:the )?([^\.]+?)(?:\s+construction)?$",
-            r"information about (?:the )?([^\.]+?)(?:\s+construction)?$"
-        ]
-        
-        for pattern in specific_patterns:
-            name_match = re.search(pattern, query, re.IGNORECASE)
-            if name_match:
-                project_name = name_match.group(1).strip()
-                # Clean up the project name
-                project_name = re.sub(r'\s+project$', '', project_name, flags=re.IGNORECASE)
-                project_name = re.sub(r'\s+construction$', '', project_name, flags=re.IGNORECASE)
-                project_name = re.sub(r'^\s+|\s+$', '', project_name)
-                logger.info(f"Found project name: {project_name}")
-                return True, project_name
-                
-        logger.info("No specific project query found.")
-        return False, ""
+    def _build_sector_condition(self, sector: str) -> str:
+        """Build sector filter condition with fuzzy matching"""
+        sector = sector.replace("'", "''")
+        return f"similarity(LOWER(sector), LOWER('{sector}')) > 0.6"
 
-    def _build_specific_project_sql(self, project_name: str = "", project_code: str = "") -> str:
-        """Build SQL for specific project query"""
-        where_clause = "1=1"  # Default to true if no conditions
-        
-        if project_code:
-            where_clause = f"UPPER(PROJECTCODE) = '{project_code}'"
-        elif project_name:
-            # Use more flexible matching for project names
-            where_clause = f"""
-                LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
-                OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name.replace(" ", "%")}%')
-            """
-        
-        sql = f"""
-            SELECT 
-                projectname as project_name,
-                projectcode as project_code,
-                projectsector as project_sector,
-                projectstatus as status,
-                stage,
-                region,
-                district,
-                traditionalauthority,
-                budget as total_budget,
-                totalexpenditureyear as total_expenditure,
-                fundingsource as funding_source,
-                startdate as start_date,
-                completionestidate as completion_date,
-                lastvisit as last_monitoring_visit,
-                completionpercentage as completion_progress,
-                contractorname as contractor,
-                signingdate as contract_signing_date,
-                projectdesc as description,
-                fiscalyear as fiscal_year
-            FROM proj_dashboard
-            WHERE ISLATEST = 1
-            AND {where_clause}
-            ORDER BY
-                CASE 
-                    WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1
-                    WHEN LOWER(PROJECTNAME) LIKE LOWER('{project_name}%') THEN 2
-                    WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 3
-                    ELSE 4
-                END,
-                CASE 
-                    WHEN LOWER(PROJECTSTATUS) = 'ongoing' THEN 1
-                    WHEN LOWER(PROJECTSTATUS) = 'completed' THEN 2
-                    ELSE 3
-                END,
-                budget DESC
-            LIMIT 1
-        """
-        return sql
+    def _build_status_condition(self, status: str) -> str:
+        """Build status filter condition"""
+        status_map = {
+            "ongoing": "In Progress",
+            "in progress": "In Progress",
+            "complete": "Completed",
+            "completed": "Completed",
+            "planned": "Planned",
+            "pending": "Pending"
+        }
+        mapped_status = status_map.get(status.lower(), status)
+        return f"LOWER(status) = LOWER('{mapped_status}')"
 
     def _extract_sector(self, query: str) -> str:
         """Extract sector from query text"""
@@ -410,128 +230,6 @@ class QueryParser:
                 return status
                 
         return ""
-
-    def _build_sector_query(self, sector: str) -> str:
-        """Build SQL query fragment for sector filtering"""
-        # Map common terms to actual sectors
-        sector_mapping = {
-            "health": "health",
-            "education": "education",
-            "water": "water",
-            "agriculture": "agriculture",
-            "infrastructure": "infrastructure",
-            "transport": "transport",
-            "energy": "energy",
-            "housing": "housing",
-            "sanitation": "sanitation",
-            "rural development": "rural development"
-        }
-        
-        # Get the mapped sector or use the original
-        mapped_sector = sector_mapping.get(sector.lower(), sector)
-        
-        # Escape single quotes
-        mapped_sector = mapped_sector.replace("'", "''")
-        
-        # Build the query condition
-        return f"LOWER(projectsector) = LOWER('{mapped_sector}')"
-
-    def _build_status_query(self, status: str) -> str:
-        """Build SQL query fragment for status filtering"""
-        # Map common terms to actual statuses
-        status_mapping = {
-            "ongoing": "ongoing",
-            "completed": "completed",
-            "approved": "approved",
-            "pending": "pending",
-            "cancelled": "cancelled",
-            "suspended": "suspended"
-        }
-        
-        # Get the mapped status or use the original
-        mapped_status = status_mapping.get(status.lower(), status)
-        
-        # Escape single quotes
-        mapped_status = mapped_status.replace("'", "''")
-        
-        # Build the query condition
-        return f"LOWER(projectstatus) = LOWER('{mapped_status}')"
-
-    def _build_completion_query(self, is_complete: bool) -> str:
-        """Build SQL query for completed/incomplete projects"""
-        status = 'yes' if is_complete else 'no'
-        return f"""
-        SELECT 
-            projectname as project_name,
-            district,
-            projectsector as project_sector,
-            projectstatus as project_status,
-            COALESCE(budget, 0) as total_budget,
-            COALESCE(completionpercentage, 0) as completion_percentage
-        FROM proj_dashboard 
-        WHERE LOWER(isprojectcomplete) = '{status}'
-        ORDER BY total_budget DESC;
-        """
-
-    def _extract_location(self, query: str) -> str:
-        """Extract location from query text"""
-        # Common patterns for locations
-        patterns = [
-            r"\b(in|at|near|from)\s+([A-Za-z\s]+)",
-            r"\b([A-Za-z\s]+)\s+(?:region|district|province|area)"
-        ]
-        
-        query = query.lower()
-        
-        for pattern in patterns:
-            match = re.search(pattern, query)
-            if match:
-                location = match.group(2) if match.group(2) else match.group(1)
-                return location.strip()
-                
-        return ""
-
-    def _build_location_query(self, location: str) -> str:
-        """Build SQL query fragment for location filtering"""
-        if not location:
-            return ""
-            
-        location = location.strip().lower()
-        
-        return f"AND (LOWER(REGION) LIKE '%{location}%' OR LOWER(DISTRICT) LIKE '%{location}%')"
-
-    def _format_response(self, row: Dict[str, Any]) -> str:
-        """Format a database row into a human-readable response"""
-        response_parts = []
-        
-        # Project name and code
-        response_parts.append(f"Project: {row.get('PROJECTNAME', 'Not available')}")
-        if row.get('PROJECTCODE'):
-            response_parts.append(f"Project Code: {row['PROJECTCODE']}")
-            
-        # Location
-        district = row.get('DISTRICT', 'Not available')
-        region = row.get('REGION', 'Not available')
-        response_parts.append(f"Region: {region}")
-        response_parts.append(f"District: {district}")
-        
-        # Status and sector
-        if row.get('PROJECTSECTOR'):
-            response_parts.append(f"Sector: {row['PROJECTSECTOR']}")
-        if row.get('PROJECTSTATUS'):
-            response_parts.append(f"Status: {row['PROJECTSTATUS']}")
-            
-        # Financial information
-        if any(row.get(k) for k in ['TOTALBUDGET', 'TOTALEXPENDITUREYEAR', 'FUNDINGSOURCE']):
-            response_parts.append("\nFinancial Information:")
-            if row.get('TOTALBUDGET'):
-                response_parts.append(f"Budget: MWK {row['TOTALBUDGET']:,.2f}")
-            if row.get('TOTALEXPENDITUREYEAR'):
-                response_parts.append(f"Expenditure to Date: MWK {row['TOTALEXPENDITUREYEAR']:,.2f}")
-            if row.get('FUNDINGSOURCE'):
-                response_parts.append(f"Funding Source: {row['FUNDINGSOURCE']}")
-                
-        return "\n".join(response_parts)
 
     def _extract_district(self, query: str) -> str:
         """Extract district name from query text
@@ -605,89 +303,3 @@ class QueryParser:
             # For multi-word districts, use regex pattern with word boundaries
             pattern = r'\b' + r'\b.*\b'.join(words) + r'\b'
             return f"LOWER(district) ~ LOWER('{pattern}')"
-
-    async def parse_query(self, query: str) -> Dict[str, Any]:
-        """Parse a natural language query into SQL"""
-        logger.info(f"Parsing query: {query}")
-        
-        # Initialize response
-        response = {
-            "type": "general",
-            "query": "",
-            "metadata": {
-                "timestamp": datetime.now().isoformat(),
-                "original_query": query
-            }
-        }
-        
-        # First check if this is a specific project query
-        is_specific, project_identifier = self.is_specific_project_query(query)
-        
-        if is_specific:
-            # Build specific project query
-            if project_identifier.startswith('MW-'):
-                response["query"] = self._build_specific_project_sql(project_code=project_identifier)
-            else:
-                response["query"] = self._build_specific_project_sql(project_name=project_identifier)
-            response["type"] = "specific"
-            response["metadata"]["project_identifier"] = project_identifier
-            return response
-        
-        # Get classification from hybrid classifier for non-specific queries
-        classification = await self.classifier.classify_query(query)
-        
-        # Build base query based on classification
-        base_query = """
-            SELECT 
-                projectname as project_name,
-                fiscalyear as fiscal_year,
-                district,
-                budget as total_budget,
-                projectstatus as status,
-                projectsector as project_sector
-            FROM 
-                proj_dashboard
-            WHERE 
-                ISLATEST = 1
-        """
-        
-        # Add filters based on classification
-        filters = []
-        
-        # District filter
-        if classification.parameters.districts:
-            district_conditions = []
-            for district in classification.parameters.districts:
-                district_conditions.append(self._build_district_query(district))
-            if district_conditions:
-                filters.append(f"({' OR '.join(district_conditions)})")
-                response["metadata"]["districts"] = classification.parameters.districts
-        
-        # Sector filter
-        if classification.parameters.sectors:
-            sector_conditions = []
-            for sector in classification.parameters.sectors:
-                sector_conditions.append(self._build_sector_query(sector))
-            if sector_conditions:
-                filters.append(f"({' OR '.join(sector_conditions)})")
-                response["metadata"]["sectors"] = classification.parameters.sectors
-        
-        # Status filter
-        if classification.parameters.status:
-            status_conditions = []
-            for status in classification.parameters.status:
-                status_conditions.append(self._build_status_query(status))
-            if status_conditions:
-                filters.append(f"({' OR '.join(status_conditions)})")
-                response["metadata"]["status"] = classification.parameters.status
-        
-        # Add all filters
-        for filter_query in filters:
-            if filter_query:
-                base_query += f"\nAND {filter_query}"
-        
-        # Add sorting and limits
-        response["query"] = self._add_result_limits(base_query, classification.query_type.value)
-        response["type"] = classification.query_type.value
-        
-        return response
