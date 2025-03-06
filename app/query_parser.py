@@ -111,8 +111,8 @@ class QueryParser:
                 r"(?:about|details?|info(?:rmation)?|tell me about|show me|what is)(?: the)? (.+?)(?:\s*\?|\s*$)",
                 r"(.+?)(?:\s+project|\s+construction)(?:\s*\?|\s*$)",
             ]:
-                match = re.search(pattern, query, re.IGNORECASE)
-                if match:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
                     project_name = match.group(1).strip()
                     project_info = {"name": project_name}
                     break
@@ -149,7 +149,7 @@ class QueryParser:
         if not conditions:
             return ""
             
-        return f"""
+            return f"""
             SELECT *
             FROM proj_dashboard
             WHERE {' OR '.join(conditions)}
@@ -324,6 +324,6 @@ class QueryParser:
                 district = re.sub(r'\b(The|And|Or|Projects?|In|At|From|Of|For)\b', '', district, flags=re.IGNORECASE)
                 district = district.strip()
                 if district:
-                    return district
+                return district
         
         return ""
