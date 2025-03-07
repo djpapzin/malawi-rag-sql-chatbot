@@ -45,6 +45,9 @@ Classify this user query into one of three types:
 2. GENERAL: Questions about projects that may include filters (district, sector, status, etc.)
 3. SPECIFIC: Questions about a specific project or follow-up questions about a previously discussed project
 
+For sector queries, be sure to identify the sector and add it to the filters.
+Common sectors include: health, education, water, transport, agriculture
+
 Return a JSON object with:
 {
     "query_type": "unrelated|general|specific",
@@ -63,7 +66,10 @@ Query: {query}
 
 Previous context: {context}
 """
-    
+        # Initialize Together API
+        self.together = Together()
+        self.together.api_key = "YOUR_API_KEY"  # Replace with actual key
+        
     async def classify_query(self, query: str, context: Optional[Dict[str, Any]] = None) -> QueryClassification:
         """
         Classify a query using LLM
@@ -91,6 +97,16 @@ Previous context: {context}
             # Parse response
             result = self._parse_llm_response(response)
             
+            # Special handling for sector queries
+            if "sector" in query.lower() or any(sector in query.lower() for sector in ["health", "education", "water", "transport", "agriculture"]):
+                result["query_type"] = "general"
+                result["confidence"] = 0.9
+                # Extract sector from query
+                for sector in ["health", "education", "water", "transport", "agriculture"]:
+                    if sector in query.lower():
+                        result["filters"]["sectors"] = [sector]
+                        break
+            
             # Create classification
             classification = QueryClassification(
                 query_type=QueryType(result["query_type"]),
@@ -106,21 +122,21 @@ Previous context: {context}
             
         except Exception as e:
             logger.error(f"Error classifying query: {e}")
-            # Return default classification for errors
+            # Default to general query on error
             return QueryClassification(
                 query_type=QueryType.GENERAL,
-                confidence=0.0,
-                parameters=QueryParameters()
+                confidence=0.5,
+                parameters=QueryParameters(
+                    filters={},
+                    context=context or {}
+                )
             )
     
     async def _call_llm(self, prompt: str) -> str:
         """Call the LLM service"""
         try:
-            # Initialize Together client
-            client = Together()
-            
             # Call the LLM
-            response = await client.chat.completions.create(
+            response = await self.together.chat.completions.create(
                 model="mistralai/Mixtral-8x7B-Instruct-v0.1",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,  # Low temperature for more consistent classification

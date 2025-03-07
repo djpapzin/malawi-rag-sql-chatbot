@@ -1,0 +1,1852 @@
+
+Test 1: Which projects are there in the health sector
+Expected Type: sector_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(sector) like '%(health|medical|clinic|hospital)%'; RESULTS: select pd.*, count(*) over() as total_count, sum(budget_amount_amount) over() as total_budget_amount from proj_dashboard pd where lower(sector) like '%(health|medical|clinic|hospital)%' limit 10;
+
+Actual SQL:
+select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(sector) like '%health%' limit 10;
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(sector) like '%(health|medical|clinic|hospital)%';",
+    "actual": "select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount_amount as total_budget_amount_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(sector) like '%health%' limit 10;"
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "Found 219 projects in Health, showing the first 10.",
+      "data": {}
+    },
+    {
+      "type": "list",
+      "message": "Project Details",
+      "data": {
+        "fields": [
+          "Name of project",
+          "Fiscal year",
+          "Location",
+          "Budget",
+          "Status",
+          "Project Sector"
+        ],
+        "values": [
+          {
+            "Name of project": "Maintanance of dispensary, construction of one staff house, construction of incinerator, installatio",
+            "Fiscal year": "April 2023 / March 2024",
+            "Location": "",
+            "Budget": "MWK 35,577,086,000.00",
+            "Status": "Implementation: On track",
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "Rehabilitation of Mulanje District Hospital Paying Ward ",
+            "Fiscal year": "July 2021 / March 2022",
+            "Location": "",
+            "Budget": "MWK 763,398,400.00",
+            "Status": null,
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "KADIDI HEALTH CENTRE (DISPENSARY, STAFF HOUSE, WATER SYSTEM, INCENERATOR AND ELECTRICITY, VIP TOILET",
+            "Fiscal year": "April 2023 / March 2024",
+            "Location": "",
+            "Budget": "MWK 750,000,000.00",
+            "Status": null,
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "Kasungu District Hospital - KDH Paying Ward ",
+            "Fiscal year": "April 2023 / March 2024",
+            "Location": "",
+            "Budget": "MWK 671,600,000.00",
+            "Status": null,
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "Construction of Mmotola Health Post-Maternity Wing",
+            "Fiscal year": "April 2023 / March 2024",
+            "Location": "",
+            "Budget": "MWK 504,323,500.00",
+            "Status": null,
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "Construction of Mnema Umoyo House and Double VIP Latrines",
+            "Fiscal year": "April 2023 / March 2024",
+            "Location": "",
+            "Budget": "MWK 321,656,320.00",
+            "Status": null,
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "MONKEY-BAY HOSPITAL MALE WARD",
+            "Fiscal year": "April 2023 / March 2024",
+            "Location": "",
+            "Budget": "MWK 317,921,900.00",
+            "Status": "Implementation: On track",
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "Construction of two staff houses at Ngerenge dispensary",
+            "Fiscal year": "April 2023 / March 2024",
+            "Location": "",
+            "Budget": "MWK 270,130,560.00",
+            "Status": "Implementation: On track or Implementation: Delayed",
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "Nkhunga Admission Wards",
+            "Fiscal year": "April 2022 / March 2023",
+            "Location": "",
+            "Budget": "MWK 268,132,260.00",
+            "Status": null,
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "Construction of Chinkhande Health Post Maternity Ward",
+            "Fiscal year": "April 2022 / March 2023",
+            "Location": "",
+            "Budget": "MWK 258,196,460.00",
+            "Status": null,
+            "Project Sector": "Health"
+          }
+        ]
+      }
+    },
+    {
+      "type": "text",
+      "message": "Type 'show more' to see additional results.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 219,
+    "query_time": "0.00s",
+    "sql_query": "\n                SELECT \n                    projectname as project_name,\n                    projectcode as project_code,\n                    projectsector as project_sector,\n                    projectstatus as status,\n                    stage,\n                    region,\n                    district,\n                    traditionalauthority,\n                    budget as total_budget,\n                    TOTALEXPENDITUREYEAR as total_expenditure,\n                    fundingsource as funding_source,\n                    startdate as start_date,\n                    completionestidate as completion_date,\n                    lastvisit as last_monitoring_visit,\n                    completionpercentage as completion_progress,\n                    contractorname as contractor,\n                    signingdate as contract_signing_date,\n                    projectdesc as description,\n                    fiscalyear as fiscal_year\n                FROM \n                    proj_dashboard \n                WHERE \n                    LOWER(projectsector) LIKE '%health%'\n                ORDER BY \n                    budget DESC NULLS LAST\n                LIMIT 10;\n                "
+  }
+}
+-------------------
+
+
+Test 2: Show me health
+Expected Type: sector_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(sector) like '%(health|medical|clinic|hospital)%'; RESULTS: select pd.*, count(*) over() as total_count, sum(budget_amount_amount) over() as total_budget_amount from proj_dashboard pd where lower(sector) like '%(health|medical|clinic|hospital)%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(sector) like '%(health|medical|clinic|hospital)%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 3: What's happening in health
+Expected Type: sector_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(sector) like '%(health|medical|clinic|hospital)%'; RESULTS: select pd.*, count(*) over() as total_count, sum(budget_amount_amount) over() as total_budget_amount from proj_dashboard pd where lower(sector) like '%(health|medical|clinic|hospital)%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(sector) like '%(health|medical|clinic|hospital)%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 4: Show me all projects in Zomba district
+Expected Type: district_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(district) like '%zomba%'; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where lower(district) like '%zomba%' limit 10;
+
+Actual SQL:
+select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(district) like '%zomba%' limit 10;
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(district) like '%zomba%';",
+    "actual": "select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount_amount as total_budget_amount_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(district) like '%zomba%' limit 10;"
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "Found 31 projects in Zomba district, showing the first 10.",
+      "data": {}
+    },
+    {
+      "type": "list",
+      "message": "Project Details",
+      "data": {
+        "fields": [
+          "Name of project",
+          "Fiscal year",
+          "Location",
+          "Budget",
+          "Status",
+          "Project Sector"
+        ],
+        "values": [
+          {
+            "Name of project": "Mchengawedi TDC",
+            "Fiscal year": "April 2024 / March 2025",
+            "Location": "Zomba District",
+            "Budget": "MWK 224,017,740.00",
+            "Status": null,
+            "Project Sector": "Education"
+          },
+          {
+            "Name of project": "Chingale Maternity Wing Phase 2",
+            "Fiscal year": "April 2024 / March 2025",
+            "Location": "Zomba District",
+            "Budget": "MWK 185,000,000.00",
+            "Status": null,
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "Matandani Concrete Bridge Phase 2",
+            "Fiscal year": "April 2024 / March 2025",
+            "Location": "Zomba District",
+            "Budget": "MWK 185,000,000.00",
+            "Status": null,
+            "Project Sector": "Roads and bridges"
+          },
+          {
+            "Name of project": "Mamphanda \u2013 Naphali Road Via Matiya (10Km) Graveling",
+            "Fiscal year": "April 2022 / March 2023",
+            "Location": "Zomba District",
+            "Budget": "MWK 176,173,300.00",
+            "Status": "Implementation: On track or Implementation: Delayed",
+            "Project Sector": "Roads and bridges"
+          },
+          {
+            "Name of project": "Mamphanda-Naphali Road Phase 2",
+            "Fiscal year": "April 2024 / March 2025",
+            "Location": "Zomba District",
+            "Budget": "MWK 150,000,000.00",
+            "Status": null,
+            "Project Sector": "Roads and bridges"
+          },
+          {
+            "Name of project": "Chingale Maternity wing",
+            "Fiscal year": "April 2022 / March 2023",
+            "Location": "Zomba District",
+            "Budget": "MWK 130,949,430.00",
+            "Status": "Works completed",
+            "Project Sector": "Health"
+          },
+          {
+            "Name of project": "Chimseu Police Unit, Staff House and Toilet",
+            "Fiscal year": "April 2022 / March 2023",
+            "Location": "Zomba District",
+            "Budget": "MWK 116,214,530.00",
+            "Status": "Implementation: On track",
+            "Project Sector": "Community security initiatives"
+          },
+          {
+            "Name of project": "Chimseu Police Unit Phase 2",
+            "Fiscal year": "April 2024 / March 2025",
+            "Location": "Zomba District",
+            "Budget": "MWK 100,000,000.00",
+            "Status": null,
+            "Project Sector": "Community security initiatives"
+          },
+          {
+            "Name of project": "Matandani Concrete Bridge",
+            "Fiscal year": "April 2022 / March 2023",
+            "Location": "Zomba District",
+            "Budget": "MWK 93,028,736.00",
+            "Status": "Implementation: On track or Implementation: Delayed",
+            "Project Sector": "Roads and bridges"
+          },
+          {
+            "Name of project": "Construction of Six Miles Market shade ",
+            "Fiscal year": "April 2023 / March 2024",
+            "Location": "Zomba District",
+            "Budget": "MWK 70,000,000.00",
+            "Status": null,
+            "Project Sector": "Commercial services"
+          }
+        ]
+      }
+    },
+    {
+      "type": "text",
+      "message": "Type 'show more' to see additional results.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 31,
+    "query_time": "0.00s",
+    "sql_query": "\n                    SELECT \n                        projectname as project_name,\n                        projectcode as project_code,\n                        projectsector as project_sector,\n                        projectstatus as status,\n                        stage,\n                        region,\n                        district,\n                        traditionalauthority,\n                        budget as total_budget,\n                        TOTALEXPENDITUREYEAR as total_expenditure,\n                        fundingsource as funding_source,\n                        startdate as start_date,\n                        completionestidate as completion_date,\n                        lastvisit as last_monitoring_visit,\n                        completionpercentage as completion_progress,\n                        contractorname as contractor,\n                        signingdate as contract_signing_date,\n                        projectdesc as description,\n                        fiscalyear as fiscal_year\n                    FROM \n                        proj_dashboard\n                    WHERE \n                        LOWER(district) LIKE '%zomba%'\n                    ORDER BY \n                        budget DESC NULLS LAST\n                    LIMIT 10;\n                    "
+  }
+}
+-------------------
+
+
+Test 5: What's happening in Zomba
+Expected Type: district_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(district) like '%zomba%'; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where lower(district) like '%zomba%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(district) like '%zomba%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 6: Zomba projects
+Expected Type: district_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(district) like '%zomba%'; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where lower(district) like '%zomba%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(district) like '%zomba%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 7: Tell me about the Nyandule Classroom Block project
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%nyandule%classroom%block%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(project_name) like '%nyandule classroom block%' limit 10;
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%nyandule%classroom%block%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": "select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(project_name) like '%nyandule classroom block%' limit 10;"
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "Found 1 projects, showing the first 1.",
+      "data": {}
+    },
+    {
+      "type": "list",
+      "message": "Project Details",
+      "data": {
+        "fields": [
+          "Name of project",
+          "Fiscal year",
+          "Location",
+          "Budget",
+          "Status",
+          "Project Sector"
+        ],
+        "values": [
+          {
+            "Name of project": "Nyandule Classroom Block",
+            "Fiscal year": "April 2022 / March 2023",
+            "Location": "",
+            "Budget": "MWK 49,500,000.00",
+            "Status": "Implementation: On track",
+            "Project Sector": "Education"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "total_results": 1,
+    "query_time": "0.01s",
+    "sql_query": "\n                    SELECT \n                        projectname as project_name,\n                        projectcode as project_code,\n                        projectsector as project_sector,\n                        projectstatus as status,\n                        stage,\n                        region,\n                        district,\n                        traditionalauthority,\n                        budget as total_budget,\n                        TOTALEXPENDITUREYEAR as total_expenditure,\n                        fundingsource as funding_source,\n                        startdate as start_date,\n                        completionestidate as completion_date,\n                        lastvisit as last_monitoring_visit,\n                        completionpercentage as completion_progress,\n                        contractorname as contractor,\n                        signingdate as contract_signing_date,\n                        projectdesc as description,\n                        fiscalyear as fiscal_year\n                    FROM \n                        proj_dashboard\n                    WHERE \n                        LOWER(projectname) LIKE '%nyandule classroom block%'\n                    ORDER BY\n                        CASE \n                            WHEN LOWER(projectname) = 'nyandule classroom block' THEN 1\n                            ELSE 2\n                        END,\n                        budget DESC\n                    LIMIT 10;\n                    "
+  }
+}
+-------------------
+
+
+Test 8: Nyandule Classroom Block details
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%nyandule%classroom%block%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%nyandule%classroom%block%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 9: What's happening with Nyandule
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%nyandule%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%nyandule%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 11: What is the total budget for all projects?
+Expected Type: aggregate_query
+Actual Type: unknown
+
+Expected SQL:
+select count(*) as total_projects, sum(budget_amount_amount) as total_budget_amount, avg(budget_amount_amount) as avg_budget_amount from proj_dashboard;
+
+Actual SQL:
+select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(district) like '%is the total budget_amount for all projects%' limit 10;
+
+Differences:
+{
+  "expected": "select count(*) as total_projects, sum(budget_amount_amount) as total_budget_amount, avg(budget_amount_amount) as avg_budget_amount from proj_dashboard;",
+  "actual": "select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(district) like '%is the total budget_amount for all projects%' limit 10;"
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "No matching projects found. Please try different search terms.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s",
+    "sql_query": "\n                    SELECT \n                        projectname as project_name,\n                        projectcode as project_code,\n                        projectsector as project_sector,\n                        projectstatus as status,\n                        stage,\n                        region,\n                        district,\n                        traditionalauthority,\n                        budget as total_budget,\n                        TOTALEXPENDITUREYEAR as total_expenditure,\n                        fundingsource as funding_source,\n                        startdate as start_date,\n                        completionestidate as completion_date,\n                        lastvisit as last_monitoring_visit,\n                        completionpercentage as completion_progress,\n                        contractorname as contractor,\n                        signingdate as contract_signing_date,\n                        projectdesc as description,\n                        fiscalyear as fiscal_year\n                    FROM \n                        proj_dashboard\n                    WHERE \n                        LOWER(district) LIKE '%is the total budget for all projects%'\n                    ORDER BY \n                        budget DESC NULLS LAST\n                    LIMIT 10;\n                    "
+  }
+}
+-------------------
+
+
+Test 12: Total budget
+Expected Type: aggregate_query
+Actual Type: unknown
+
+Expected SQL:
+select count(*) as total_projects, sum(budget_amount_amount) as total_budget_amount, avg(budget_amount_amount) as avg_budget_amount from proj_dashboard;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select count(*) as total_projects, sum(budget_amount_amount) as total_budget_amount, avg(budget_amount_amount) as avg_budget_amount from proj_dashboard;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 13: How much money in total
+Expected Type: aggregate_query
+Actual Type: unknown
+
+Expected SQL:
+select count(*) as total_projects, sum(budget_amount_amount) as total_budget_amount, avg(budget_amount_amount) as avg_budget_amount from proj_dashboard;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select count(*) as total_projects, sum(budget_amount_amount) as total_budget_amount, avg(budget_amount_amount) as avg_budget_amount from proj_dashboard;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 14: Tell me about Mzuzu Hospital
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mzuzu%hospital%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(project_name) like '%mzuzu hospital%' limit 10;
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mzuzu%hospital%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": "select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(project_name) like '%mzuzu hospital%' limit 10;"
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "No matching projects found. Please try different search terms.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.01s",
+    "sql_query": "\n                    SELECT \n                        projectname as project_name,\n                        projectcode as project_code,\n                        projectsector as project_sector,\n                        projectstatus as status,\n                        stage,\n                        region,\n                        district,\n                        traditionalauthority,\n                        budget as total_budget,\n                        TOTALEXPENDITUREYEAR as total_expenditure,\n                        fundingsource as funding_source,\n                        startdate as start_date,\n                        completionestidate as completion_date,\n                        lastvisit as last_monitoring_visit,\n                        completionpercentage as completion_progress,\n                        contractorname as contractor,\n                        signingdate as contract_signing_date,\n                        projectdesc as description,\n                        fiscalyear as fiscal_year\n                    FROM \n                        proj_dashboard\n                    WHERE \n                        LOWER(projectname) LIKE '%mzuzu hospital%'\n                    ORDER BY\n                        CASE \n                            WHEN LOWER(projectname) = 'mzuzu hospital' THEN 1\n                            ELSE 2\n                        END,\n                        budget DESC\n                    LIMIT 10;\n                    "
+  }
+}
+-------------------
+
+
+Test 15: Mzuzu Hospital status
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mzuzu%hospital%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mzuzu%hospital%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 16: What's up with Mzuzu Hospital
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mzuzu%hospital%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mzuzu%hospital%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 17: Show me education
+Expected Type: sector_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(sector) like '%(education|school|classroom|college|university)%'; RESULTS: select pd.*, count(*) over() as total_count, sum(budget_amount_amount) over() as total_budget_amount from proj_dashboard pd where lower(sector) like '%(education|school|classroom|college|university)%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(sector) like '%(education|school|classroom|college|university)%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 18: Education sector
+Expected Type: sector_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(sector) like '%(education|school|classroom|college|university)%'; RESULTS: select pd.*, count(*) over() as total_count, sum(budget_amount_amount) over() as total_budget_amount from proj_dashboard pd where lower(sector) like '%(education|school|classroom|college|university)%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(sector) like '%(education|school|classroom|college|university)%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 19: What's happening in education
+Expected Type: sector_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(sector) like '%(education|school|classroom|college|university)%'; RESULTS: select pd.*, count(*) over() as total_count, sum(budget_amount_amount) over() as total_budget_amount from proj_dashboard pd where lower(sector) like '%(education|school|classroom|college|university)%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(sector) like '%(education|school|classroom|college|university)%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 20: Mangochi Water Supply status
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mangochi%water%supply%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mangochi%water%supply%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 21: Tell me about Mangochi Water
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mangochi%water%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(project_name) like '%mangochi water%' limit 10;
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%mangochi%water%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": "select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(project_name) like '%mangochi water%' limit 10;"
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "No matching projects found. Please try different search terms.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.01s",
+    "sql_query": "\n                    SELECT \n                        projectname as project_name,\n                        projectcode as project_code,\n                        projectsector as project_sector,\n                        projectstatus as status,\n                        stage,\n                        region,\n                        district,\n                        traditionalauthority,\n                        budget as total_budget,\n                        TOTALEXPENDITUREYEAR as total_expenditure,\n                        fundingsource as funding_source,\n                        startdate as start_date,\n                        completionestidate as completion_date,\n                        lastvisit as last_monitoring_visit,\n                        completionpercentage as completion_progress,\n                        contractorname as contractor,\n                        signingdate as contract_signing_date,\n                        projectdesc as description,\n                        fiscalyear as fiscal_year\n                    FROM \n                        proj_dashboard\n                    WHERE \n                        LOWER(projectname) LIKE '%mangochi water%'\n                    ORDER BY\n                        CASE \n                            WHEN LOWER(projectname) = 'mangochi water' THEN 1\n                            ELSE 2\n                        END,\n                        budget DESC\n                    LIMIT 10;\n                    "
+  }
+}
+-------------------
+
+
+Test 23: Lilongwe Market details
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%lilongwe%market%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%lilongwe%market%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 24: What is the weather like today?
+Expected Type: out_of_context
+Actual Type: unknown
+
+Expected SQL:
+
+
+Actual SQL:
+select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(district) like '%is the weather like today%' limit 10;
+
+Differences:
+{
+  "expected": "",
+  "actual": "select project_name as project_name, project_code as project_code, sector as project_sector, status as status, stage, region, district, traditional_authority, budget_amount as total_budget_amount, total_expenditure as total_expenditure, funding_source as funding_source, start_date as start_date, completion_date as completion_date, last_monitoring_visit as last_monitoring_visit, completion_rate as completion_progress, contractor_name as contractor, signing_date as contract_signing_date, description as description, fiscal_year as fiscal_year from proj_dashboard where lower(district) like '%is the weather like today%' limit 10;"
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "No matching projects found. Please try different search terms.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s",
+    "sql_query": "\n                    SELECT \n                        projectname as project_name,\n                        projectcode as project_code,\n                        projectsector as project_sector,\n                        projectstatus as status,\n                        stage,\n                        region,\n                        district,\n                        traditionalauthority,\n                        budget as total_budget,\n                        TOTALEXPENDITUREYEAR as total_expenditure,\n                        fundingsource as funding_source,\n                        startdate as start_date,\n                        completionestidate as completion_date,\n                        lastvisit as last_monitoring_visit,\n                        completionpercentage as completion_progress,\n                        contractorname as contractor,\n                        signingdate as contract_signing_date,\n                        projectdesc as description,\n                        fiscalyear as fiscal_year\n                    FROM \n                        proj_dashboard\n                    WHERE \n                        LOWER(district) LIKE '%is the weather like today%'\n                    ORDER BY \n                        budget DESC NULLS LAST\n                    LIMIT 10;\n                    "
+  }
+}
+-------------------
+
+
+Test 25: Show ongoing in Lilongwe
+Expected Type: district_status_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(district) like '%lilongwe%' and status = 'in progress'; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where lower(district) like '%lilongwe%' and status = 'in progress' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(district) like '%lilongwe%' and status = 'in progress';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 26: What's happening in Lilongwe
+Expected Type: district_status_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(district) like '%lilongwe%' and status = 'in progress'; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where lower(district) like '%lilongwe%' and status = 'in progress' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(district) like '%lilongwe%' and status = 'in progress';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 27: Chiradzulu Bridge info
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%chiradzulu%bridge%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%chiradzulu%bridge%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 29: Water and sanitation
+Expected Type: sector_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(sector) like '%(water|sanitation)%'; RESULTS: select pd.*, count(*) over() as total_count, sum(budget_amount_amount) over() as total_budget_amount from proj_dashboard pd where lower(sector) like '%(water|sanitation)%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(sector) like '%(water|sanitation)%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 30: Show me water projects
+Expected Type: sector_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(sector) like '%(water|sanitation)%'; RESULTS: select pd.*, count(*) over() as total_count, sum(budget_amount_amount) over() as total_budget_amount from proj_dashboard pd where lower(sector) like '%(water|sanitation)%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(sector) like '%(water|sanitation)%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 31: Kasungu Solar status
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%kasungu%solar%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%kasungu%solar%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 33: Which district has most
+Expected Type: analytics_query
+Actual Type: unknown
+
+Expected SQL:
+select district, count(*) as project_count, sum(budget_amount_amount) as total_budget_amount from proj_dashboard group by district limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select district, count(*) as project_count, sum(budget_amount_amount) as total_budget_amount from proj_dashboard group by district limit 10;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 34: District rankings
+Expected Type: analytics_query
+Actual Type: unknown
+
+Expected SQL:
+select district, count(*) as project_count, sum(budget_amount_amount) as total_budget_amount from proj_dashboard group by district limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select district, count(*) as project_count, sum(budget_amount_amount) as total_budget_amount from proj_dashboard group by district limit 10;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 35: Nkhata Bay Port info
+Expected Type: specific_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%nkhata%bay%port%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, pc.completion_rate, string_agg(distinct c.contractor_name, ', ') as contractors, string_agg(distinct i.issue_description, ', ') as issues from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id left join contractors c on pd.project_id = c.project_id left join project_issues i on pd.project_id = i.project_id where lower(pd.project_name) like '%nkhata%bay%port%' group by pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount_amount, pc.completion_rate;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 37: Show completed
+Expected Type: status_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where status = 'completed'; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where status = 'completed' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where status = 'completed';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 38: What's in Dowa
+Expected Type: district_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(district) like '%dowa%'; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where lower(district) like '%dowa%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(district) like '%dowa%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 39: Projects above 100m
+Expected Type: budget_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where budget_amount_amount > 100000000; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where budget_amount_amount > 100000000 limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where budget_amount_amount_amount > 100000000;",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 40: Big projects
+Expected Type: budget_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where budget_amount_amount > 100000000; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where budget_amount_amount > 100000000 limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where budget_amount_amount_amount > 100000000;",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 41: Blantyre progress
+Expected Type: district_completion_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.district, count(*) as total_projects, avg(pc.completion_rate) as avg_completion, count(case when status = 'completed' then 1 end) as completed_projects from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id where lower(district) like '%blantyre%' group by district;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.district, count(*) as total_projects, avg(pc.completion_rate) as avg_completion, count(case when status = 'completed' then 1 end) as completed_projects from proj_dashboard pd left join project_completion pc on pd.project_id = pc.project_id where lower(district) like '%blantyre%' group by district;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 42: Show me roads
+Expected Type: sector_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(sector) like '%(road|transport|highway)%'; RESULTS: select pd.*, count(*) over() as total_count, sum(budget_amount_amount) over() as total_budget_amount from proj_dashboard pd where lower(sector) like '%(road|transport|highway)%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(sector) like '%(road|transport|highway)%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 43: 2023 projects
+Expected Type: date_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where extract(year from start_date) = 2023; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where extract(year from start_date) = 2023 limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where extract(year from start_date) = 2023;",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 44: This year's projects
+Expected Type: date_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where extract(year from start_date) = extract(year from current_date); RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where extract(year from start_date) = extract(year from current_date) limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where extract(year from start_date) = extract(year from current_date);",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 45: Average cost in Zomba
+Expected Type: district_budget_query
+Actual Type: unknown
+
+Expected SQL:
+select district, count(*) as total_projects, avg(budget_amount_amount) as avg_budget_amount, sum(budget_amount_amount) as total_budget_amount from proj_dashboard where lower(district) like '%zomba%' group by district;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select district, count(*) as total_projects, avg(budget_amount_amount) as avg_budget_amount, sum(budget_amount_amount) as total_budget_amount from proj_dashboard where lower(district) like '%zomba%' group by district;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 46: List contractors
+Expected Type: contractor_query
+Actual Type: unknown
+
+Expected SQL:
+select distinct contractor_name, count(distinct project_id) as project_count, string_agg(distinct pd.project_name, ', ') as projects from contractors c join proj_dashboard pd on c.project_id = pd.project_id group by contractor_name
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select distinct contractor_name, count(distinct project_id) as project_count, string_agg(distinct pd.project_name, ', ') as projects from contractors c join proj_dashboard pd on c.project_id = pd.project_id group by contractor_name",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 47: Who is working on projects
+Expected Type: contractor_query
+Actual Type: unknown
+
+Expected SQL:
+select distinct contractor_name, count(distinct project_id) as project_count, string_agg(distinct pd.project_name, ', ') as projects from contractors c join proj_dashboard pd on c.project_id = pd.project_id group by contractor_name
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select distinct contractor_name, count(distinct project_id) as project_count, string_agg(distinct pd.project_name, ', ') as projects from contractors c join proj_dashboard pd on c.project_id = pd.project_id group by contractor_name",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 48: Show 75% complete
+Expected Type: completion_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard pd join project_completion pc on pd.project_id = pc.project_id where pc.completion_rate >= 75; RESULTS: select pd.*, pc.completion_rate, count(*) over() as total_count from proj_dashboard pd join project_completion pc on pd.project_id = pc.project_id where pc.completion_rate >= 75 limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard pd join project_completion pc on pd.project_id = pc.project_id where pc.completion_rate >= 75;",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 49: Almost done projects
+Expected Type: completion_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard pd join project_completion pc on pd.project_id = pc.project_id where pc.completion_rate >= 75; RESULTS: select pd.*, pc.completion_rate, count(*) over() as total_count from proj_dashboard pd join project_completion pc on pd.project_id = pc.project_id where pc.completion_rate >= 75 limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard pd join project_completion pc on pd.project_id = pc.project_id where pc.completion_rate >= 75;",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 50: Biggest infrastructure
+Expected Type: budget_sector_query
+Actual Type: unknown
+
+Expected SQL:
+select pd.*, count(*) over() as total_count from proj_dashboard pd where lower(sector) like '%(infrastructure|road|bridge|building)%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select pd.*, count(*) over() as total_count from proj_dashboard pd where lower(sector) like '%(infrastructure|road|bridge|building)%' limit 10;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 51: TA Mwambo projects
+Expected Type: location_query
+Actual Type: unknown
+
+Expected SQL:
+COUNT: select count(*) from proj_dashboard where lower(traditional_authority) like '%mwambo%'; RESULTS: select pd.*, count(*) over() as total_count from proj_dashboard pd where lower(traditional_authority) like '%mwambo%' limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "count": {
+    "expected": "select count(*) from proj_dashboard where lower(traditional_authority) like '%mwambo%';",
+    "actual": ""
+  },
+  "results": true
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------
+
+
+Test 52: Which sector costs most
+Expected Type: sector_budget_query
+Actual Type: unknown
+
+Expected SQL:
+select sector, count(*) as project_count, sum(budget_amount_amount) as total_budget_amount, avg(budget_amount_amount) as avg_budget_amount from proj_dashboard group by sector limit 10;
+
+Actual SQL:
+
+
+Differences:
+{
+  "expected": "select sector, count(*) as project_count, sum(budget_amount_amount) as total_budget_amount, avg(budget_amount_amount) as avg_budget_amount from proj_dashboard group by sector limit 10;",
+  "actual": ""
+}
+
+Response:
+{
+  "results": [
+    {
+      "type": "text",
+      "message": "I couldn't understand your query. Please try asking about projects in a specific district, sector, or ask about a specific project.",
+      "data": {}
+    }
+  ],
+  "metadata": {
+    "total_results": 0,
+    "query_time": "0.00s"
+  }
+}
+-------------------

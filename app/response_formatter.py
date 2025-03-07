@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class ResponseFormatter:
-    """Formats responses for different query types"""
+    """Formats query responses for output"""
     
     def __init__(self):
         """Initialize response formatter"""
@@ -61,6 +61,14 @@ class ResponseFormatter:
             ("status", "Status"),
             ("project_sector", "Sector")
         ]
+        
+        self.sector_names = {
+            'health': 'Health',
+            'education': 'Education',
+            'water': 'Water and Sanitation',
+            'transport': 'Transport',
+            'agriculture': 'Agriculture'
+        }
     
     def format_value(self, value: Any, format_type: str = None) -> str:
         """Format a value based on its type"""
@@ -85,6 +93,110 @@ class ResponseFormatter:
                 return self.NULL_VALUE
         else:
             return str(value)
+    
+    def format_response(self, query_type: str, results: List[Dict], parameters: Dict) -> Dict:
+        """Format the response based on query type and results"""
+        if not results:
+            return self._format_no_results(query_type, parameters)
+            
+        if query_type == "specific":
+            return self._format_specific_response(results[0])
+        else:
+            return self._format_general_response(results, parameters)
+            
+    def _format_no_results(self, query_type: str, parameters: Dict) -> Dict:
+        """Format response when no results are found"""
+        sector = parameters.get("filters", {}).get("sectors", [None])[0]
+        district = parameters.get("filters", {}).get("districts", [None])[0]
+        
+        if sector:
+            sector_name = self.sector_names.get(sector, sector.title())
+            message = f"I couldn't find any projects in the {sector_name} sector. Would you like to try a different sector?"
+        elif district:
+            message = f"I couldn't find any projects in {district}. Would you like to try a different district?"
+        else:
+            message = "I couldn't find any projects matching your criteria. Could you try rephrasing your query?"
+            
+        return {
+            "type": query_type,
+            "message": message,
+            "results": [],
+            "metadata": {
+                "total_results": 0,
+                "filters_applied": parameters.get("filters", {})
+            }
+        }
+        
+    def _format_general_response(self, results: List[Dict], parameters: Dict) -> Dict:
+        """Format response for general queries"""
+        sector = parameters.get("filters", {}).get("sectors", [None])[0]
+        district = parameters.get("filters", {}).get("districts", [None])[0]
+        
+        # Build summary message
+        if sector:
+            sector_name = self.sector_names.get(sector, sector.title())
+            summary = f"I found {len(results)} projects in the {sector_name} sector."
+        elif district:
+            summary = f"I found {len(results)} projects in {district}."
+        else:
+            summary = f"I found {len(results)} projects matching your criteria."
+            
+        # Add budget information if available
+        total_budget = sum(r.get("TOTALBUDGET", 0) for r in results)
+        if total_budget > 0:
+            summary += f" The total budget for these projects is MWK {total_budget:,.2f}."
+            
+        # Format project list
+        project_list = []
+        for r in results:
+            project = {
+                "name": r.get("PROJECTNAME", "Unnamed Project"),
+                "district": r.get("DISTRICT", "Unknown Location"),
+                "status": r.get("PROJECTSTATUS", "Status Unknown"),
+                "budget": r.get("TOTALBUDGET", 0),
+                "sector": r.get("PROJECTSECTOR", "Sector Unknown"),
+                "completion": r.get("COMPLETIONPERCENTAGE", 0)
+            }
+            project_list.append(project)
+            
+        return {
+            "type": "general",
+            "message": summary,
+            "results": project_list,
+            "metadata": {
+                "total_results": len(results),
+                "filters_applied": parameters.get("filters", {}),
+                "total_budget": total_budget
+            }
+        }
+        
+    def _format_specific_response(self, result: Dict) -> Dict:
+        """Format response for specific project queries"""
+        project_name = result.get("PROJECTNAME", "this project")
+        status = result.get("PROJECTSTATUS", "unknown status")
+        budget = result.get("TOTALBUDGET", 0)
+        completion = result.get("COMPLETIONPERCENTAGE", 0)
+        district = result.get("DISTRICT", "unknown location")
+        sector = result.get("PROJECTSECTOR", "unknown sector")
+        
+        message = f"{project_name} is a {sector} project in {district}. "
+        message += f"The project is currently {status} with {completion}% completion. "
+        if budget > 0:
+            message += f"The total budget is MWK {budget:,.2f}."
+            
+        return {
+            "type": "specific",
+            "message": message,
+            "result": result,
+            "metadata": {
+                "project_name": project_name,
+                "status": status,
+                "budget": budget,
+                "completion": completion,
+                "district": district,
+                "sector": sector
+            }
+        }
     
     def format_specific_project(self, project: pd.Series) -> Dict[str, Any]:
         """Format a specific project query response"""
@@ -147,21 +259,4 @@ class ResponseFormatter:
                 "type": "error",
                 "message": "Error formatting project list",
                 "data": {}
-            }
-    
-    def format_response(self, query_type: str, results: pd.DataFrame) -> Dict[str, Any]:
-        """Format the response based on query type"""
-        if results.empty:
-            return {
-                "type": "error",
-                "message": "No projects found matching your criteria",
-                "data": {}
-            }
-        
-        if query_type == "specific":
-            # For specific queries, always use the first result
-            project = results.iloc[0]
-            return self.format_specific_project(project)
-        else:
-            # For general queries, format as a list
-            return self.format_general_query(results) 
+            } 

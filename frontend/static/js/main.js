@@ -139,16 +139,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (initialView) initialView.style.display = 'none';
             if (chatView) chatView.style.display = 'block';
             
-            // Clear input
+            // Clear input and store message
+            const userMessage = message;
             chatInput.value = '';
             
             // Force focus back to the input
-            setTimeout(() => {
-                chatInput.focus();
-            }, 0);
+            chatInput.focus();
             
             // Send message
-            await sendMessage(message);
+            await sendMessage(userMessage);
         });
     }
 

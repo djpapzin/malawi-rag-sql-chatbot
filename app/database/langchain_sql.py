@@ -119,6 +119,42 @@ class LangChainSQLIntegration:
             logger.info("Using model: %s", self.model)
             logger.info("Successfully initialized Together API client")
             
+            # Initialize list of valid districts
+            self.valid_districts = [
+                'Balaka', 'Blantyre', 'Chikwawa', 'Chiradzulu', 'Chitipa', 'Dedza', 
+                'Dowa', 'Karonga', 'Kasungu', 'Likoma', 'Lilongwe', 'Machinga', 
+                'Mangochi', 'Mchinji', 'Mulanje', 'Mwanza', 'Mzimba', 'Neno', 
+                'Nkhata Bay', 'Nkhotakota', 'Nsanje', 'Ntcheu', 'Ntchisi', 'Phalombe', 
+                'Rumphi', 'Salima', 'Thyolo', 'Zomba'
+            ]
+            
+            # Initialize district variations mapping
+            self.district_variations = {
+                "nkhatabay": "Nkhata Bay",
+                "nkata bay": "Nkhata Bay",
+                "nkhotacota": "Nkhotakota",
+                "lilongway": "Lilongwe",
+                "blantire": "Blantyre",
+                "blantrye": "Blantyre",
+                "zomba city": "Zomba",
+                "mzuzu": "Mzimba",  # Mzuzu is in Mzimba district
+            }
+            
+            # Initialize sector mapping
+            self.sector_mapping = {
+                "health": ["health", "healthcare", "medical", "hospital", "clinic", "dispensary", "maternity"],
+                "education": ["education", "school", "training", "learning", "college", "university", "classroom"],
+                "water": ["water", "irrigation", "dam", "borehole", "sanitation"],
+                "agriculture": ["agriculture", "farming", "crops", "livestock", "irrigation"],
+                "infrastructure": ["infrastructure", "building", "construction", "facility"],
+                "transport": ["transport", "road", "bridge", "highway", "railway"],
+                "energy": ["energy", "power", "electricity", "solar", "grid"],
+                "housing": ["housing", "residential", "homes", "settlement"],
+                "sanitation": ["sanitation", "sewage", "waste", "drainage"],
+                "community security": ["security", "police", "community security", "police unit"],
+                "commercial services": ["commercial", "market", "business", "trade", "shop"]
+            }
+            
         except Exception as e:
             logger.error(f"Error initializing LangChainSQLIntegration: {str(e)}")
             raise
@@ -363,8 +399,7 @@ Just ask me what you'd like to know about these projects!"""
                     SELECT COUNT(*) as total_count
                     FROM proj_dashboard
                     WHERE LOWER(DISTRICT) = LOWER('{district}')
-                       OR LOWER(DISTRICT) LIKE LOWER('%{district}%')
-                       OR similarity(LOWER(DISTRICT), LOWER('{district}')) > 0.4;
+                       OR LOWER(DISTRICT) LIKE LOWER('%{district}%');
                 """
                 
                 results_query = f"""
@@ -391,7 +426,6 @@ Just ask me what you'd like to know about these projects!"""
                     FROM proj_dashboard
                     WHERE LOWER(DISTRICT) = LOWER('{district}')
                        OR LOWER(DISTRICT) LIKE LOWER('%{district}%')
-                       OR similarity(LOWER(DISTRICT), LOWER('{district}')) > 0.4
                     ORDER BY 
                         CASE 
                             WHEN LOWER(DISTRICT) = LOWER('{district}') THEN 1
@@ -415,8 +449,7 @@ Just ask me what you'd like to know about these projects!"""
                     SELECT COUNT(*) as total_count
                     FROM proj_dashboard
                     WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
-                       OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
-                       OR similarity(LOWER(PROJECTSECTOR), LOWER('{sector}')) > 0.4;
+                       OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%');
                 """
                 
                 results_query = f"""
@@ -443,7 +476,6 @@ Just ask me what you'd like to know about these projects!"""
                     FROM proj_dashboard
                     WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
                        OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
-                       OR similarity(LOWER(PROJECTSECTOR), LOWER('{sector}')) > 0.4
                     ORDER BY 
                         CASE 
                             WHEN LOWER(PROJECTSECTOR) = LOWER('{sector}') THEN 1
@@ -1618,6 +1650,157 @@ Example queries:
                 "prev_page_command": "previous page" if current_page > 1 else None
             }
         }
+
+    async def _extract_district(self, query: str) -> str:
+        """Extract district name from query text using enhanced pattern matching"""
+        logger.info(f"Extracting district from query: {query}")
+        
+        # Common patterns for district queries
+        patterns = [
+            # Direct district mentions
+            r'(?:in|at|from|of|for)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+district|\s*(?:$|[,\.]|\s+(?:and|or|projects?|sector)))',
+            r'([a-zA-Z\s]+?)\s+district\b',
+            r'\b([a-zA-Z]+)(?:\s+projects?|\s+region|\s+area)\b',
+            
+            # Question-based patterns
+            r'(?:which|what|show|list)\s+projects?\s+(?:are|exist|located)\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?\s*[?]?',
+            r'(?:can you|please)\s+(?:show|list|display)\s+(?:me|all)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:i want|need)\s+to\s+(?:see|find|get)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            
+            # Direct patterns
+            r'projects?\s+(?:in|at|located in|based in)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:list|show|display)\s+projects?\s+(?:from|in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:find|search for)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            
+            # Complex patterns
+            r'(?:tell|give)\s+me\s+(?:about|information about)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:looking for|need information about)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            r'(?:what are|show me)\s+the\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?'
+        ]
+        
+        query = query.lower()
+        
+        # First try pattern matching
+        for pattern in patterns:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
+                district = match.group(1).strip()
+                # Clean up the district name
+                district = re.sub(r'\s+', ' ', district)  # Normalize spaces
+                district = ' '.join(word.title() for word in district.split())  # Title case
+                # Remove common words that might be captured
+                district = re.sub(r'\b(The|And|Or|Projects?|In|At|From|Of|For)\b', '', district, flags=re.IGNORECASE)
+                district = district.strip()
+                if district:
+                    logger.info(f"Found district through pattern matching: {district}")
+                    return self._validate_district(district)
+        
+        # If no pattern match, check for direct district mentions
+        for district in self.valid_districts:
+            if district.lower() in query:
+                logger.info(f"Found district through direct mention: {district}")
+                return district
+        
+        # If still no match, try fuzzy matching with words that start with uppercase
+        words = [word for word in query.split() if word[0].isupper()]
+        for word in words:
+            district = self._validate_district(word)
+            if district:
+                logger.info(f"Found district through fuzzy matching: {district}")
+                return district
+        
+        logger.info("No district found in query")
+        return ""
+        
+    def _validate_district(self, district: str) -> str:
+        """Validate and normalize district name using fuzzy matching"""
+        district = district.strip().title()
+        
+        # Check variations mapping
+        normalized_key = district.lower().replace(" ", "")
+        if normalized_key in self.district_variations:
+            return self.district_variations[normalized_key]
+        
+        # Exact match
+        if district in self.valid_districts:
+            return district
+        
+        # Fuzzy match using difflib
+        from difflib import get_close_matches
+        matches = get_close_matches(district, self.valid_districts, n=1, cutoff=0.7)
+        if matches:
+            return matches[0]
+        
+        return ""
+
+    async def _extract_sector(self, query: str) -> str:
+        """Extract sector from query text using enhanced pattern matching"""
+        logger.info(f"Extracting sector from query: {query}")
+        
+        # Common patterns for sector queries
+        patterns = [
+            # Direct sector mentions
+            r'(?:in|from|about|for)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector|\s*(?:$|[,\.]|\s+(?:and|or|projects?)))',
+            r'([a-zA-Z\s]+?)\s+sector\b',
+            r'\b([a-zA-Z]+)(?:\s+projects?|\s+initiatives?|\s+developments?)\b',
+            
+            # Question-based patterns
+            r'(?:which|what|show|list)\s+projects?\s+(?:are|exist|located)\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?\s*[?]?',
+            r'(?:can you|please)\s+(?:show|list|display)\s+(?:me|all)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
+            r'(?:i want|need)\s+to\s+(?:see|find|get)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
+            
+            # Direct patterns
+            r'projects?\s+(?:in|at|related to|about)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
+            r'(?:list|show|display)\s+projects?\s+(?:from|in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
+            r'(?:find|search for)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
+            
+            # Complex patterns
+            r'(?:tell|give)\s+me\s+(?:about|information about)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
+            r'(?:looking for|need information about)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
+            r'(?:what are|show me)\s+the\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?'
+        ]
+        
+        query = query.lower()
+        
+        # First try pattern matching
+        for pattern in patterns:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
+                sector = match.group(1).strip()
+                # Clean up the sector name
+                sector = re.sub(r'\s+', ' ', sector)  # Normalize spaces
+                sector = ' '.join(word.title() for word in sector.split())  # Title case
+                # Remove common words that might be captured
+                sector = re.sub(r'\b(The|And|Or|Projects?|In|At|From|Of|For)\b', '', sector, flags=re.IGNORECASE)
+                sector = sector.strip()
+                if sector:
+                    logger.info(f"Found sector through pattern matching: {sector}")
+                    return self._validate_sector(sector)
+        
+        # If no pattern match, check for sector keywords
+        for sector, keywords in self.sector_mapping.items():
+            for keyword in keywords:
+                if keyword in query:
+                    logger.info(f"Found sector through keyword matching: {sector}")
+                    return sector
+        
+        logger.info("No sector found in query")
+        return ""
+        
+    def _validate_sector(self, sector: str) -> str:
+        """Validate and normalize sector name"""
+        sector = sector.strip().lower()
+        
+        # Check if the sector matches any of our known sectors
+        for known_sector, keywords in self.sector_mapping.items():
+            if sector == known_sector or any(keyword == sector for keyword in keywords):
+                return known_sector
+            
+            # Check if the sector contains any of the keywords
+            if any(keyword in sector for keyword in keywords):
+                return known_sector
+        
+        return sector
 
 async def get_greeting_response() -> Dict:
     """Return a friendly greeting response."""

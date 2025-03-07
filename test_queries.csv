@@ -1,0 +1,241 @@
+id,query_text,expected_type,main_type,expected_output,expected_sql
+1,"Which projects are there in the health sector",sector_query,general,"List of health sector projects with count and total budget","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(sector) SIMILAR TO '%(health|medical|clinic|hospital)%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count, SUM(budget_amount) OVER() as total_budget FROM proj_dashboard pd WHERE LOWER(sector) SIMILAR TO '%(health|medical|clinic|hospital)%' LIMIT 10;"
+2,"Show me health",sector_query,general,"List of health sector projects with count and total budget","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(sector) SIMILAR TO '%(health|medical|clinic|hospital)%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count, SUM(budget_amount) OVER() as total_budget FROM proj_dashboard pd WHERE LOWER(sector) SIMILAR TO '%(health|medical|clinic|hospital)%' LIMIT 10;"
+3,"What's happening in health",sector_query,general,"List of health sector projects with count and total budget","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(sector) SIMILAR TO '%(health|medical|clinic|hospital)%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count, SUM(budget_amount) OVER() as total_budget FROM proj_dashboard pd WHERE LOWER(sector) SIMILAR TO '%(health|medical|clinic|hospital)%' LIMIT 10;"
+4,"Show me all projects in Zomba district",district_query,general,"List of projects in Zomba with location details","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(district) SIMILAR TO '%zomba%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE LOWER(district) SIMILAR TO '%zomba%' LIMIT 10;"
+5,"What's happening in Zomba",district_query,general,"List of projects in Zomba with location details","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(district) SIMILAR TO '%zomba%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE LOWER(district) SIMILAR TO '%zomba%' LIMIT 10;"
+6,"Zomba projects",district_query,general,"List of projects in Zomba with location details","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(district) SIMILAR TO '%zomba%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE LOWER(district) SIMILAR TO '%zomba%' LIMIT 10;"
+7,"Tell me about the Nyandule Classroom Block project",specific_query,specific,"Detailed information about Nyandule Classroom Block including budget, status, and completion","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%nyandule%classroom%block%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+8,"Nyandule Classroom Block details",specific_query,specific,"Detailed information about Nyandule Classroom Block including budget, status, and completion","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%nyandule%classroom%block%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+9,"What's happening with Nyandule",specific_query,specific,"Detailed information about Nyandule Classroom Block including budget, status, and completion","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%nyandule%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+10,"Hi there",greeting,greeting,"Welcome message explaining available query types",""
+11,"What is the total budget for all projects?",aggregate_query,general,"Total budget amount in MWK for all projects","SELECT COUNT(*) as total_projects, 
+       SUM(budget_amount) as total_budget,
+       AVG(budget_amount) as avg_budget
+FROM proj_dashboard;"
+12,"Total budget",aggregate_query,general,"Total budget amount in MWK for all projects","SELECT COUNT(*) as total_projects, 
+       SUM(budget_amount) as total_budget,
+       AVG(budget_amount) as avg_budget
+FROM proj_dashboard;"
+13,"How much money in total",aggregate_query,general,"Total budget amount in MWK for all projects","SELECT COUNT(*) as total_projects, 
+       SUM(budget_amount) as total_budget,
+       AVG(budget_amount) as avg_budget
+FROM proj_dashboard;"
+14,"Tell me about Mzuzu Hospital",specific_query,specific,"Detailed information about Mzuzu Hospital project","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%mzuzu%hospital%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+15,"Mzuzu Hospital status",specific_query,specific,"Detailed information about Mzuzu Hospital project","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%mzuzu%hospital%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+16,"What's up with Mzuzu Hospital",specific_query,specific,"Detailed information about Mzuzu Hospital project","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%mzuzu%hospital%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+17,"Show me education",sector_query,general,"List of education projects with count and total budget","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(sector) SIMILAR TO '%(education|school|classroom|college|university)%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count, SUM(budget_amount) OVER() as total_budget FROM proj_dashboard pd WHERE LOWER(sector) SIMILAR TO '%(education|school|classroom|college|university)%' LIMIT 10;"
+18,"Education sector",sector_query,general,"List of education projects with count and total budget","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(sector) SIMILAR TO '%(education|school|classroom|college|university)%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count, SUM(budget_amount) OVER() as total_budget FROM proj_dashboard pd WHERE LOWER(sector) SIMILAR TO '%(education|school|classroom|college|university)%' LIMIT 10;"
+19,"What's happening in education",sector_query,general,"List of education projects with count and total budget","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(sector) SIMILAR TO '%(education|school|classroom|college|university)%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count, SUM(budget_amount) OVER() as total_budget FROM proj_dashboard pd WHERE LOWER(sector) SIMILAR TO '%(education|school|classroom|college|university)%' LIMIT 10;"
+20,"Mangochi Water Supply status",specific_query,specific,"Detailed status of Mangochi Water project","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%mangochi%water%supply%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+21,"Tell me about Mangochi Water",specific_query,specific,"Detailed status of Mangochi Water project","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%mangochi%water%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+22,"Good morning",greeting,greeting,"Welcome message with examples of what to ask",""
+23,"Lilongwe Market details",specific_query,specific,"Detailed information about Lilongwe Market project","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%lilongwe%market%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+24,"What is the weather like today?",out_of_context,greeting,"Message explaining this is not a weather bot",""
+25,"Show ongoing in Lilongwe",district_status_query,general,"List of in-progress projects in Lilongwe","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(district) SIMILAR TO '%lilongwe%' AND status = 'In Progress';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE LOWER(district) SIMILAR TO '%lilongwe%' AND status = 'In Progress' LIMIT 10;"
+26,"What's happening in Lilongwe",district_status_query,general,"List of in-progress projects in Lilongwe","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(district) SIMILAR TO '%lilongwe%' AND status = 'In Progress';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE LOWER(district) SIMILAR TO '%lilongwe%' AND status = 'In Progress' LIMIT 10;"
+27,"Chiradzulu Bridge info",specific_query,specific,"Detailed information about Chiradzulu Bridge","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%chiradzulu%bridge%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+28,"How do I apply for a job?",out_of_context,greeting,"Message explaining this is a project information bot only",""
+29,"Water and sanitation",sector_query,general,"List of water and sanitation projects","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(sector) SIMILAR TO '%(water|sanitation)%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count, SUM(budget_amount) OVER() as total_budget FROM proj_dashboard pd WHERE LOWER(sector) SIMILAR TO '%(water|sanitation)%' LIMIT 10;"
+30,"Show me water projects",sector_query,general,"List of water and sanitation projects","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(sector) SIMILAR TO '%(water|sanitation)%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count, SUM(budget_amount) OVER() as total_budget FROM proj_dashboard pd WHERE LOWER(sector) SIMILAR TO '%(water|sanitation)%' LIMIT 10;"
+31,"Kasungu Solar status",specific_query,specific,"Detailed status of Kasungu Solar project","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%kasungu%solar%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+32,"Hello, how are you?",greeting,greeting,"Welcome message with chatbot capabilities",""
+33,"Which district has most",analytics_query,general,"Ranked list of districts by project count","SELECT district, 
+       COUNT(*) as project_count,
+       SUM(budget_amount) as total_budget
+FROM proj_dashboard 
+GROUP BY district 
+ORDER BY project_count DESC 
+LIMIT 10;"
+34,"District rankings",analytics_query,general,"Ranked list of districts by project count","SELECT district, 
+       COUNT(*) as project_count,
+       SUM(budget_amount) as total_budget
+FROM proj_dashboard 
+GROUP BY district 
+ORDER BY project_count DESC 
+LIMIT 10;"
+35,"Nkhata Bay Port info",specific_query,specific,"Detailed information about Nkhata Bay Port","SELECT pd.*, 
+       pc.completion_rate,
+       STRING_AGG(DISTINCT c.contractor_name, ', ') as contractors,
+       STRING_AGG(DISTINCT i.issue_description, ', ') as issues
+FROM proj_dashboard pd 
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+LEFT JOIN contractors c ON pd.project_id = c.project_id
+LEFT JOIN project_issues i ON pd.project_id = i.project_id
+WHERE LOWER(pd.project_name) SIMILAR TO '%nkhata%bay%port%'
+GROUP BY pd.project_id, pd.project_name, pd.district, pd.sector, pd.status, pd.budget_amount, pc.completion_rate;"
+36,"Can you order food for me?",out_of_context,greeting,"Message explaining this is a project information bot",""
+37,"Show completed",status_query,general,"List of completed projects","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE status = 'Completed';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE status = 'Completed' LIMIT 10;"
+38,"What's in Dowa",district_query,general,"List of projects in Dowa district","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(district) SIMILAR TO '%dowa%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE LOWER(district) SIMILAR TO '%dowa%' LIMIT 10;"
+39,"Projects above 100m",budget_query,general,"List of projects with budget over 100 million","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE budget_amount > 100000000;
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE budget_amount > 100000000 ORDER BY budget_amount DESC LIMIT 10;"
+40,"Big projects",budget_query,general,"List of projects with budget over 100 million","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE budget_amount > 100000000;
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE budget_amount > 100000000 ORDER BY budget_amount DESC LIMIT 10;"
+41,"Blantyre progress",district_completion_query,general,"Completion percentage of projects in Blantyre","SELECT pd.district,
+       COUNT(*) as total_projects,
+       AVG(pc.completion_rate) as avg_completion,
+       COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_projects
+FROM proj_dashboard pd
+LEFT JOIN project_completion pc ON pd.project_id = pc.project_id
+WHERE LOWER(district) SIMILAR TO '%blantyre%'
+GROUP BY district;"
+42,"Show me roads",sector_query,general,"List of road construction projects","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(sector) SIMILAR TO '%(road|transport|highway)%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count, SUM(budget_amount) OVER() as total_budget FROM proj_dashboard pd WHERE LOWER(sector) SIMILAR TO '%(road|transport|highway)%' LIMIT 10;"
+43,"2023 projects",date_query,general,"List of projects started in 2023","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE EXTRACT(YEAR FROM start_date) = 2023;
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE EXTRACT(YEAR FROM start_date) = 2023 LIMIT 10;"
+44,"This year's projects",date_query,general,"List of projects started in 2023","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE);
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE) LIMIT 10;"
+45,"Average cost in Zomba",district_budget_query,general,"Average project budget in Zomba","SELECT district,
+       COUNT(*) as total_projects,
+       AVG(budget_amount) as avg_budget,
+       SUM(budget_amount) as total_budget
+FROM proj_dashboard
+WHERE LOWER(district) SIMILAR TO '%zomba%'
+GROUP BY district;"
+46,"List contractors",contractor_query,general,"List of all contractors","SELECT DISTINCT contractor_name,
+       COUNT(DISTINCT project_id) as project_count,
+       STRING_AGG(DISTINCT pd.project_name, ', ') as projects
+FROM contractors c
+JOIN proj_dashboard pd ON c.project_id = pd.project_id
+GROUP BY contractor_name
+ORDER BY project_count DESC;"
+47,"Who is working on projects",contractor_query,general,"List of all contractors","SELECT DISTINCT contractor_name,
+       COUNT(DISTINCT project_id) as project_count,
+       STRING_AGG(DISTINCT pd.project_name, ', ') as projects
+FROM contractors c
+JOIN proj_dashboard pd ON c.project_id = pd.project_id
+GROUP BY contractor_name
+ORDER BY project_count DESC;"
+48,"Show 75% complete",completion_query,general,"Projects with completion rate above 75%","COUNT: SELECT COUNT(*) FROM proj_dashboard pd JOIN project_completion pc ON pd.project_id = pc.project_id WHERE pc.completion_rate >= 75;
+RESULTS: SELECT pd.*, pc.completion_rate, COUNT(*) OVER() as total_count FROM proj_dashboard pd JOIN project_completion pc ON pd.project_id = pc.project_id WHERE pc.completion_rate >= 75 ORDER BY pc.completion_rate DESC LIMIT 10;"
+49,"Almost done projects",completion_query,general,"Projects with completion rate above 75%","COUNT: SELECT COUNT(*) FROM proj_dashboard pd JOIN project_completion pc ON pd.project_id = pc.project_id WHERE pc.completion_rate >= 75;
+RESULTS: SELECT pd.*, pc.completion_rate, COUNT(*) OVER() as total_count FROM proj_dashboard pd JOIN project_completion pc ON pd.project_id = pc.project_id WHERE pc.completion_rate >= 75 ORDER BY pc.completion_rate DESC LIMIT 10;"
+50,"Biggest infrastructure",budget_sector_query,general,"Largest infrastructure projects","SELECT pd.*, COUNT(*) OVER() as total_count 
+FROM proj_dashboard pd 
+WHERE LOWER(sector) SIMILAR TO '%(infrastructure|road|bridge|building)%'
+ORDER BY budget_amount DESC 
+LIMIT 10;"
+51,"TA Mwambo projects",location_query,general,"Projects in Traditional Authority Mwambo","COUNT: SELECT COUNT(*) FROM proj_dashboard WHERE LOWER(traditional_authority) SIMILAR TO '%mwambo%';
+RESULTS: SELECT pd.*, COUNT(*) OVER() as total_count FROM proj_dashboard pd WHERE LOWER(traditional_authority) SIMILAR TO '%mwambo%' LIMIT 10;"
+52,"Which sector costs most",sector_budget_query,general,"Sectors ranked by total budget","SELECT sector,
+       COUNT(*) as project_count,
+       SUM(budget_amount) as total_budget,
+       AVG(budget_amount) as avg_budget
+FROM proj_dashboard
+GROUP BY sector
+ORDER BY total_budget DESC
+LIMIT 10;" 

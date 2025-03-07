@@ -111,8 +111,8 @@ class QueryParser:
                 r"(?:about|details?|info(?:rmation)?|tell me about|show me|what is)(?: the)? (.+?)(?:\s*\?|\s*$)",
                 r"(.+?)(?:\s+project|\s+construction)(?:\s*\?|\s*$)",
             ]:
-            match = re.search(pattern, query, re.IGNORECASE)
-            if match:
+                match = re.search(pattern, query, re.IGNORECASE)
+                if match:
                     project_name = match.group(1).strip()
                     project_info = {"name": project_name}
                     break
@@ -193,9 +193,20 @@ class QueryParser:
     def _build_sector_condition(self, sector: str) -> str:
         """Build sector filter condition with fuzzy matching"""
         sector = sector.replace("'", "''")
+        
+        # Sector-specific patterns
+        sector_patterns = {
+            'health': '%(health|medical|hospital|clinic)%',
+            'education': '%(education|school|classroom|college|university)%',
+            'water': '%(water|sanitation|sewage|borehole)%',
+            'transport': '%(transport|road|bridge|highway)%',
+            'agriculture': '%(agriculture|farming|irrigation)%'
+        }
+        
+        pattern = sector_patterns.get(sector, f'%{sector}%')
+        
         return f"""(
-            LOWER(PROJECTSECTOR) = LOWER('{sector}') OR
-            LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%') OR
+            LOWER(PROJECTSECTOR) SIMILAR TO '{pattern}' OR
             similarity(LOWER(PROJECTSECTOR), LOWER('{sector}')) > 0.4
         )"""
 
@@ -225,17 +236,32 @@ class QueryParser:
         # Common patterns for sectors
         patterns = [
             # Direct sector mentions
-            r"\b(?:in\s+the\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector|projects?|facilities?|infrastructure)?\b",
-            r"(?:sector|projects?|facilities?|infrastructure)\s+(?:in|for|about)\s+(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\b",
+            r"\b(?:in\s+the\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector|projects?|facilities?|infrastructure)?\b",
+            r"(?:sector|projects?|facilities?|infrastructure)\s+(?:in|for|about)\s+(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\b",
             
             # Question-based patterns
-            r"(?:what|which|show|list)\s+(?:are\s+the\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector\s+)?projects?\b",
-            r"(?:tell\s+me\s+about|show\s+me|list)\s+(?:the\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector\s+)?projects?\b",
+            r"(?:what|which|show|list)\s+(?:are\s+the\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector\s+)?projects?\b",
+            r"(?:tell\s+me\s+about|show\s+me|list)\s+(?:the\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector\s+)?projects?\b",
             
             # Natural language patterns
-            r"(?:i\s+want|need)\s+to\s+(?:see|find|get)\s+(?:information\s+about\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector\s+)?projects?\b",
-            r"(?:looking\s+for|interested\s+in)\s+(?:information\s+about\s+)?(school|education|health|hospital|clinic|road|transport|water|sanitation|agriculture|farming)\s+(?:sector\s+)?projects?\b"
+            r"(?:i\s+want|need)\s+to\s+(?:see|find|get)\s+(?:information\s+about\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector\s+)?projects?\b",
+            r"(?:looking\s+for|interested\s+in)\s+(?:information\s+about\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector\s+)?projects?\b",
+            
+            # Simple patterns
+            r"\b(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\b"
         ]
+        
+        # Sector mapping for variations
+        sector_mapping = {
+            'medical': 'health',
+            'hospital': 'health',
+            'clinic': 'health',
+            'school': 'education',
+            'classroom': 'education',
+            'road': 'transport',
+            'bridge': 'transport',
+            'farming': 'agriculture'
+        }
         
         query = query.lower()
         
@@ -243,7 +269,8 @@ class QueryParser:
             match = re.search(pattern, query)
             if match:
                 sector = match.group(1)
-                return sector
+                # Map sector variations to standard sectors
+                return sector_mapping.get(sector, sector)
                 
         return ""
 
@@ -324,6 +351,6 @@ class QueryParser:
                 district = re.sub(r'\b(The|And|Or|Projects?|In|At|From|Of|For)\b', '', district, flags=re.IGNORECASE)
                 district = district.strip()
                 if district:
-                return district
+                    return district
         
-        return ""
+        return "" 
