@@ -100,7 +100,38 @@ class ResponseFormatter:
             return self._format_no_results(query_type, parameters)
             
         if query_type == "specific":
-            return self._format_specific_response(results[0])
+            # Convert the dictionary to a pandas Series for detailed formatting
+            # First, create a version with lowercase keys for the formatter
+            result_dict = {}
+            field_mapping = {
+                'PROJECTNAME': 'project_name',
+                'PROJECTCODE': 'project_code',
+                'PROJECTSECTOR': 'project_sector',
+                'PROJECTSTATUS': 'status',
+                'STAGE': 'stage',
+                'REGION': 'region',
+                'DISTRICT': 'district',
+                'TRADITIONALAUTHORITY': 'traditionalauthority',
+                'TOTALBUDGET': 'total_budget',
+                'TOTALEXPENDITURETODATE': 'total_expenditure',
+                'FUNDINGSOURCE': 'funding_source',
+                'STARTDATE': 'start_date',
+                'COMPLETIONESTIDATE': 'completion_date',
+                'LASTVISIT': 'last_monitoring_visit',
+                'COMPLETIONPERCENTAGE': 'completion_progress',
+                'CONTRACTORNAME': 'contractor',
+                'SIGNINGDATE': 'contract_signing_date',
+                'PROJECTDESC': 'description',
+                'FISCALYEAR': 'fiscal_year'
+            }
+            
+            # Map all fields from uppercase DB fields to lowercase formatter fields
+            for db_field, formatter_field in field_mapping.items():
+                if db_field in results[0]:
+                    result_dict[formatter_field] = results[0][db_field]
+                    
+            project_series = pd.Series(result_dict)
+            return self.format_specific_project(project_series)
         else:
             return self._format_general_response(results, parameters)
             
