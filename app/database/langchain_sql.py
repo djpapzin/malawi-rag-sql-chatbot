@@ -384,12 +384,57 @@ Just ask me what you'd like to know about these projects!"""
         try:
             logger.info(f"Generating SQL query for: {user_query}")
             
-            # Check for greetings
-            greetings = ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]
-            if user_query.lower().strip() in greetings:
-                return ("", ""), "greeting"
+            # First try to extract project name since it's most specific
+            project_name = await self._extract_project_name(user_query)
+            logger.info(f"Extracted project name: {project_name}")
             
-            # Try to extract district
+            if project_name:
+                # Build project query
+                count_query = f"""
+                    SELECT COUNT(*) as total_count
+                    FROM proj_dashboard
+                    WHERE LOWER(PROJECTNAME) = LOWER('{project_name}')
+                       OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%');
+                """
+                
+                results_query = f"""
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM proj_dashboard
+                    WHERE LOWER(PROJECTNAME) = LOWER('{project_name}')
+                       OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
+                    ORDER BY 
+                        CASE 
+                            WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1
+                            WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 2
+                            ELSE 3
+                        END,
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                """
+                
+                logger.info(f"Generated project queries: {count_query}, {results_query}")
+                return (count_query, results_query), "project_query"
+
+            # Then try to extract district
             district = await self._extract_district(user_query)
             logger.info(f"Extracted district: {district}")
             
@@ -439,7 +484,7 @@ Just ask me what you'd like to know about these projects!"""
                 logger.info(f"Generated district queries: {count_query}, {results_query}")
                 return (count_query, results_query), "district_query"
             
-            # Try to extract sector
+            # Finally try to extract sector
             sector = await self._extract_sector(user_query)
             logger.info(f"Extracted sector: {sector}")
             
@@ -488,58 +533,6 @@ Just ask me what you'd like to know about these projects!"""
                 
                 logger.info(f"Generated sector queries: {count_query}, {results_query}")
                 return (count_query, results_query), "sector_query"
-            
-            # Try to extract project name
-            project_name = await self._extract_project_name(user_query)
-            logger.info(f"Extracted project name: {project_name}")
-            
-            if project_name:
-                # Build project query
-                count_query = f"""
-                    SELECT COUNT(*) as total_count
-                    FROM proj_dashboard
-                    WHERE LOWER(PROJECTNAME) = LOWER('{project_name}')
-                       OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
-                       OR similarity(LOWER(PROJECTNAME), LOWER('{project_name}')) > 0.4;
-                """
-                
-                results_query = f"""
-                    SELECT 
-                        projectname as project_name,
-                        projectcode as project_code,
-                        projectsector as project_sector,
-                        projectstatus as status,
-                        stage,
-                        region,
-                        district,
-                        traditionalauthority,
-                        budget as total_budget,
-                        TOTALEXPENDITUREYEAR as total_expenditure,
-                        fundingsource as funding_source,
-                        startdate as start_date,
-                        completionestidate as completion_date,
-                        lastvisit as last_monitoring_visit,
-                        completionpercentage as completion_progress,
-                        contractorname as contractor,
-                        signingdate as contract_signing_date,
-                        projectdesc as description,
-                        fiscalyear as fiscal_year
-                    FROM proj_dashboard
-                    WHERE LOWER(PROJECTNAME) = LOWER('{project_name}')
-                       OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
-                       OR similarity(LOWER(PROJECTNAME), LOWER('{project_name}')) > 0.4
-                    ORDER BY 
-                        CASE 
-                            WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1
-                            WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 2
-                            ELSE 3
-                        END,
-                        budget DESC NULLS LAST
-                    LIMIT 10;
-                """
-                
-                logger.info(f"Generated project queries: {count_query}, {results_query}")
-                return (count_query, results_query), "project_query"
             
             # If no specific patterns match, try general query
             count_query = """
@@ -1801,6 +1794,47 @@ Example queries:
                 return known_sector
         
         return sector
+
+    async def _extract_project_name(self, query: str) -> str:
+        """Extract project name from query text using enhanced pattern matching"""
+        logger.info(f"Extracting project name from query: {query}")
+        
+        # Common patterns for project name queries
+        patterns = [
+            # Direct project name mentions with "tell me about" or similar phrases
+            r'(?:tell|show|give)\s+(?:me\s+)?(?:about|details\s+(?:about|of)|information\s+(?:about|on))\s+(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre))?)\s*(?:\?|$|\.)',
+            
+            # Questions about specific projects
+            r'what(?:\s+is|\s+are|\s+about)\s+(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre))?)\s*(?:\?|$|\.)',
+            
+            # Direct name followed by "project" or at end of query
+            r'(?:^|\s+)(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre)))\s*(?:\?|$|\.)',
+            
+            # Project name in quotes
+            r'["\']([^"\']+?)(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre))?["\']',
+            
+            # Simple project name extraction (fallback)
+            r'(?:^|\s+)([A-Z][^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre)))\s*(?:\?|$|\.)'
+        ]
+        
+        query = query.strip()
+        
+        # Try each pattern
+        for pattern in patterns:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
+                project_name = match.group(1).strip()
+                # Clean up the extracted name
+                project_name = re.sub(r'\s+', ' ', project_name)  # Normalize spaces
+                project_name = project_name.strip()
+                # Remove the word "project" if it appears at the end
+                project_name = re.sub(r'\s+project$', '', project_name, flags=re.IGNORECASE)
+                if project_name:
+                    logger.info(f"Found project name through pattern matching: {project_name}")
+                    return project_name
+        
+        logger.info("No project name found in query")
+        return ""
 
 async def get_greeting_response() -> Dict:
     """Return a friendly greeting response."""
