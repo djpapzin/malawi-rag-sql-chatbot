@@ -159,18 +159,16 @@ document.addEventListener('DOMContentLoaded', function() {
         appendMessage(message, true);
         
         try {
-            const response = await fetch(`${API_BASE_URL}/api/rag-sql-chatbot/chat`, {
+            const response = await fetch('/api/rag-sql-chatbot/chat', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    message: message
-                })
+                body: JSON.stringify({ message })
             });
-            
+
             if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();

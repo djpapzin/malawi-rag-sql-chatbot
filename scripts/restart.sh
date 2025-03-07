@@ -2,7 +2,7 @@
 
 # Stop any running instances
 echo "Stopping any running instances of the application..."
-pkill -f "gunicorn app.main:app"
+pkill -f "python.*app/main.py" || true
 
 # Wait for processes to terminate
 echo "Waiting for processes to terminate..."
@@ -10,23 +10,23 @@ sleep 2
 
 # Start the application
 echo "Starting application..."
-PORT=5000
-PYTHON_PATH=/home/dj/miniconda/envs/malawi-rag-sql-chatbot/bin/python
-echo "Using Python: $PYTHON_PATH"
+echo "Using Python: $CONDA_PREFIX/bin/python"
 
-# Start gunicorn with the new port
-$PYTHON_PATH -m gunicorn app.main:app \
-    --workers 4 \
-    --worker-class uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:5000 \
-    --access-logfile server_access.log \
-    --error-logfile server_error.log \
-    --log-level info \
-    --timeout 120 &
+# Check SSL certificates
+CERT_PATH="/etc/letsencrypt/live/dziwani.kwantu.support/fullchain.pem"
+KEY_PATH="/etc/letsencrypt/live/dziwani.kwantu.support/privkey.pem"
+
+if [ ! -f "$CERT_PATH" ] || [ ! -f "$KEY_PATH" ]; then
+    echo "SSL certificates not found. Running without SSL..."
+    nohup $CONDA_PREFIX/bin/python app/main.py > /dev/null 2>&1 &
+else
+    echo "SSL certificates found. Running with HTTPS..."
+    nohup $CONDA_PREFIX/bin/python app/main.py > /dev/null 2>&1 &
+fi
 
 # Get the process ID
 PID=$!
 echo "Started application on port 5000"
 echo "Process ID: $PID"
-echo "Using Python: $PYTHON_PATH"
+echo "Using Python: $CONDA_PREFIX/bin/python"
 echo "Application restart completed!" 

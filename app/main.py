@@ -17,6 +17,9 @@ from .core.config import settings
 from .routers import chat
 from .llm_classification.new_classifier import LLMClassifier
 from .services.llm_service import LLMService
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import ssl
 
 # Configure logging
 logging.basicConfig(
@@ -109,4 +112,12 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
         raise HTTPException(
             status_code=500,
             detail="Error processing your request. Please try again."
-        ) 
+        )
+
+if __name__ == "__main__":
+    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context.load_cert_chain(
+        certfile="/etc/letsencrypt/live/dziwani.kwantu.support/fullchain.pem",
+        keyfile="/etc/letsencrypt/live/dziwani.kwantu.support/privkey.pem"
+    )
+    app.run(host='0.0.0.0', port=5000, ssl_context=ssl_context) 
