@@ -2,12 +2,6 @@
 	"folders": [
 		{
 			"path": "../.."
-		},
-		{
-			"path": "../../../chatai"
-		},
-		{
-			"path": "../../../RAG-PDF-Chatbot"
 		}
 	],
 	"settings": {}

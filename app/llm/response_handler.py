@@ -66,49 +66,135 @@ class ResponseHandler:
         Returns:
             Formatted response dictionary
         """
-        # Clean up results to remove debugging info
-        cleaned_results = []
-        for result in results:
-            if isinstance(result, dict) and "message" in result:
-                # Remove debugging notes and empty arrays
-                message = result["message"]
-                # Remove content after "Note:" if present
-                if "\nNote:" in message:
-                    message = message.split("\nNote:")[0]
-                # Remove repeated "Hope this helps" messages
-                if "\nHope this helps" in message:
-                    message = message.split("\nHope this helps")[0]
-                # Remove empty arrays
-                message = message.replace("[]", "")
-                # Remove extra whitespace
-                message = "\n".join(line for line in message.split("\n") if line.strip())
-                # Remove quotes if present
-                message = message.strip('"')
-                
-                cleaned_results.append({
-                    "type": result.get("type", "text"),
-                    "message": message,
-                    "data": result.get("data", {})
-                })
-            else:
-                cleaned_results.append(result)
-        
         # Handle district queries
         if query_type == "district_query":
             # Extract district name from the query
             district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', metadata.get("user_query", "").lower())
             if district_match:
                 district_name = district_match.group(1).strip().title()
-                # Update the message to include the district name
-                if cleaned_results and cleaned_results[0].get("type") == "text":
-                    cleaned_results[0]["message"] = f"Found {len(results)} projects in {district_name} district:"
+                if results:
+                    formatted_results = [
+                        {
+                            "type": "text",
+                            "message": f"Found {len(results)} projects in {district_name} district:",
+                            "data": {}
+                        }
+                    ]
+                    
+                    # Add each project as a project_details result
+                    for result in results:
+                        project_data = {
+                            "Name of project": result.get("PROJECTNAME", "N/A"),
+                            "Fiscal year": result.get("FISCALYEAR", "N/A"),
+                            "Location": f"{result.get('REGION', '')}, {result.get('DISTRICT', '')}, {result.get('TRADITIONALAUTHORITY', '')}".strip(", "),
+                            "Budget": f"MWK {result.get('TOTALBUDGET', 0):,.2f}" if result.get('TOTALBUDGET') else "Not available",
+                            "Status": result.get("PROJECTSTATUS", "N/A"),
+                            "Contractor name": result.get("CONTRACTORNAME", "N/A"),
+                            "Contract start date": result.get("SIGNINGDATE", "N/A"),
+                            "Expenditure to date": f"MWK {result.get('TOTALEXPENDITURETODATE', 0):,.2f}" if result.get('TOTALEXPENDITURETODATE') else "Not available",
+                            "Sector": result.get("PROJECTSECTOR", "N/A"),
+                            "Source of funding": result.get("FUNDINGSOURCE", "N/A"),
+                            "Project code": result.get("PROJECTCODE", "N/A"),
+                            "Date of last Council monitoring visit": result.get("LASTVISIT", "N/A")
+                        }
+                        
+                        formatted_results.append({
+                            "type": "project_details",
+                            "message": result.get("PROJECTNAME", "Unknown Project"),
+                            "data": project_data
+                        })
+                    
+                    return {
+                        "results": formatted_results,
+                        "metadata": {
+                            "total_results": len(results),
+                            "query_type": "district_query",
+                            "filters_applied": {"district": district_name}
+                        }
+                    }
+                else:
+                    return {
+                        "results": [{
+                            "type": "text",
+                            "message": f"No projects found in {district_name} district.",
+                            "data": {}
+                        }],
+                        "metadata": {
+                            "total_results": 0,
+                            "query_type": "district_query",
+                            "filters_applied": {"district": district_name}
+                        }
+                    }
         
-        return {
-            "response": {
-                "query_type": query_type,
-                "results": cleaned_results,
-                "metadata": metadata
+        # Handle specific project queries
+        elif query_type == "specific":
+            if not results:
+                return {
+                    "results": [{
+                        "type": "text",
+                        "message": "No project found matching your query.",
+                        "data": {}
+                    }],
+                    "metadata": {
+                        "total_results": 0,
+                        "query_type": "specific"
+                    }
+                }
+                
+            result = results[0]
+            project_data = {
+                "Name of project": result.get("PROJECTNAME", "N/A"),
+                "Fiscal year": result.get("FISCALYEAR", "N/A"),
+                "Location": f"{result.get('REGION', '')}, {result.get('DISTRICT', '')}, {result.get('TRADITIONALAUTHORITY', '')}".strip(", "),
+                "Budget": f"MWK {result.get('TOTALBUDGET', 0):,.2f}" if result.get('TOTALBUDGET') else "Not available",
+                "Status": result.get("PROJECTSTATUS", "N/A"),
+                "Contractor name": result.get("CONTRACTORNAME", "N/A"),
+                "Contract start date": result.get("SIGNINGDATE", "N/A"),
+                "Expenditure to date": f"MWK {result.get('TOTALEXPENDITURETODATE', 0):,.2f}" if result.get('TOTALEXPENDITURETODATE') else "Not available",
+                "Sector": result.get("PROJECTSECTOR", "N/A"),
+                "Source of funding": result.get("FUNDINGSOURCE", "N/A"),
+                "Project code": result.get("PROJECTCODE", "N/A"),
+                "Date of last Council monitoring visit": result.get("LASTVISIT", "N/A")
             }
+            
+            # Create a descriptive summary
+            summary = f"{project_data['Name of project']} is a {project_data['Sector']} project"
+            if project_data['Location'] != "Not available":
+                summary += f" in {project_data['Location']}"
+            summary += f". The project is currently {project_data['Status']}"
+            if project_data['Budget'] != "Not available":
+                summary += f" with a budget of {project_data['Budget']}"
+            summary += "."
+            
+            return {
+                "results": [
+                    {
+                        "type": "text",
+                        "message": summary,
+                        "data": {}
+                    },
+                    {
+                        "type": "project_details",
+                        "message": "Project Details",
+                        "data": project_data
+                    }
+                ],
+                "metadata": {
+                    "total_results": 1,
+                    "query_type": "specific",
+                    "project_name": project_data['Name of project'],
+                    "project_sector": project_data['Sector']
+                }
+            }
+        
+        # Handle other query types
+        return {
+            "results": [{
+                "type": "text",
+                "message": str(results[0]) if results else "No results found.",
+                "data": {}
+            }],
+            "metadata": metadata
         }
     
     def validate_response(self, response: Dict[str, Any]) -> bool:

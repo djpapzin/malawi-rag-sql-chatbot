@@ -7,6 +7,7 @@ to the Malawi infrastructure projects database.
 
 import json
 import logging
+import re
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -81,6 +82,29 @@ Previous context: {context}
         Returns:
             QueryClassification object
         """
+        # Check for specific project query patterns
+        specific_patterns = [
+            r'(?:about|details?|info(?:rmation)?|tell me about|show me|what is)(?: the)? (.+?)(?:\s*\?|\s*$)',
+            r'(.+?)(?:\s+project|\s+construction)(?:\s*\?|\s*$)',
+            r'(?:project|code)\s+(?:code\s+)?(MW-[A-Z]{2}-[A-Z0-9]{2})',
+            r'tell\s+me\s+about\s+project\s+([A-Za-z0-9-]+)'
+        ]
+        
+        # Check if this is a specific project query
+        for pattern in specific_patterns:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
+                project_name = match.group(1).strip()
+                return QueryClassification(
+                    query_type=QueryType.SPECIFIC,
+                    confidence=0.9,
+                    parameters=QueryParameters(
+                        project_identifier=project_name,
+                        filters={},
+                        context=context or {}
+                    )
+                )
+        
         # Format context for prompt
         context_str = "None" if not context else str(context)
         
@@ -122,14 +146,11 @@ Previous context: {context}
             
         except Exception as e:
             logger.error(f"Error classifying query: {e}")
-            # Default to general query on error
+            # Return default classification for errors
             return QueryClassification(
                 query_type=QueryType.GENERAL,
-                confidence=0.5,
-                parameters=QueryParameters(
-                    filters={},
-                    context=context or {}
-                )
+                confidence=0.0,
+                parameters=QueryParameters()
             )
     
     async def _call_llm(self, prompt: str) -> str:

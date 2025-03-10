@@ -81,40 +81,106 @@ class ResponseFormatter:
             return self._format_no_results(query_type, parameters)
             
         if query_type == "specific":
-            # Convert the dictionary to a pandas Series for detailed formatting
-            # First, create a version with lowercase keys for the formatter
-            result_dict = {}
-            field_mapping = {
-                'PROJECTNAME': 'project_name',
-                'PROJECTCODE': 'project_code',
-                'PROJECTSECTOR': 'project_sector',
-                'PROJECTSTATUS': 'status',
-                'STAGE': 'stage',
-                'REGION': 'region',
-                'DISTRICT': 'district',
-                'TRADITIONALAUTHORITY': 'traditionalauthority',
-                'TOTALBUDGET': 'total_budget',
-                'TOTALEXPENDITURETODATE': 'total_expenditure',
-                'FUNDINGSOURCE': 'funding_source',
-                'STARTDATE': 'start_date',
-                'COMPLETIONESTIDATE': 'completion_date',
-                'LASTVISIT': 'last_monitoring_visit',
-                'COMPLETIONPERCENTAGE': 'completion_progress',
-                'CONTRACTORNAME': 'contractor',
-                'SIGNINGDATE': 'contract_signing_date',
-                'PROJECTDESC': 'description',
-                'FISCALYEAR': 'fiscal_year'
-            }
+            # Format specific project details
+            result = results[0]  # Take first result for specific queries
             
-            # Map all fields from uppercase DB fields to lowercase formatter fields
-            for db_field, formatter_field in field_mapping.items():
-                if db_field in results[0]:
-                    result_dict[formatter_field] = results[0][db_field]
-                    
-            project_series = pd.Series(result_dict)
-            return self.format_specific_project(project_series)
+            # Create a descriptive summary
+            project_name = result.get("PROJECTNAME", "Unknown Project")
+            sector = result.get("PROJECTSECTOR", "Unknown Sector")
+            district = result.get("DISTRICT", "Unknown Location")
+            status = result.get("PROJECTSTATUS", "Unknown Status")
+            budget = result.get("TOTALBUDGET", 0)
+            
+            summary = f"{project_name} is a {sector} project"
+            if district != "Not available":
+                summary += f" in {district}"
+            summary += f". The project is currently {status}"
+            if budget > 0:
+                summary += f" with a budget of MWK {budget:,.2f}"
+            summary += "."
+            
+            # Format all required fields
+            formatted_data = {}
+            for field_info in self.specific_project_fields:
+                db_field = field_info[0]
+                display_name = field_info[1]
+                format_type = field_info[2] if len(field_info) > 2 else None
+                
+                value = result.get(db_field, self.NULL_VALUE)
+                formatted_value = self.format_value(value, format_type)
+                formatted_data[display_name] = formatted_value
+            
+            return {
+                "results": [
+                    {
+                        "type": "text",
+                        "message": summary,
+                        "data": {}
+                    },
+                    {
+                        "type": "project_details",
+                        "message": "Project Details",
+                        "data": formatted_data
+                    }
+                ],
+                "metadata": {
+                    "total_results": 1,
+                    "query_type": "specific",
+                    "filters_applied": parameters.get("filters", {}),
+                    "project_name": project_name,
+                    "project_sector": sector
+                }
+            }
         else:
-            return self._format_general_response(results, parameters)
+            # Format general project list
+            sector = parameters.get("filters", {}).get("sectors", [None])[0]
+            district = parameters.get("filters", {}).get("districts", [None])[0]
+            
+            # Build summary message
+            if sector:
+                sector_name = self.sector_names.get(sector, sector.title())
+                summary = f"I found {len(results)} projects in the {sector_name} sector."
+            elif district:
+                summary = f"I found {len(results)} projects in {district}."
+            else:
+                summary = f"I found {len(results)} projects matching your criteria."
+            
+            # Format project list
+            formatted_results = []
+            for r in results:
+                project_data = {}
+                for field_info in self.general_project_fields:
+                    db_field = field_info[0]
+                    display_name = field_info[1]
+                    format_type = field_info[2] if len(field_info) > 2 else None
+                    
+                    value = r.get(db_field, self.NULL_VALUE)
+                    formatted_value = self.format_value(value, format_type)
+                    project_data[display_name] = formatted_value
+                formatted_results.append(project_data)
+            
+            return {
+                "results": [
+                    {
+                        "type": "text",
+                        "message": summary,
+                        "data": {}
+                    },
+                    {
+                        "type": "list",
+                        "message": "Project List",
+                        "data": {
+                            "fields": [field[1] for field in self.general_project_fields],
+                            "values": formatted_results
+                        }
+                    }
+                ],
+                "metadata": {
+                    "total_results": len(results),
+                    "query_type": "general",
+                    "filters_applied": parameters.get("filters", {})
+                }
+            }
             
     def _format_no_results(self, query_type: str, parameters: Dict) -> Dict:
         """Format response when no results are found"""
@@ -130,81 +196,20 @@ class ResponseFormatter:
             message = "I couldn't find any projects matching your criteria. Could you try rephrasing your query?"
             
         return {
-            "type": query_type,
-            "message": message,
-            "results": [],
+            "results": [
+                {
+                    "type": "text",
+                    "message": message,
+                    "data": {}
+                }
+            ],
             "metadata": {
                 "total_results": 0,
+                "query_type": query_type,
                 "filters_applied": parameters.get("filters", {})
             }
         }
         
-    def _format_general_response(self, results: List[Dict], parameters: Dict) -> Dict:
-        """Format response for general queries"""
-        sector = parameters.get("filters", {}).get("sectors", [None])[0]
-        district = parameters.get("filters", {}).get("districts", [None])[0]
-        
-        # Build summary message
-        if sector:
-            sector_name = self.sector_names.get(sector, sector.title())
-            summary = f"I found {len(results)} projects in the {sector_name} sector."
-        elif district:
-            summary = f"I found {len(results)} projects in {district}."
-        else:
-            summary = f"I found {len(results)} projects matching your criteria."
-            
-        # Format project list
-        project_list = []
-        for r in results:
-            project = {}
-            for field_info in self.general_project_fields:
-                db_field = field_info[0]
-                display_name = field_info[1]
-                format_type = field_info[2] if len(field_info) > 2 else None
-                
-                value = r.get(db_field, self.NULL_VALUE)
-                formatted_value = self.format_value(value, format_type)
-                project[display_name] = formatted_value
-            project_list.append(project)
-            
-        return {
-            "type": "general",
-            "message": summary,
-            "results": project_list,
-            "metadata": {
-                "total_results": len(results),
-                "filters_applied": parameters.get("filters", {})
-            }
-        }
-        
-    def _format_specific_response(self, result: Dict) -> Dict:
-        """Format response for specific project queries"""
-        project_name = result.get("PROJECTNAME", "this project")
-        status = result.get("PROJECTSTATUS", "unknown status")
-        budget = result.get("TOTALBUDGET", 0)
-        completion = result.get("COMPLETIONPERCENTAGE", 0)
-        district = result.get("DISTRICT", "unknown location")
-        sector = result.get("PROJECTSECTOR", "unknown sector")
-        
-        message = f"{project_name} is a {sector} project in {district}. "
-        message += f"The project is currently {status} with {completion}% completion. "
-        if budget > 0:
-            message += f"The total budget is MWK {budget:,.2f}."
-            
-        return {
-            "type": "specific",
-            "message": message,
-            "result": result,
-            "metadata": {
-                "project_name": project_name,
-                "status": status,
-                "budget": budget,
-                "completion": completion,
-                "district": district,
-                "sector": sector
-            }
-        }
-    
     def format_specific_project(self, project: pd.Series) -> Dict[str, Any]:
         """Format a specific project query response"""
         try:
