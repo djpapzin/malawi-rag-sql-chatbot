@@ -25,23 +25,14 @@ The Malawi RAG SQL Chatbot is a web application that uses natural language proce
 
 ### LLM (Large Language Model) Services
 - **Together AI**: Used for natural language processing
-  - Model: meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K
-  - Purposes:
-    - Query classification
-    - Natural language to SQL conversion
-    - Response generation
-
-### Translation Services
-- **Azure Cognitive Services Translation API**:
-  - Endpoint: https://api.cognitive.microsofttranslator.com/
-  - Used for translating user queries and responses between English and other languages
-
-### Monitoring & Tracing
-- **LangSmith**: Used for LLM observability and tracing
-  - Endpoint: https://api.smith.langchain.com
-  - Purposes:
-    - Monitoring LLM performance
-    - Tracing query execution paths
+  - **Model**: meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo-128K
+    - **Use Cases in Project**:
+      - Query classification
+      - Natural language to SQL conversion
+      - Response generation
+      - Context understanding
+    - **Release Date**: July 2024
+    - **License**: Llama 3.1 Community License
 
 ## Architecture & Data Flow
 
@@ -64,4 +55,4 @@ The Malawi RAG SQL Chatbot is a web application that uses natural language proce
 
 ---
 
-This document provides a high-level overview of the technology stack and external APIs used in the Malawi RAG SQL Chatbot project. For more detailed implementation information, please refer to the code and documentation in the repository. 
+This document provides a high-level overview of the technology stack and external APIs used in the Malawi RAG SQL Chatbot project. For more detailed implementation information, please refer to the code and documentation in the repository.
