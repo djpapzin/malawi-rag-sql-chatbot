@@ -133,5 +133,35 @@ class TestResponseFormatting(unittest.TestCase):
         self.assertIn("Contractor name: Not available", result)
         self.assertIn("Expenditure to date: Not available", result)
 
+    def test_specific_response_uses_detailed_format(self):
+        """Test that specific responses use the detailed format_specific_project method"""
+        # Create a sample project dictionary
+        project_dict = {
+            "PROJECTNAME": "Test Project",
+            "PROJECTCODE": "MW-TP-01",
+            "PROJECTSTATUS": "Ongoing",
+            "PROJECTSECTOR": "Education",
+            "DISTRICT": "Lilongwe",
+            "TOTALBUDGET": 500000,
+            "COMPLETIONPERCENTAGE": 75
+        }
+        
+        # Format the response with query_type="specific"
+        result = self.response_generator.format_response(
+            query_type="specific", 
+            results=[project_dict], 
+            parameters={}
+        )
+        
+        # Check that the response has the correct format (like format_specific_project output)
+        self.assertEqual(result["type"], "specific")
+        self.assertIn("data", result)
+        self.assertIn("Core Information", result["data"])
+        
+        # Ensure data contains the project sector
+        core_info = result["data"].get("Core Information", {})
+        self.assertIn("Sector", core_info)
+        self.assertEqual(core_info["Sector"], "Education")
+
 if __name__ == '__main__':
     unittest.main() 

@@ -17,49 +17,30 @@ class ResponseFormatter:
         """Initialize response formatter"""
         self.NULL_VALUE = "Not available"
         
-        # Define field groups for specific project queries
-        self.specific_project_fields = {
-            "Core Information": [
-                ("project_name", "Project Name"),
-                ("project_code", "Project Code"),
-                ("project_sector", "Sector"),
-                ("status", "Status"),
-                ("stage", "Current Stage")
-            ],
-            "Location": [
-                ("region", "Region"),
-                ("district", "District"),
-                ("traditionalauthority", "Traditional Authority")
-            ],
-            "Financial Details": [
-                ("total_budget", "Total Budget", "currency"),
-                ("total_expenditure", "Expenditure to Date", "currency"),
-                ("funding_source", "Source of Funding")
-            ],
-            "Timeline": [
-                ("start_date", "Start Date", "date"),
-                ("completion_date", "Estimated Completion Date", "date"),
-                ("last_monitoring_visit", "Last Council Monitoring Visit", "date"),
-                ("completion_progress", "Completion Progress", "percentage")
-            ],
-            "Contractor Details": [
-                ("contractor", "Contractor"),
-                ("contract_signing_date", "Contract Signing Date", "date")
-            ],
-            "Additional Information": [
-                ("description", "Description"),
-                ("fiscal_year", "Fiscal Year")
-            ]
-        }
-        
-        # Define fields for general queries
+        # Define fields for general queries - exactly 6 fields
         self.general_project_fields = [
-            ("project_name", "Project Name"),
-            ("fiscal_year", "Fiscal Year"),
-            ("district", "Location"),
-            ("total_budget", "Budget", "currency"),
-            ("status", "Status"),
-            ("project_sector", "Sector")
+            ("PROJECTNAME", "Name of project"),
+            ("FISCALYEAR", "Fiscal year"),
+            ("DISTRICT", "Location"),
+            ("TOTALBUDGET", "Budget", "currency"),
+            ("PROJECTSTATUS", "Status"),
+            ("PROJECTSECTOR", "Project Sector")
+        ]
+        
+        # Define fields for specific queries - exactly 12 fields
+        self.specific_project_fields = [
+            ("PROJECTNAME", "Name of project"),
+            ("FISCALYEAR", "Fiscal year"),
+            ("DISTRICT", "Location"),
+            ("TOTALBUDGET", "Budget", "currency"),
+            ("PROJECTSTATUS", "Status"),
+            ("CONTRACTORNAME", "Contractor name"),
+            ("SIGNINGDATE", "Contract start date", "date"),
+            ("TOTALEXPENDITURETODATE", "Expenditure to date", "currency"),
+            ("PROJECTSECTOR", "Sector"),
+            ("FUNDINGSOURCE", "Source of funding"),
+            ("PROJECTCODE", "Project code"),
+            ("LASTVISIT", "Date of last Council monitoring visit", "date")
         ]
         
         self.sector_names = {
@@ -172,22 +153,18 @@ class ResponseFormatter:
         else:
             summary = f"I found {len(results)} projects matching your criteria."
             
-        # Add budget information if available
-        total_budget = sum(r.get("TOTALBUDGET", 0) for r in results)
-        if total_budget > 0:
-            summary += f" The total budget for these projects is MWK {total_budget:,.2f}."
-            
         # Format project list
         project_list = []
         for r in results:
-            project = {
-                "name": r.get("PROJECTNAME", "Unnamed Project"),
-                "district": r.get("DISTRICT", "Unknown Location"),
-                "status": r.get("PROJECTSTATUS", "Status Unknown"),
-                "budget": r.get("TOTALBUDGET", 0),
-                "sector": r.get("PROJECTSECTOR", "Sector Unknown"),
-                "completion": r.get("COMPLETIONPERCENTAGE", 0)
-            }
+            project = {}
+            for field_info in self.general_project_fields:
+                db_field = field_info[0]
+                display_name = field_info[1]
+                format_type = field_info[2] if len(field_info) > 2 else None
+                
+                value = r.get(db_field, self.NULL_VALUE)
+                formatted_value = self.format_value(value, format_type)
+                project[display_name] = formatted_value
             project_list.append(project)
             
         return {
@@ -196,8 +173,7 @@ class ResponseFormatter:
             "results": project_list,
             "metadata": {
                 "total_results": len(results),
-                "filters_applied": parameters.get("filters", {}),
-                "total_budget": total_budget
+                "filters_applied": parameters.get("filters", {})
             }
         }
         
@@ -238,21 +214,18 @@ class ResponseFormatter:
                 "data": {}
             }
             
-            # Format each section
-            for section_name, fields in self.specific_project_fields.items():
-                section_data = {}
-                for field in fields:
-                    field_name = field[0]
-                    display_name = field[1]
-                    format_type = field[2] if len(field) > 2 else None
-                    
-                    if field_name in project.index:
-                        value = self.format_value(project[field_name], format_type)
-                        section_data[display_name] = value
+            # Format each field in order
+            formatted_data = {}
+            for field_info in self.specific_project_fields:
+                db_field = field_info[0]
+                display_name = field_info[1]
+                format_type = field_info[2] if len(field_info) > 2 else None
                 
-                if section_data:
-                    response["data"][section_name] = section_data
+                value = project.get(db_field, self.NULL_VALUE)
+                formatted_value = self.format_value(value, format_type)
+                formatted_data[display_name] = formatted_value
             
+            response["data"] = formatted_data
             return response
             
         except Exception as e:

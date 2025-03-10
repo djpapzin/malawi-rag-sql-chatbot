@@ -353,4 +353,4 @@ class QueryParser:
                 if district:
                     return district
         
-        return "" 
+        return ""

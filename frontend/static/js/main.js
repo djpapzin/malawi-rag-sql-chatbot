@@ -115,16 +115,13 @@ document.addEventListener('DOMContentLoaded', function() {
     exampleQueries.forEach(query => {
         query.addEventListener('click', () => {
             const queryText = query.textContent;
-            if (chatInput) {
-                chatInput.value = queryText;
-                
-                // Show the chat view
-                if (initialView) initialView.style.display = 'none';
-                if (chatView) chatView.style.display = 'block';
-                
-                // Send the query
-                sendMessage(queryText);
-            }
+            
+            // Show the chat view
+            if (initialView) initialView.style.display = 'none';
+            if (chatView) chatView.style.display = 'block';
+            
+            // Send the query without updating the input field
+            sendMessage(queryText);
         });
     });
 
@@ -157,6 +154,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add user message
         appendMessage(message, true);
+        
+        // Clear input field
+        if (chatInput) {
+            chatInput.value = '';
+        }
         
         try {
             const response = await fetch('/api/rag-sql-chatbot/chat', {

@@ -380,167 +380,68 @@ Just ask me what you'd like to know about these projects!"""
         """.strip()
 
     async def generate_sql_query(self, user_query: str) -> Tuple[str, str]:
-        """Generate a SQL query from a natural language query"""
-        try:
-            logger.info(f"Generating SQL query for: {user_query}")
-            
-            # First try to extract project name since it's most specific
-            project_name = await self._extract_project_name(user_query)
-            logger.info(f"Extracted project name: {project_name}")
-            
-            if project_name:
-                # Build project query
-                count_query = f"""
-                    SELECT COUNT(*) as total_count
-                    FROM proj_dashboard
-                    WHERE LOWER(PROJECTNAME) = LOWER('{project_name}')
-                       OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%');
-                """
-                
-                results_query = f"""
-                    SELECT 
-                        projectname as project_name,
-                        projectcode as project_code,
-                        projectsector as project_sector,
-                        projectstatus as status,
-                        stage,
-                        region,
-                        district,
-                        traditionalauthority,
-                        budget as total_budget,
-                        TOTALEXPENDITUREYEAR as total_expenditure,
-                        fundingsource as funding_source,
-                        startdate as start_date,
-                        completionestidate as completion_date,
-                        lastvisit as last_monitoring_visit,
-                        completionpercentage as completion_progress,
-                        contractorname as contractor,
-                        signingdate as contract_signing_date,
-                        projectdesc as description,
-                        fiscalyear as fiscal_year
-                    FROM proj_dashboard
-                    WHERE LOWER(PROJECTNAME) = LOWER('{project_name}')
-                       OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
-                    ORDER BY 
-                        CASE 
-                            WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1
-                            WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 2
-                            ELSE 3
-                        END,
-                        budget DESC NULLS LAST
-                    LIMIT 10;
-                """
-                
-                logger.info(f"Generated project queries: {count_query}, {results_query}")
-                return (count_query, results_query), "project_query"
+        """Generate SQL query based on user input"""
+        logger.info(f"Generating SQL query for: {user_query}")
+        
+        # Common fields to select for all queries
+        base_fields = """
+            projectname as project_name,
+            projectcode as project_code,
+            projectsector as project_sector,
+            projectstatus as status,
+            stage,
+            region,
+            district,
+            traditionalauthority,
+            budget as total_budget,
+            TOTALEXPENDITUREYEAR as total_expenditure,
+            fundingsource as funding_source,
+            startdate as start_date,
+            completionestidate as completion_date,
+            lastvisit as last_monitoring_visit,
+            completionpercentage as completion_progress,
+            contractorname as contractor,
+            signingdate as contract_signing_date,
+            projectdesc as description,
+            fiscalyear as fiscal_year
+        """
+        
+        # Extract query components
+        project_name = await self._extract_project_name(user_query)
+        if project_name:
+            logger.info(f"Found project name: {project_name}, setting query type to 'specific'")
+            query = f"""
+                SELECT 
+                    {base_fields}
+                FROM proj_dashboard
+                WHERE LOWER(PROJECTNAME) = LOWER('{project_name}')
+                OR LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
+                ORDER BY 
+                    CASE 
+                        WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1
+                        WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 2
+                        ELSE 3
+                    END,
+                    budget DESC NULLS LAST
+                LIMIT 10;
+            """
+            logger.info(f"Generated specific project query for: {project_name}")
+            return query, "specific"  # Return query type as "specific"
 
-            # Then try to extract district
-            district = await self._extract_district(user_query)
-            logger.info(f"Extracted district: {district}")
-            
-            if district:
-                # Build district query
-                count_query = f"""
-                    SELECT COUNT(*) as total_count
-                    FROM proj_dashboard
-                    WHERE LOWER(DISTRICT) = LOWER('{district}')
-                       OR LOWER(DISTRICT) LIKE LOWER('%{district}%');
-                """
-                
-                results_query = f"""
-                    SELECT 
-                        projectname as project_name,
-                        projectcode as project_code,
-                        projectsector as project_sector,
-                        projectstatus as status,
-                        stage,
-                        region,
-                        district,
-                        traditionalauthority,
-                        budget as total_budget,
-                        TOTALEXPENDITUREYEAR as total_expenditure,
-                        fundingsource as funding_source,
-                        startdate as start_date,
-                        completionestidate as completion_date,
-                        lastvisit as last_monitoring_visit,
-                        completionpercentage as completion_progress,
-                        contractorname as contractor,
-                        signingdate as contract_signing_date,
-                        projectdesc as description,
-                        fiscalyear as fiscal_year
-                    FROM proj_dashboard
-                    WHERE LOWER(DISTRICT) = LOWER('{district}')
-                       OR LOWER(DISTRICT) LIKE LOWER('%{district}%')
-                    ORDER BY 
-                        CASE 
-                            WHEN LOWER(DISTRICT) = LOWER('{district}') THEN 1
-                            WHEN LOWER(DISTRICT) LIKE LOWER('%{district}%') THEN 2
-                            ELSE 3
-                        END,
-                        budget DESC NULLS LAST
-                    LIMIT 10;
-                """
-                
-                logger.info(f"Generated district queries: {count_query}, {results_query}")
-                return (count_query, results_query), "district_query"
-            
-            # Finally try to extract sector
-            sector = await self._extract_sector(user_query)
-            logger.info(f"Extracted sector: {sector}")
-            
-            if sector:
-                # Build sector query
-                count_query = f"""
-                    SELECT COUNT(*) as total_count
-                    FROM proj_dashboard
-                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
-                       OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%');
-                """
-                
-                results_query = f"""
-                    SELECT 
-                        projectname as project_name,
-                        projectcode as project_code,
-                        projectsector as project_sector,
-                        projectstatus as status,
-                        stage,
-                        region,
-                        district,
-                        traditionalauthority,
-                        budget as total_budget,
-                        TOTALEXPENDITUREYEAR as total_expenditure,
-                        fundingsource as funding_source,
-                        startdate as start_date,
-                        completionestidate as completion_date,
-                        lastvisit as last_monitoring_visit,
-                        completionpercentage as completion_progress,
-                        contractorname as contractor,
-                        signingdate as contract_signing_date,
-                        projectdesc as description,
-                        fiscalyear as fiscal_year
-                    FROM proj_dashboard
-                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
-                       OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
-                    ORDER BY 
-                        CASE 
-                            WHEN LOWER(PROJECTSECTOR) = LOWER('{sector}') THEN 1
-                            WHEN LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%') THEN 2
-                            ELSE 3
-                        END,
-                        budget DESC NULLS LAST
-                    LIMIT 10;
-                """
-                
-                logger.info(f"Generated sector queries: {count_query}, {results_query}")
-                return (count_query, results_query), "sector_query"
-            
-            # If no specific patterns match, try general query
-            count_query = """
+        # Then try to extract district
+        district = await self._extract_district(user_query)
+        logger.info(f"Extracted district: {district}")
+        
+        if district:
+            # Build district query
+            count_query = f"""
                 SELECT COUNT(*) as total_count
-                FROM proj_dashboard;
+                FROM proj_dashboard
+                WHERE LOWER(DISTRICT) = LOWER('{district}')
+                   OR LOWER(DISTRICT) LIKE LOWER('%{district}%');
             """
             
-            results_query = """
+            results_query = f"""
                 SELECT 
                     projectname as project_name,
                     projectcode as project_code,
@@ -562,17 +463,106 @@ Just ask me what you'd like to know about these projects!"""
                     projectdesc as description,
                     fiscalyear as fiscal_year
                 FROM proj_dashboard
-                ORDER BY budget DESC NULLS LAST
+                WHERE LOWER(DISTRICT) = LOWER('{district}')
+                   OR LOWER(DISTRICT) LIKE LOWER('%{district}%')
+                ORDER BY 
+                    CASE 
+                        WHEN LOWER(DISTRICT) = LOWER('{district}') THEN 1
+                        WHEN LOWER(DISTRICT) LIKE LOWER('%{district}%') THEN 2
+                        ELSE 3
+                    END,
+                    budget DESC NULLS LAST
                 LIMIT 10;
             """
             
-            logger.info(f"Generated general queries: {count_query}, {results_query}")
-            return (count_query, results_query), "general_query"
+            logger.info(f"Generated district queries: {count_query}, {results_query}")
+            return (count_query, results_query), "district_query"
+        
+        # Finally try to extract sector
+        sector = await self._extract_sector(user_query)
+        logger.info(f"Extracted sector: {sector}")
+        
+        if sector:
+            # Build sector query
+            count_query = f"""
+                SELECT COUNT(*) as total_count
+                FROM proj_dashboard
+                WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
+                   OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%');
+            """
             
-        except Exception as e:
-            logger.error(f"Error generating SQL query: {str(e)}")
-            raise
-
+            results_query = f"""
+                SELECT 
+                    projectname as project_name,
+                    projectcode as project_code,
+                    projectsector as project_sector,
+                    projectstatus as status,
+                    stage,
+                    region,
+                    district,
+                    traditionalauthority,
+                    budget as total_budget,
+                    TOTALEXPENDITUREYEAR as total_expenditure,
+                    fundingsource as funding_source,
+                    startdate as start_date,
+                    completionestidate as completion_date,
+                    lastvisit as last_monitoring_visit,
+                    completionpercentage as completion_progress,
+                    contractorname as contractor,
+                    signingdate as contract_signing_date,
+                    projectdesc as description,
+                    fiscalyear as fiscal_year
+                FROM proj_dashboard
+                WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
+                   OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
+                ORDER BY 
+                    CASE 
+                        WHEN LOWER(PROJECTSECTOR) = LOWER('{sector}') THEN 1
+                        WHEN LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%') THEN 2
+                        ELSE 3
+                    END,
+                    budget DESC NULLS LAST
+                LIMIT 10;
+            """
+            
+            logger.info(f"Generated sector queries: {count_query}, {results_query}")
+            return (count_query, results_query), "sector_query"
+        
+        # If no specific patterns match, try general query
+        count_query = """
+            SELECT COUNT(*) as total_count
+            FROM proj_dashboard;
+        """
+        
+        results_query = """
+            SELECT 
+                projectname as project_name,
+                projectcode as project_code,
+                projectsector as project_sector,
+                projectstatus as status,
+                stage,
+                region,
+                district,
+                traditionalauthority,
+                budget as total_budget,
+                TOTALEXPENDITUREYEAR as total_expenditure,
+                fundingsource as funding_source,
+                startdate as start_date,
+                completionestidate as completion_date,
+                lastvisit as last_monitoring_visit,
+                completionpercentage as completion_progress,
+                contractorname as contractor,
+                signingdate as contract_signing_date,
+                projectdesc as description,
+                fiscalyear as fiscal_year
+            FROM proj_dashboard
+            ORDER BY budget DESC NULLS LAST
+            LIMIT 10;
+        """
+        
+        logger.info(f"Generated general queries: {count_query}, {results_query}")
+        return (count_query, results_query), "general_query"
+            
     async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None, query_type: str = None) -> Dict[str, Any]:
         """Generate a natural language response from query results."""
         try:
@@ -669,14 +659,33 @@ Just ask me what you'd like to know about these projects!"""
                             if project.get("region"):
                                 location = f"{project.get('region')}, {location}".strip(", ")
                         
-                        formatted_project = {
-                            "Name of project": project.get("project_name", "Unknown"),
-                            "Fiscal year": project.get("fiscal_year", "Unknown"),
-                            "Location": location,
-                            "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
-                            "Status": project.get("status", "Unknown"),
-                            "Project Sector": project.get("project_sector", "Unknown")
-                        }
+                        formatted_project = {}
+                        if query_type == "specific":
+                            # Use all 12 fields for specific queries
+                            formatted_project = {
+                                "Name of project": project.get("project_name", "Unknown"),
+                                "Fiscal year": project.get("fiscal_year", "Unknown"),
+                                "Location": location,
+                                "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
+                                "Status": project.get("status", "Unknown"),
+                                "Contractor name": project.get("contractor", "Unknown"),
+                                "Contract start date": project.get("contract_signing_date", "Unknown"),
+                                "Expenditure to date": f"MWK {float(project.get('total_expenditure', 0)):,.2f}" if project.get('total_expenditure') is not None else "Unknown",
+                                "Sector": project.get("project_sector", "Unknown"),
+                                "Source of funding": project.get("funding_source", "Unknown"),
+                                "Project code": project.get("project_code", "Unknown"),
+                                "Date of last Council monitoring visit": project.get("last_monitoring_visit", "Unknown")
+                            }
+                        else:
+                            # Use 6 fields for general queries
+                            formatted_project = {
+                                "Name of project": project.get("project_name", "Unknown"),
+                                "Fiscal year": project.get("fiscal_year", "Unknown"),
+                                "Location": location,
+                                "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
+                                "Status": project.get("status", "Unknown"),
+                                "Project Sector": project.get("project_sector", "Unknown")
+                            }
                         formatted_projects.append(formatted_project)
                     except Exception as e:
                         logger.error(f"Error formatting project: {str(e)}")
@@ -686,7 +695,7 @@ Just ask me what you'd like to know about these projects!"""
                     "type": "list",
                     "message": "Project Details",
                     "data": {
-                        "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
+                        "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Contractor name", "Contract start date", "Expenditure to date", "Sector", "Source of funding", "Project code", "Date of last Council monitoring visit"] if query_type == "specific" else ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
                         "values": formatted_projects
                     }
                 })
@@ -725,6 +734,7 @@ Just ask me what you'd like to know about these projects!"""
     async def format_response(self, query_results: Union[List[Dict[str, Any]], Tuple[int, List[Dict[str, Any]]]], sql_query: Union[str, Tuple[str, str]], query_time: float, user_query: str, query_type: str = None, additional_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """Format query results into a standardized response with natural language."""
         try:
+            logger.info(f"Formatting response with query_type: {query_type}")
             # Handle tuple results (total_count, results)
             total_count = None
             if isinstance(query_results, tuple):
@@ -766,6 +776,7 @@ Just ask me what you'd like to know about these projects!"""
                     summary = f"Found {total_count} projects, showing the first {shown_count}"
                 
                 summary += "."
+                logger.info(f"Generated summary: {summary}")
                 
                 formatted_results.append({
                     "type": "text",
@@ -787,36 +798,54 @@ Just ask me what you'd like to know about these projects!"""
                             if project.get("region"):
                                 location = f"{project.get('region')}, {location}".strip(", ")
                         
-                        formatted_project = {
-                            "Name of project": project.get("project_name", "Unknown"),
-                            "Fiscal year": project.get("fiscal_year", "Unknown"),
-                            "Location": location,
-                            "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
-                            "Status": project.get("status", "Unknown"),
-                            "Project Sector": project.get("project_sector", "Unknown")
-                        }
+                        formatted_project = {}
+                        if query_type == "specific":
+                            # Use all 12 fields for specific queries
+                            formatted_project = {
+                                "Name of project": project.get("project_name", "Unknown"),
+                                "Fiscal year": project.get("fiscal_year", "Unknown"),
+                                "Location": location,
+                                "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
+                                "Status": project.get("status", "Unknown"),
+                                "Contractor name": project.get("contractor", "Unknown"),
+                                "Contract start date": project.get("contract_signing_date", "Unknown"),
+                                "Expenditure to date": f"MWK {float(project.get('total_expenditure', 0)):,.2f}" if project.get('total_expenditure') is not None else "Unknown",
+                                "Sector": project.get("project_sector", "Unknown"),
+                                "Source of funding": project.get("funding_source", "Unknown"),
+                                "Project code": project.get("project_code", "Unknown"),
+                                "Date of last Council monitoring visit": project.get("last_monitoring_visit", "Unknown")
+                            }
+                        else:
+                            # Use 6 fields for general queries
+                            formatted_project = {
+                                "Name of project": project.get("project_name", "Unknown"),
+                                "Fiscal year": project.get("fiscal_year", "Unknown"),
+                                "Location": location,
+                                "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
+                                "Status": project.get("status", "Unknown"),
+                                "Project Sector": project.get("project_sector", "Unknown")
+                            }
                         formatted_projects.append(formatted_project)
                     except Exception as e:
                         logger.error(f"Error formatting project: {str(e)}")
                         continue
                 
-                if formatted_projects:
+                formatted_results.append({
+                    "type": "list",
+                    "message": "Project Details",
+                    "data": {
+                        "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Contractor name", "Contract start date", "Expenditure to date", "Sector", "Source of funding", "Project code", "Date of last Council monitoring visit"] if query_type == "specific" else ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
+                        "values": formatted_projects
+                    }
+                })
+                
+                # Add pagination message if needed
+                if len(results) > 10:
                     formatted_results.append({
-                        "type": "list",
-                        "message": "Project Details",
-                        "data": {
-                            "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
-                            "values": formatted_projects
-                        }
+                        "type": "text",
+                        "message": f"Showing 10 of {len(results)} projects. Type 'show more' to see additional results.",
+                        "data": {}
                     })
-                    
-                    # Add pagination message if needed
-                    if total_count > 10:
-                        formatted_results.append({
-                            "type": "text",
-                            "message": "Type 'show more' to see additional results.",
-                            "data": {}
-                        })
             
             return {
                 "results": formatted_results,
@@ -1063,13 +1092,26 @@ Just ask me what you'd like to know about these projects!"""
             # Execute query
             try:
                 logger.info(f"Executing SQL query: {sql_query}")
-                results = await self.execute_query(sql_query)
+                if isinstance(sql_query, tuple):
+                    query, query_type = sql_query
+                    # Map project_query to specific for proper field display
+                    if query_type == "project_query":
+                        query_type = "specific"
+                        logger.info(f"Mapped project_query to specific query_type")
+                    logger.info(f"Query type from tuple: {query_type}")
+                    results = await self.execute_query(query)
+                else:
+                    results = await self.execute_query(sql_query)
+                    query_type = "general"  # Default to general if no type specified
+                    logger.info(f"Using default query type: {query_type}")
                 logger.info(f"Query execution results: {results}")
                 query_time = time.time() - start_time
                 
-                # Format the response
-                response = await self.format_response(results, sql_query, query_time, user_query, query_type)
-                logger.info(f"Formatted response: {response}")
+                # Format the response with the correct query type
+                actual_sql = query if isinstance(sql_query, tuple) else sql_query
+                logger.info(f"Formatting response with query type: {query_type}")
+                response = await self.format_response(results, actual_sql, query_time, user_query, query_type)
+                logger.info(f"Formatted response with query type {query_type}: {response}")
                 return response
                 
             except Exception as e:
@@ -1831,7 +1873,7 @@ Example queries:
                 project_name = re.sub(r'\s+project$', '', project_name, flags=re.IGNORECASE)
                 if project_name:
                     logger.info(f"Found project name through pattern matching: {project_name}")
-                    return project_name
+                return project_name
         
         logger.info("No project name found in query")
         return ""
