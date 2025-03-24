@@ -191,24 +191,24 @@ class QueryParser:
         )"""
 
     def _build_sector_condition(self, sector: str) -> str:
-        """Build sector filter condition with fuzzy matching"""
+        """Build sector filter condition with exact case matching"""
         sector = sector.replace("'", "''")
         
-        # Sector-specific patterns
-        sector_patterns = {
-            'health': '%(health|medical|hospital|clinic)%',
-            'education': '%(education|school|classroom|college|university)%',
-            'water': '%(water|sanitation|sewage|borehole)%',
-            'transport': '%(transport|road|bridge|highway)%',
-            'agriculture': '%(agriculture|farming|irrigation)%'
+        # Map common sector names to exact database values
+        sector_mapping = {
+            'health': 'Health',
+            'education': 'Education',
+            'water': 'Water and sanitation',
+            'transport': 'Roads and bridges',
+            'agriculture': 'Agriculture and environment',
+            'commercial': 'Commercial services',
+            'security': 'Community security initiatives'
         }
         
-        pattern = sector_patterns.get(sector, f'%{sector}%')
+        # Get the exact sector name from mapping or use the input
+        exact_sector = sector_mapping.get(sector.lower(), sector)
         
-        return f"""(
-            LOWER(PROJECTSECTOR) SIMILAR TO '{pattern}' OR
-            similarity(LOWER(PROJECTSECTOR), LOWER('{sector}')) > 0.4
-        )"""
+        return f"PROJECTSECTOR = '{exact_sector}'"
 
     def _build_status_condition(self, status: str) -> str:
         """Build status filter condition"""

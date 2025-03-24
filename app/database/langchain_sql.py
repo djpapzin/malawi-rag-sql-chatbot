@@ -117,7 +117,7 @@ class LangChainSQLIntegration:
             
             # Test the API connection and log available models
             try:
-                models = self.client.models.list()
+            models = self.client.models.list()
                 logger.info("Successfully connected to Together API")
                 logger.info(f"Using model: {self.model}")
             except Exception as e:
@@ -384,46 +384,59 @@ Just ask me what you'd like to know about these projects!"""
         """.strip()
 
     def _get_total_budget_query(self) -> str:
-        """Get SQL query for total budget across all projects"""
+        """Get query for total budget across all projects"""
         return """
-            SELECT 
+                    SELECT 
                 COUNT(*) as total_projects,
                 COALESCE(SUM(budget), 0) as total_budget,
                 COALESCE(SUM(TOTALEXPENDITUREYEAR), 0) as total_expenditure
             FROM proj_dashboard;
         """
 
+    async def _extract_sector(self, user_query: str) -> Optional[str]:
+        """Extract sector from user query"""
+        try:
+            query = user_query.lower()
+            query_terms = set(query.split())
+            
+            # First try multi-word matches
+            for sector, keywords in self.sector_mapping.items():
+                for keyword in keywords:
+                    if len(keyword.split()) > 1 and keyword.lower() in query:
+                        logger.info(f"Found multi-word sector match: {sector} via {keyword}")
+                        return sector
+            
+            # Then try single word matches with full sector names
+            for sector in self.sector_mapping.keys():
+                if sector.lower() in query:
+                    logger.info(f"Found exact sector match: {sector}")
+                    return sector
+            
+            # Finally try keyword matches
+            matched_sectors = []
+            for sector, keywords in self.sector_mapping.items():
+                if any(kw.lower() in query_terms for kw in keywords):
+                    matched_sectors.append(sector)
+                    logger.info(f"Found sector match: {sector} via keywords")
+            
+            # Return the first match if any found
+            return matched_sectors[0] if matched_sectors else None
+            
+        except Exception as e:
+            logger.error(f"Error extracting sector: {str(e)}")
+            return None
+
     async def generate_sql_query(self, user_query: str) -> Tuple[str, str]:
         """Generate SQL query based on user input"""
+        try:
         logger.info(f"Generating SQL query for: {user_query}")
         
-        # Check for total budget query
-        total_budget_patterns = [
-            r"what is the total budget for all projects",
-            r"total budget (?:for|of) all projects",
-            r"sum (?:of|the) budget (?:for|of) all projects",
-            r"how much is the total budget",
-            r"what is the overall budget"
-        ]
-        
-        if any(re.search(pattern, user_query.lower()) for pattern in total_budget_patterns):
-            logger.info("Found total budget query")
-            return self._get_total_budget_query(), "total_budget"
-        
-        # First try to identify if this is a specific project query
-        project_patterns = [
-            r"tell me about (?:the )?(.+?)(?: project)?\??$",
-            r"what (?:do you know |can you tell me )?about (?:the )?(.+?)(?: project)?\??$",
-            r"show (?:me )?(?:details|information) (?:about|for) (?:the )?(.+?)(?: project)?\??$",
-            r"give me (?:details|information) (?:about|for) (?:the )?(.+?)(?: project)?\??$"
-        ]
-        
-        for pattern in project_patterns:
-            match = re.search(pattern, user_query.lower())
-            if match:
-                project_name = match.group(1).strip()
-                logger.info(f"Found specific project query for: {project_name}")
-                query = f"""
+            # First try to extract project name
+            project_name = await self._extract_project_name(user_query)
+            if project_name:
+                logger.info(f"Found specific project query: {project_name}")
+                where_clause = f"LOWER(projectname) LIKE '%{project_name.lower()}%'"
+                return f"""
                     SELECT 
                         projectname as project_name,
                         projectcode as project_code,
@@ -442,72 +455,20 @@ Just ask me what you'd like to know about these projects!"""
                         completionpercentage as completion_progress,
                         contractorname as contractor,
                         signingdate as contract_signing_date,
-                        projectdesc as description,
-                        fiscalyear as fiscal_year
+                        projectdesc as description
                     FROM proj_dashboard
-                    WHERE LOWER(projectname) LIKE LOWER('%{project_name}%')
-                    ORDER BY 
-                        CASE 
-                            WHEN LOWER(projectname) = LOWER('{project_name}') THEN 1
-                            WHEN LOWER(projectname) LIKE LOWER('{project_name}%') THEN 2
-                            WHEN LOWER(projectname) LIKE LOWER('%{project_name}%') THEN 3
-                            ELSE 4
-                        END,
-                        budget DESC NULLS LAST
-                    LIMIT 1;
-                """
-                return query, "specific"
-        
-        # Extract district if no specific project match
-        district = await self._extract_district(user_query)
-        if district:
-            logger.info(f"Found district: {district}")
-            query = f"""
-                SELECT 
-                    projectname as project_name,
-                    projectcode as project_code,
-                    projectsector as project_sector,
-                    projectstatus as status,
-                    stage,
-                    region,
-                    district,
-                    traditionalauthority,
-                    budget as total_budget,
-                    TOTALEXPENDITUREYEAR as total_expenditure,
-                    fundingsource as funding_source,
-                    startdate as start_date,
-                    completionestidate as completion_date,
-                    lastvisit as last_monitoring_visit,
-                    completionpercentage as completion_progress,
-                    contractorname as contractor,
-                    signingdate as contract_signing_date,
-                    projectdesc as description,
-                    fiscalyear as fiscal_year
-                FROM proj_dashboard
-                WHERE LOWER(DISTRICT) = LOWER('{district}')
-                   OR LOWER(DISTRICT) LIKE LOWER('%{district}%')
-                ORDER BY 
-                    CASE 
-                        WHEN LOWER(DISTRICT) = LOWER('{district}') THEN 1
-                        WHEN LOWER(DISTRICT) LIKE LOWER('%{district}%') THEN 2
-                        ELSE 3
-                    END,
-                    budget DESC NULLS LAST
-                LIMIT 10;
-            """
-            return query, "district_query"
+                    WHERE {where_clause}
+                    ORDER BY budget DESC NULLS LAST;
+                """, "specific_project"
 
-        # Then try to extract sector
+            # If no project name found, try sector
         sector = await self._extract_sector(user_query)
-        logger.info(f"Extracted sector: {sector}")
-        
         if sector:
-            # Build sector query
+                logger.info(f"Found sector: {sector}")
             count_query = f"""
                 SELECT COUNT(*) as total_count
                 FROM proj_dashboard
-                WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
-                   OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%');
+                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}');
             """
             
             results_query = f"""
@@ -533,54 +494,19 @@ Just ask me what you'd like to know about these projects!"""
                     fiscalyear as fiscal_year
                 FROM proj_dashboard
                 WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
-                   OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
-                ORDER BY 
-                    CASE 
-                        WHEN LOWER(PROJECTSECTOR) = LOWER('{sector}') THEN 1
-                        WHEN LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%') THEN 2
-                        ELSE 3
-                    END,
-                    budget DESC NULLS LAST
+                    ORDER BY budget DESC NULLS LAST
                 LIMIT 10;
             """
             
-            logger.info(f"Generated sector queries: {count_query}, {results_query}")
+                logger.info(f"Generated sector queries for {sector}")
             return (count_query, results_query), "sector_query"
         
-        # If no specific patterns match, try general query
-        count_query = """
-            SELECT COUNT(*) as total_count
-            FROM proj_dashboard;
-        """
-        
-        results_query = """
-            SELECT 
-                projectname as project_name,
-                projectcode as project_code,
-                projectsector as project_sector,
-                projectstatus as status,
-                stage,
-                region,
-                district,
-                traditionalauthority,
-                budget as total_budget,
-                TOTALEXPENDITUREYEAR as total_expenditure,
-                fundingsource as funding_source,
-                startdate as start_date,
-                completionestidate as completion_date,
-                lastvisit as last_monitoring_visit,
-                completionpercentage as completion_progress,
-                contractorname as contractor,
-                signingdate as contract_signing_date,
-                projectdesc as description,
-                fiscalyear as fiscal_year
-            FROM proj_dashboard
-            ORDER BY budget DESC NULLS LAST
-            LIMIT 10;
-        """
-        
-        logger.info(f"Generated general queries: {count_query}, {results_query}")
-        return (count_query, results_query), "general_query"
+            # If no sector found, use the general query
+            return self._get_total_budget_query(), "total_budget"
+            
+        except Exception as e:
+            logger.error(f"Error generating SQL query: {str(e)}")
+            return "", "error"
             
     async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None, query_type: str = None) -> Dict[str, Any]:
         """Generate a natural language response from query results."""
@@ -653,7 +579,17 @@ Just ask me what you'd like to know about these projects!"""
                 if budget_field:
                     total_budget = sum(float(result[budget_field]) for result in results if result.get(budget_field))
                 
+                # Get the sector name for sector queries
+                sector_name = None
+                if query_type == "sector_query" and results:
+                    sector_name = results[0].get("project_sector", "specified sector")
+                
+                # Format the summary message
+                if query_type == "sector_query":
+                    summary = f"Found {len(results)} projects in {sector_name}"
+                else:
                 summary = f"Found {len(results)} projects"
+                
                 if total_budget > 0:
                     summary += f" with a total budget of MWK {total_budget:,.2f}"
                 summary += "."
@@ -712,7 +648,7 @@ Just ask me what you'd like to know about these projects!"""
                 
                 formatted_results.append({
                     "type": "list",
-                    "message": "Project Details",
+                    "message": "Project List",
                     "data": {
                         "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Contractor name", "Contract start date", "Expenditure to date", "Sector", "Source of funding", "Project code", "Date of last Council monitoring visit"] if query_type == "specific" else ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
                         "values": formatted_projects
@@ -770,9 +706,9 @@ Just ask me what you'd like to know about these projects!"""
                 response = {
                     "results": [
                         {
-                            "type": "text",
+                        "type": "text",
                             "message": f"The total budget for all {total_projects:,} projects is MK {formatted_budget}.",
-                            "data": {}
+                        "data": {}
                         }
                     ],
                     "metadata": {
@@ -799,9 +735,9 @@ Just ask me what you'd like to know about these projects!"""
                 # Add summary message
                 formatted_results = [
                     {
-                        "type": "text",
-                        "message": f"Here are the details for {project.get('project_name', '')}:",
-                        "data": {}
+                    "type": "text",
+                    "message": f"Here are the details for {project.get('project_name', '')}:",
+                    "data": {}
                     }
                 ]
                 
@@ -857,53 +793,53 @@ Just ask me what you'd like to know about these projects!"""
                 
                 formatted_results = [
                     {
-                        "type": "text",
-                        "message": summary,
-                        "data": {}
+                    "type": "text",
+                    "message": summary,
+                    "data": {}
                     }
                 ]
 
-                # Format project list
+            # Format project list
                 if len(query_results) > 0:
-                    formatted_projects = []
+                formatted_projects = []
                     for project in query_results[:10]:
-                        try:
-                            # Get location based on query type
-                            if query_type == "district_query":
-                                district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-                                location = district_match.group(1).strip().title() + " District" if district_match else project.get("district", "Unknown")
-                            else:
-                                location = project.get("district", "Unknown")
-                                if project.get("region"):
-                                    location = f"{project.get('region')}, {location}".strip(", ")
-                            
-                            formatted_project = {
-                                "Name of project": project.get("project_name", "Unknown"),
-                                "Fiscal year": project.get("fiscal_year", "Unknown"),
-                                "Location": location,
-                                "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
-                                "Status": project.get("status", "Unknown"),
-                                "Project Sector": project.get("project_sector", "Unknown")
-                            }
-                            formatted_projects.append(formatted_project)
-                        except Exception as e:
-                            logger.error(f"Error formatting project: {str(e)}")
-                            continue
-                    
-                    formatted_results.append({
-                        "type": "list",
-                        "message": "Project List",
-                        "data": {
-                            "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
-                            "values": formatted_projects
+                    try:
+                        # Get location based on query type
+                        if query_type == "district_query":
+                            district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
+                            location = district_match.group(1).strip().title() + " District" if district_match else project.get("district", "Unknown")
+                        else:
+                            location = project.get("district", "Unknown")
+                            if project.get("region"):
+                                location = f"{project.get('region')}, {location}".strip(", ")
+                        
+                        formatted_project = {
+                            "Name of project": project.get("project_name", "Unknown"),
+                            "Fiscal year": project.get("fiscal_year", "Unknown"),
+                            "Location": location,
+                            "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
+                            "Status": project.get("status", "Unknown"),
+                            "Project Sector": project.get("project_sector", "Unknown")
                         }
-                    })
+                        formatted_projects.append(formatted_project)
+                    except Exception as e:
+                        logger.error(f"Error formatting project: {str(e)}")
+                        continue
                 
-                return {
-                    "results": formatted_results,
-                    "metadata": {
+                formatted_results.append({
+                    "type": "list",
+                    "message": "Project List",
+                    "data": {
+                        "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
+                        "values": formatted_projects
+                    }
+                })
+            
+            return {
+                "results": formatted_results,
+                "metadata": {
                         "total_results": query_results[0].get('total_projects', 0),
-                        "query_time": f"{query_time:.2f}s",
+                    "query_time": f"{query_time:.2f}s",
                         "sql_query": sql_query
                     }
                 }
@@ -1827,74 +1763,49 @@ Example queries:
         
         return ""
 
-    async def _extract_sector(self, query: str) -> str:
-        """Extract sector from query text using enhanced pattern matching"""
-        logger.info(f"Extracting sector from query: {query}")
-        
-        # Common patterns for sector queries
-        patterns = [
-            # Direct sector mentions
-            r'(?:in|from|about|for)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector|\s*(?:$|[,\.]|\s+(?:and|or|projects?)))',
-            r'([a-zA-Z\s]+?)\s+sector\b',
-            r'\b([a-zA-Z]+)(?:\s+projects?|\s+initiatives?|\s+developments?)\b',
+    async def _extract_sector(self, user_query: str) -> Optional[str]:
+        """Extract sector from user query"""
+        try:
+            query = user_query.lower()
             
-            # Question-based patterns
-            r'(?:which|what|show|list)\s+projects?\s+(?:are|exist|located)\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?\s*[?]?',
-            r'(?:can you|please)\s+(?:show|list|display)\s+(?:me|all)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
-            r'(?:i want|need)\s+to\s+(?:see|find|get)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
+            # Define exact sector mappings
+            sectors = {
+                'Education',
+                'Roads and bridges',
+                'Commercial services', 
+                'Health',
+                'Water and sanitation',
+                'Agriculture and environment',
+                'Community security initiatives'
+            }
             
-            # Direct patterns
-            r'projects?\s+(?:in|at|related to|about)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
-            r'(?:list|show|display)\s+projects?\s+(?:from|in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
-            r'(?:find|search for)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
+            # Check for exact sector matches
+            for sector in sectors:
+                if sector.lower() in query:
+                    logger.info(f"Found exact sector match: {sector}")
+                    return sector
             
-            # Complex patterns
-            r'(?:tell|give)\s+me\s+(?:about|information about)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
-            r'(?:looking for|need information about)\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?',
-            r'(?:what are|show me)\s+the\s+projects?\s+(?:in|at)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+sector)?'
-        ]
-        
-        query = query.lower()
-        
-        # First try pattern matching
-        for pattern in patterns:
-            match = re.search(pattern, query, re.IGNORECASE)
-            if match:
-                sector = match.group(1).strip()
-                # Clean up the sector name
-                sector = re.sub(r'\s+', ' ', sector)  # Normalize spaces
-                sector = ' '.join(word.title() for word in sector.split())  # Title case
-                # Remove common words that might be captured
-                sector = re.sub(r'\b(The|And|Or|Projects?|In|At|From|Of|For)\b', '', sector, flags=re.IGNORECASE)
-                sector = sector.strip()
-                if sector:
-                    logger.info(f"Found sector through pattern matching: {sector}")
-                    return self._validate_sector(sector)
-        
-        # If no pattern match, check for sector keywords
-        for sector, keywords in self.sector_mapping.items():
-            for keyword in keywords:
-                if keyword in query:
-                    logger.info(f"Found sector through keyword matching: {sector}")
+            # Check for sector keywords
+            keywords_map = {
+                'Education': ['school', 'classroom', 'teaching', 'learning'],
+                'Roads and bridges': ['road', 'bridge', 'transport'],
+                'Commercial services': ['commercial', 'business', 'trade'],
+                'Health': ['hospital', 'clinic', 'medical'],
+                'Water and sanitation': ['water', 'sanitation', 'borehole'],
+                'Agriculture and environment': ['agriculture', 'farming'],
+                'Community security initiatives': ['security', 'police']
+            }
+            
+            for sector, keywords in keywords_map.items():
+                if any(kw in query for kw in keywords):
+                    logger.info(f"Found sector from keywords: {sector}")
                     return sector
         
-        logger.info("No sector found in query")
-        return ""
-        
-    def _validate_sector(self, sector: str) -> str:
-        """Validate and normalize sector name"""
-        sector = sector.strip().lower()
-        
-        # Check if the sector matches any of our known sectors
-        for known_sector, keywords in self.sector_mapping.items():
-            if sector == known_sector or any(keyword == sector for keyword in keywords):
-                return known_sector
+            return None
             
-            # Check if the sector contains any of the keywords
-            if any(keyword in sector for keyword in keywords):
-                return known_sector
-        
-        return sector
+        except Exception as e:
+            logger.error(f"Error extracting sector: {str(e)}")
+            return None
 
     async def _extract_project_name(self, query: str) -> str:
         """Extract project name from query text using enhanced pattern matching"""
