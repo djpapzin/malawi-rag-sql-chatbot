@@ -6,6 +6,7 @@ This module contains the main FastAPI application and route handlers.
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List
 import logging
@@ -17,8 +18,6 @@ from .core.config import settings
 from .routers import chat
 from .llm_classification.new_classifier import LLMClassifier
 from .services.llm_service import LLMService
-from flask import Flask, request, jsonify
-from flask_cors import CORS
 import ssl
 
 # Configure logging
@@ -34,6 +33,15 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
     debug=settings.DEBUG
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Mount static files
@@ -130,4 +138,5 @@ if __name__ == "__main__":
         certfile="/etc/letsencrypt/live/dziwani.kwantu.support/fullchain.pem",
         keyfile="/etc/letsencrypt/live/dziwani.kwantu.support/privkey.pem"
     )
-    app.run(host='0.0.0.0', port=5000, ssl_context=ssl_context) 
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=5000, ssl_keyfile="/etc/letsencrypt/live/dziwani.kwantu.support/privkey.pem", ssl_certfile="/etc/letsencrypt/live/dziwani.kwantu.support/fullchain.pem") 
