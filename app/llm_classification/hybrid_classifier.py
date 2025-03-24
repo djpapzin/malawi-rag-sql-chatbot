@@ -12,6 +12,7 @@ from typing import Dict, Any, List, Optional, Tuple, Union
 import asyncio
 
 from .classifier import LLMClassifier, QueryClassification, QueryType, QueryParameters
+from ..services.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +29,26 @@ class HybridClassifier:
     def __init__(self):
         """Initialize the hybrid classifier"""
         self.llm_classifier = LLMClassifier()
-        logger.info("Initialized Hybrid Classifier")
+        self.llm_service = LLMService()
+        self.logger = logging.getLogger(__name__)
         
         # Compile regex patterns for efficiency
         self._compile_patterns()
+        
+        # Patterns for unrelated queries
+        self.unrelated_patterns = [
+            # Single words that aren't project-related
+            r'^[a-zA-Z]{1,4}$',  # Single short words
+            
+            # Common unrelated words/phrases
+            r'^(?:cat|dog|food|weather|time|date|hello|hi|hey|thanks|thank you|bye|goodbye)$',
+            
+            # Questions not about projects
+            r'^(?:what|who|where|when|why|how)\s+(?:is|are|do|does|did)\s+(?!.*project).*$',
+            
+            # Statements not about projects
+            r'^(?!.*(?:project|construction|building|infrastructure))(?:[a-zA-Z\s]{1,20})$'
+        ]
     
     def _compile_patterns(self):
         """Compile regex patterns for different query types"""
@@ -493,6 +510,16 @@ class HybridClassifier:
         Returns:
             QueryClassification object
         """
+        # First check if it's an unrelated query
+        for pattern in self.unrelated_patterns:
+            if re.match(pattern, query):
+                self.logger.info(f"Query '{query}' matched unrelated pattern: {pattern}")
+                return QueryClassification(
+                    query_type=QueryType.UNRELATED,
+                    confidence=0.95,
+                    parameters=QueryParameters()
+                )
+        
         # First try regex classification
         regex_class = self._regex_classify(query)
         

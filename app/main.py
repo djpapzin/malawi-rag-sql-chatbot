@@ -72,11 +72,21 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
         # Handle unrelated queries directly
         if classification.query_type == "unrelated":
             return {
-                "type": "unrelated",
-                "message": "I can help you find information about infrastructure projects in Malawi. You can ask me about specific projects, projects in certain districts or sectors, or general questions about the projects.",
+                "results": [{
+                    "type": "text",
+                    "message": "I am designed to help you find information about infrastructure projects in Malawi. You can ask me about:\n\n" +
+                             "• Specific projects (e.g., 'Tell me about the Nyandule Classroom Block project')\n" +
+                             "• Projects in a district (e.g., 'Show me projects in Lilongwe')\n" +
+                             "• Projects by sector (e.g., 'List all education projects')\n" +
+                             "• Project status and progress\n\n" +
+                             "How can I help you find project information?",
+                    "data": {}
+                }],
                 "metadata": {
                     "query_time": None,
-                    "total_results": 0
+                    "total_results": 0,
+                    "sql_query": None,
+                    "confidence": 0.95
                 }
             }
         
