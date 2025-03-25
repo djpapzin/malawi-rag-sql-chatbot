@@ -5,7 +5,7 @@ import time
 
 def test_query(query: str) -> Dict[str, Any]:
     """Send a query to the API and return the response"""
-    url = "https://dziwani.kwantu.support/api/rag-sql-chatbot/query"
+    url = "https://dziwani.kwantu.support/api/rag-sql-chatbot/chat"
     headers = {
         "Content-Type": "application/json"
     }
