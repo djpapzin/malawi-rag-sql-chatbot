@@ -180,68 +180,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateQueryDetails(data.metadata);
             }
             
-            // Handle the results
-            if (data.results && data.results.length > 0) {
-                // Handle legacy format with 'results' array
-                const messageContainer = document.createElement('div');
-                messageContainer.className = 'bot-message-container';
-                
-                data.results.forEach(result => {
-                    if (result.type === 'text') {
-                        appendMessage(result.message, false, false, messageContainer);
-                    } else if (result.type === 'table') {
-                        appendTable(result.message, result.data, messageContainer);
-                    } else if (result.type === 'list') {
-                        appendList(result.message, result.data, messageContainer);
-                    } else if (result.type === 'project_details') {
-                        appendProjectDetails(result.message, result.data, messageContainer);
-                    } else if (result.type === 'error') {
-                        appendMessage(`Error: ${result.message}`, false, true, messageContainer);
-                    }
-                });
-                
-                chatMessages.appendChild(messageContainer);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            } else if (data.projects && data.projects.length > 0) {
-                // Handle new format with 'projects' array
-                const messageContainer = document.createElement('div');
-                messageContainer.className = 'bot-message-container';
-                
-                // First add the response message
-                if (data.response) {
-                    // Check if response is an array (new format) or a string (old format)
-                    if (Array.isArray(data.response)) {
-                        // Handle response array with objects
-                        data.response.forEach(item => {
-                            if (item.type === 'text') {
-                                appendMessage(item.message, false, false, messageContainer);
-                            } else if (item.type === 'table') {
-                                appendTable(item.message, item.data, messageContainer);
-                            } else if (item.type === 'list') {
-                                appendList(item.message, item.data, messageContainer);
-                            } else if (item.type === 'project_details') {
-                                appendProjectDetails(item.message, item.data, messageContainer);
-                            }
-                        });
-                    } else {
-                        // Handle legacy string response
-                        appendMessage(data.response, false, false, messageContainer);
-                    }
-                }
-                
-                // Then add the projects as a table
-                appendTable("Projects", data.projects, messageContainer);
-                
-                chatMessages.appendChild(messageContainer);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            } else if (data.response) {
-                // If we have just a response message but no projects
-                const messageContainer = document.createElement('div');
-                messageContainer.className = 'bot-message-container';
-                
-                // Check if response is an array (new format) or a string (old format)
+            const messageContainer = document.createElement('div');
+            messageContainer.className = 'bot-message-container';
+            
+            // Handle response data
+            if (data.response) {
                 if (Array.isArray(data.response)) {
-                    // Handle response array with objects
+                    // Handle new format with response array
                     data.response.forEach(item => {
                         if (item.type === 'text') {
                             appendMessage(item.message, false, false, messageContainer);
@@ -257,7 +202,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Handle legacy string response
                     appendMessage(data.response, false, false, messageContainer);
                 }
-                
+            }
+            
+            // Handle projects data if present
+            if (data.projects && data.projects.length > 0) {
+                appendTable("Projects", data.projects, messageContainer);
+            }
+            
+            // Handle legacy results format if present
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(result => {
+                    if (result.type === 'text') {
+                        appendMessage(result.message, false, false, messageContainer);
+                    } else if (result.type === 'table') {
+                        appendTable(result.message, result.data, messageContainer);
+                    } else if (result.type === 'list') {
+                        appendList(result.message, result.data, messageContainer);
+                    } else if (result.type === 'project_details') {
+                        appendProjectDetails(result.message, result.data, messageContainer);
+                    } else if (result.type === 'error') {
+                        appendMessage(`Error: ${result.message}`, false, true, messageContainer);
+                    }
+                });
+            }
+            
+            // Only append the container if it has content
+            if (messageContainer.children.length > 0) {
                 chatMessages.appendChild(messageContainer);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             } else {

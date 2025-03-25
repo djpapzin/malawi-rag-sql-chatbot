@@ -1902,6 +1902,19 @@ Example queries:
         """Extract district name from query text using enhanced pattern matching"""
         logger.info(f"Extracting district from query: {query}")
         
+        # First check for exact district name matches
+        for district in self.valid_districts:
+            # Check for exact district name in the query
+            if district.lower() in query.lower():
+                logger.info(f"Found exact district match: {district}")
+                return district
+        
+        # Check for district variations
+        for variation, district in self.district_variations.items():
+            if variation.lower() in query.lower():
+                logger.info(f"Found district variation: {variation} -> {district}")
+                return district
+        
         # Common patterns for district queries
         patterns = [
             # Direct district mentions
@@ -1922,12 +1935,17 @@ Example queries:
             # Complex patterns
             r'(?:tell|give)\s+me\s+(?:about|information about)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
             r'(?:looking for|need information about)\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
-            r'(?:what are|show me)\s+the\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?'
+            r'(?:what are|show me)\s+the\s+projects?\s+(?:in|at)\s+([a-zA-Z\s]+?)(?:\s+district)?',
+            
+            # Simpler patterns for direct district mentions
+            r'\b([a-zA-Z]+)\s+district\b',
+            r'\bin\s+([a-zA-Z]+)\b',
+            r'\bprojects\s+in\s+([a-zA-Z]+)\b'
         ]
         
         query = query.lower()
         
-        # First try pattern matching
+        # Try pattern matching
         for pattern in patterns:
             match = re.search(pattern, query, re.IGNORECASE)
             if match:
@@ -1940,7 +1958,9 @@ Example queries:
                 district = district.strip()
                 if district:
                     logger.info(f"Found district through pattern matching: {district}")
-                return self._validate_district(district)
+                    return self._validate_district(district)
+        
+        return None
         
         # If no pattern match, check for direct district mentions
         for district in self.valid_districts:
@@ -1961,23 +1981,44 @@ Example queries:
         
     def _validate_district(self, district: str) -> str:
         """Validate and normalize district name using fuzzy matching"""
+        if not district:
+            return ""
+            
         district = district.strip().title()
+        logger.info(f"Validating district name: {district}")
+        
+        # Check for exact match (case insensitive)
+        for valid_district in self.valid_districts:
+            if valid_district.lower() == district.lower():
+                logger.info(f"Exact match found: {valid_district}")
+                return valid_district
         
         # Check variations mapping
         normalized_key = district.lower().replace(" ", "")
         if normalized_key in self.district_variations:
+            logger.info(f"Variation match found: {district} -> {self.district_variations[normalized_key]}")
             return self.district_variations[normalized_key]
         
-        # Exact match
-        if district in self.valid_districts:
-            return district
+        # Check if the district name is contained in any valid district
+        for valid_district in self.valid_districts:
+            if district.lower() in valid_district.lower() or valid_district.lower() in district.lower():
+                logger.info(f"Substring match found: {district} -> {valid_district}")
+                return valid_district
         
         # Fuzzy match using difflib
         from difflib import get_close_matches
-        matches = get_close_matches(district, self.valid_districts, n=1, cutoff=0.7)
+        matches = get_close_matches(district, self.valid_districts, n=1, cutoff=0.6)  # Lower cutoff for better matching
         if matches:
+            logger.info(f"Fuzzy match found: {district} -> {matches[0]}")
             return matches[0]
         
+        # If all else fails, try matching the first few characters
+        for valid_district in self.valid_districts:
+            if len(district) >= 3 and valid_district.lower().startswith(district.lower()[:3]):
+                logger.info(f"Prefix match found: {district} -> {valid_district}")
+                return valid_district
+        
+        logger.warning(f"No valid district match found for: {district}")
         return ""
 
     async def _extract_sector(self, user_query: str) -> Optional[str]:
