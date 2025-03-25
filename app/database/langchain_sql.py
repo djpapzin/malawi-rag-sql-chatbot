@@ -117,7 +117,7 @@ class LangChainSQLIntegration:
             
             # Test the API connection and log available models
             try:
-            models = self.client.models.list()
+                models = self.client.models.list()
                 logger.info("Successfully connected to Together API")
                 logger.info(f"Using model: {self.model}")
             except Exception as e:
@@ -397,30 +397,41 @@ Just ask me what you'd like to know about these projects!"""
         """Extract sector from user query"""
         try:
             query = user_query.lower()
-            query_terms = set(query.split())
             
-            # First try multi-word matches
-            for sector, keywords in self.sector_mapping.items():
-                for keyword in keywords:
-                    if len(keyword.split()) > 1 and keyword.lower() in query:
-                        logger.info(f"Found multi-word sector match: {sector} via {keyword}")
-                        return sector
+            # Define exact sector mappings
+            sectors = {
+                'Education',
+                'Roads and bridges',
+                'Commercial services', 
+                'Health',
+                'Water and sanitation',
+                'Agriculture and environment',
+                'Community security initiatives'
+            }
             
-            # Then try single word matches with full sector names
-            for sector in self.sector_mapping.keys():
+            # Check for exact sector matches
+            for sector in sectors:
                 if sector.lower() in query:
                     logger.info(f"Found exact sector match: {sector}")
                     return sector
             
-            # Finally try keyword matches
-            matched_sectors = []
-            for sector, keywords in self.sector_mapping.items():
-                if any(kw.lower() in query_terms for kw in keywords):
-                    matched_sectors.append(sector)
-                    logger.info(f"Found sector match: {sector} via keywords")
+            # Check for sector keywords
+            keywords_map = {
+                'Education': ['school', 'classroom', 'teaching', 'learning'],
+                'Roads and bridges': ['road', 'bridge', 'transport'],
+                'Commercial services': ['commercial', 'business', 'trade'],
+                'Health': ['hospital', 'clinic', 'medical'],
+                'Water and sanitation': ['water', 'sanitation', 'borehole'],
+                'Agriculture and environment': ['agriculture', 'farming'],
+                'Community security initiatives': ['security', 'police']
+            }
             
-            # Return the first match if any found
-            return matched_sectors[0] if matched_sectors else None
+            for sector, keywords in keywords_map.items():
+                if any(kw in query for kw in keywords):
+                    logger.info(f"Found sector from keywords: {sector}")
+                    return sector
+                    
+            return None
             
         except Exception as e:
             logger.error(f"Error extracting sector: {str(e)}")
@@ -429,14 +440,19 @@ Just ask me what you'd like to know about these projects!"""
     async def generate_sql_query(self, user_query: str) -> Tuple[str, str]:
         """Generate SQL query based on user input"""
         try:
-        logger.info(f"Generating SQL query for: {user_query}")
-        
-            # First try to extract project name
-            project_name = await self._extract_project_name(user_query)
-            if project_name:
-                logger.info(f"Found specific project query: {project_name}")
-                where_clause = f"LOWER(projectname) LIKE '%{project_name.lower()}%'"
-                return f"""
+            logger.info(f"Generating SQL query for: {user_query}")
+            
+            # Extract sector
+            sector = await self._extract_sector(user_query)
+            if sector:
+                logger.info(f"Found sector: {sector}")
+                count_query = f"""
+                    SELECT COUNT(*) as total_count
+                    FROM proj_dashboard
+                    WHERE LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%');
+                """
+                
+                results_query = f"""
                     SELECT 
                         projectname as project_name,
                         projectcode as project_code,
@@ -455,59 +471,24 @@ Just ask me what you'd like to know about these projects!"""
                         completionpercentage as completion_progress,
                         contractorname as contractor,
                         signingdate as contract_signing_date,
-                        projectdesc as description
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
                     FROM proj_dashboard
-                    WHERE {where_clause}
-                    ORDER BY budget DESC NULLS LAST;
-                """, "specific_project"
-
-            # If no project name found, try sector
-        sector = await self._extract_sector(user_query)
-        if sector:
-                logger.info(f"Found sector: {sector}")
-            count_query = f"""
-                SELECT COUNT(*) as total_count
-                FROM proj_dashboard
-                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}');
-            """
-            
-            results_query = f"""
-                SELECT 
-                    projectname as project_name,
-                    projectcode as project_code,
-                    projectsector as project_sector,
-                    projectstatus as status,
-                    stage,
-                    region,
-                    district,
-                    traditionalauthority,
-                    budget as total_budget,
-                    TOTALEXPENDITUREYEAR as total_expenditure,
-                    fundingsource as funding_source,
-                    startdate as start_date,
-                    completionestidate as completion_date,
-                    lastvisit as last_monitoring_visit,
-                    completionpercentage as completion_progress,
-                    contractorname as contractor,
-                    signingdate as contract_signing_date,
-                    projectdesc as description,
-                    fiscalyear as fiscal_year
-                FROM proj_dashboard
-                WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}')
+                    WHERE LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
                     ORDER BY budget DESC NULLS LAST
-                LIMIT 10;
-            """
-            
+                    LIMIT 10;
+                """
+                
                 logger.info(f"Generated sector queries for {sector}")
-            return (count_query, results_query), "sector_query"
-        
+                return (count_query, results_query), "sector_query"
+            
             # If no sector found, use the general query
             return self._get_total_budget_query(), "total_budget"
             
         except Exception as e:
             logger.error(f"Error generating SQL query: {str(e)}")
             return "", "error"
-            
+
     async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None, query_type: str = None) -> Dict[str, Any]:
         """Generate a natural language response from query results."""
         try:
@@ -588,7 +569,7 @@ Just ask me what you'd like to know about these projects!"""
                 if query_type == "sector_query":
                     summary = f"Found {len(results)} projects in {sector_name}"
                 else:
-                summary = f"Found {len(results)} projects"
+                    summary = f"Found {len(results)} projects"
                 
                 if total_budget > 0:
                     summary += f" with a total budget of MWK {total_budget:,.2f}"
