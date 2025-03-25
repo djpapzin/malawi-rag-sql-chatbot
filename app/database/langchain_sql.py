@@ -449,7 +449,7 @@ Just ask me what you'd like to know about these projects!"""
                 count_query = f"""
                     SELECT COUNT(*) as total_count
                     FROM proj_dashboard
-                    WHERE LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%');
+                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}') OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%');
                 """
                 
                 results_query = f"""
@@ -474,7 +474,7 @@ Just ask me what you'd like to know about these projects!"""
                         projectdesc as description,
                         fiscalyear as fiscal_year
                     FROM proj_dashboard
-                    WHERE LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
+                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}') OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
                     ORDER BY budget DESC NULLS LAST
                     LIMIT 10;
                 """
