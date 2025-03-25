@@ -445,94 +445,43 @@ Just ask me what you'd like to know about these projects!"""
             logger.error(traceback.format_exc())
             return None
 
-    async def generate_sql_query(self, user_query: str) -> Tuple[str, str]:
-        """Generate SQL query based on user input"""
-        try:
-            # First check for sector queries (check this before district queries)
-            sector = await self._extract_sector(user_query)
-            if sector:
-                logger.info(f"Found sector: {sector}")
-                # Use exact sector name matching
-                count_query = f"""
-                    SELECT COUNT(*) as total_count 
-                    FROM proj_dashboard 
-                    WHERE PROJECTSECTOR = '{sector}';
-                """
-                
-                results_query = f"""
-                    SELECT 
-                        PROJECTNAME as project_name,
-                        PROJECTCODE as project_code,
-                        PROJECTSECTOR as project_sector,
-                        PROJECTSTATUS as status,
-                        STAGE,
-                        REGION,
-                        DISTRICT,
-                        TRADITIONALAUTHORITY,
-                        BUDGET as total_budget,
-                        TOTALEXPENDITUREYEAR as total_expenditure,
-                        FUNDINGSOURCE as funding_source,
-                        STARTDATE as start_date,
-                        COMPLETIONESTIDATE as completion_date,
-                        LASTVISIT as last_monitoring_visit,
-                        COMPLETIONPERCENTAGE as completion_progress,
-                        CONTRACTORNAME as contractor,
-                        SIGNINGDATE as contract_signing_date,
-                        PROJECTDESC as description,
-                        FISCALYEAR as fiscal_year
-                    FROM proj_dashboard
-                    WHERE PROJECTSECTOR = '{sector}'
-                    ORDER BY BUDGET DESC NULLS LAST
-                    LIMIT 10;
-                """
-                
-                logger.info(f"Generated sector queries for {sector}")
-                return (count_query, results_query), "sector_query"
+    async def generate_sql_query(self, query: str) -> Tuple[str, str]:
+        """Generate SQL query based on user input."""
+        logging.info(f"Generating SQL query for: {query}")
+        
+        # First try to extract project name
+        project_name = await self._extract_project_name(query)
+        if project_name:
+            logging.info(f"Found specific project query: {project_name}")
+            sql = self._build_specific_project_sql(project_name)
+            return sql, "specific"
             
-            # Then check if this is a district query
-            district_match = re.search(r'(?:in|at|from|of|for)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+district|\s*(?:$|[,\.]|\s+(?:and|or|projects?|sector)))', user_query.lower())
-            if district_match:
-                district = district_match.group(1).strip().title()
-                # Build SQL query for district-based search
-                sql_query = f"""
-                    SELECT 
-                        PROJECTNAME as project_name,
-                        PROJECTCODE as project_code,
-                        PROJECTSECTOR as project_sector,
-                        PROJECTSTATUS as status,
-                        STAGE,
-                        REGION,
-                        DISTRICT,
-                        TRADITIONALAUTHORITY,
-                        BUDGET as total_budget,
-                        TOTALEXPENDITUREYEAR as total_expenditure,
-                        FUNDINGSOURCE as funding_source,
-                        STARTDATE as start_date,
-                        COMPLETIONESTIDATE as completion_date,
-                        LASTVISIT as last_monitoring_visit,
-                        COMPLETIONPERCENTAGE as completion_progress,
-                        CONTRACTORNAME as contractor,
-                        SIGNINGDATE as contract_signing_date,
-                        PROJECTDESC as description,
-                        FISCALYEAR as fiscal_year
-                    FROM proj_dashboard
-                    WHERE LOWER(DISTRICT) LIKE LOWER('%{district}%')
-                    ORDER BY BUDGET DESC NULLS LAST
-                    LIMIT 10;
-                """
-                logger.info(f"Generated district query for {district}")
-                return sql_query, "district_query"
+        # Check for district query
+        district_match = re.search(r'(?:in|at|for)\s+(?:the\s+)?([A-Za-z]+)\s+(?:district|area)', query.lower())
+        if district_match:
+            district = district_match.group(1)
+            logging.info(f"Found district query: {district}")
+            sql = self._build_district_sql(district)
+            return sql, "district_query"
+            
+        # Check for sector query
+        sector_keywords = ['health', 'education', 'agriculture', 'water', 'sanitation', 'transport', 'roads']
+        sector_match = re.search(r'(?:in|about|for)\s+(?:the\s+)?([A-Za-z]+)\s+(?:sector|projects)', query.lower())
+        if sector_match:
+            sector = sector_match.group(1)
+            if sector.lower() in sector_keywords:
+                logging.info(f"Found sector query: {sector}")
+                sql = self._build_sector_sql(sector)
+                return sql, "sector_query"
+        
+        # Default to general query
+        logging.info("No specific criteria found, using general query")
+        sql = self._build_general_query_sql()
+        return sql, "general"
 
-            # If not a district query, continue with existing logic
-            logger.info(f"Generating SQL query for: {user_query}")
-            
-            # First check for specific project queries
-            project_name = await self._extract_project_name(user_query)
-            if project_name:
-                logger.info(f"Found project name: {project_name}")
-                # Use LIKE for case-insensitive project name matching with multiple patterns
-                specific_query = f"""
-                    SELECT 
+    def _build_specific_project_sql(self, project_name: str) -> str:
+        """Build SQL query for specific project search."""
+        sql = f"""SELECT 
                         PROJECTNAME as project_name,
                         PROJECTCODE as project_code,
                         PROJECTSECTOR as project_sector,
@@ -552,7 +501,7 @@ Just ask me what you'd like to know about these projects!"""
                         SIGNINGDATE as contract_signing_date,
                         PROJECTDESC as description,
                         FISCALYEAR as fiscal_year
-                    FROM proj_dashboard
+                  FROM proj_dashboard
                     WHERE LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')
                     ORDER BY 
                         CASE 
@@ -562,24 +511,12 @@ Just ask me what you'd like to know about these projects!"""
                             ELSE 4
                         END,
                         BUDGET DESC NULLS LAST
-                    LIMIT 10;
-                """
-                logger.info(f"Generated specific project query for: {project_name}")
-                return specific_query, "specific"
-            
-            # If no specific project found, check for sector queries
-            sector = await self._extract_sector(user_query)
-            if sector:
-                logger.info(f"Found sector: {sector}")
-                # Use exact sector name matching
-                count_query = f"""
-                    SELECT COUNT(*) as total_count 
-                    FROM proj_dashboard 
-                    WHERE PROJECTSECTOR = '{sector}';
-                """
-                
-                results_query = f"""
-                    SELECT 
+                    LIMIT 10;"""
+        return sql
+
+    def _build_district_sql(self, district: str) -> str:
+        """Build SQL query for district-specific search."""
+        sql = f"""SELECT 
                         PROJECTNAME as project_name,
                         PROJECTCODE as project_code,
                         PROJECTSECTOR as project_sector,
@@ -599,28 +536,15 @@ Just ask me what you'd like to know about these projects!"""
                         SIGNINGDATE as contract_signing_date,
                         PROJECTDESC as description,
                         FISCALYEAR as fiscal_year
-                    FROM proj_dashboard
-                    WHERE PROJECTSECTOR = '{sector}'
+                  FROM proj_dashboard
+                    WHERE LOWER(DISTRICT) LIKE LOWER('%{district}%')
                     ORDER BY BUDGET DESC NULLS LAST
-                    LIMIT 10;
-                """
-                
-                logger.info(f"Generated sector queries for {sector}")
-                return (count_query, results_query), "sector_query"
-            
-            # Check for district queries
-            district = await self._extract_district(user_query)
-            if district:
-                logger.info(f"Found district: {district}")
-                # Use exact district name matching
-                count_query = f"""
-                    SELECT COUNT(*) as total_count 
-                    FROM proj_dashboard 
-                    WHERE DISTRICT = '{district}';
-                """
-                
-                results_query = f"""
-                    SELECT 
+                    LIMIT 10;"""
+        return sql
+
+    def _build_general_query_sql(self) -> str:
+        """Build SQL query for general search."""
+        sql = """SELECT 
                         PROJECTNAME as project_name,
                         PROJECTCODE as project_code,
                         PROJECTSECTOR as project_sector,
@@ -640,26 +564,38 @@ Just ask me what you'd like to know about these projects!"""
                         SIGNINGDATE as contract_signing_date,
                         PROJECTDESC as description,
                         FISCALYEAR as fiscal_year
-                    FROM proj_dashboard
-                    WHERE DISTRICT = '{district}'
-                    ORDER BY
-                        BUDGET DESC NULLS LAST
-                    LIMIT 10;
-                """
-                
-                logger.info(f"Generated district count query: {count_query}")
-                logger.info(f"Generated district results query: {results_query}")
-                
-                return (count_query, results_query), "district_query"
-            
-            # If no specific identifiers found, use the general query
-            logger.info("No specific identifiers found, using general query")
-            return self._get_total_budget_query(), "total_budget"
-            
-        except Exception as e:
-            logger.error(f"Error generating SQL query: {str(e)}")
-            logger.error(traceback.format_exc())
-            return "", "error"
+                  FROM proj_dashboard
+                    ORDER BY BUDGET DESC NULLS LAST
+                    LIMIT 10;"""
+        return sql
+
+    def _build_sector_sql(self, sector: str) -> str:
+        """Build SQL query for sector-specific search."""
+        sql = f"""SELECT 
+                        PROJECTNAME as project_name,
+                        PROJECTCODE as project_code,
+                        PROJECTSECTOR as project_sector,
+                        PROJECTSTATUS as status,
+                        STAGE,
+                        REGION,
+                        DISTRICT,
+                        TRADITIONALAUTHORITY,
+                        BUDGET as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        FUNDINGSOURCE as funding_source,
+                        STARTDATE as start_date,
+                        COMPLETIONESTIDATE as completion_date,
+                        LASTVISIT as last_monitoring_visit,
+                        COMPLETIONPERCENTAGE as completion_progress,
+                        CONTRACTORNAME as contractor,
+                        SIGNINGDATE as contract_signing_date,
+                        PROJECTDESC as description,
+                        FISCALYEAR as fiscal_year
+                  FROM proj_dashboard
+                    WHERE LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
+                    ORDER BY BUDGET DESC NULLS LAST
+                    LIMIT 10;"""
+        return sql
 
     async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None, query_type: str = None) -> Dict[str, Any]:
         """Generate a natural language response from query results."""
@@ -2175,28 +2111,22 @@ Example queries:
             logger.info("Found Nyandule Classroom Block project through direct keyword matching")
             return "Nyandule Classroom Block"
         
-        # Common patterns for project name queries
+        # Common patterns for project name queries - these should be more specific
         patterns = [
-            # Direct project name mentions with "tell me about" or similar phrases
-            r'(?:tell|show|give)\s+(?:me\s+)?(?:about|details\s+(?:about|of)|information\s+(?:about|on))\s+(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom))?)\s*(?:\?|$|\.)',
+            # Direct "tell me about X project" pattern
+            r'tell me about (?:the\s+)?([^?.]+?(?:\s+(?:project|block|building|school|hospital|bridge|road|center|centre|classroom)))\s*(?:\?|$|\.)',
             
-            # Questions about specific projects
-            r'what(?:\s+is|\s+are|\s+about)\s+(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom))?)\s*(?:\?|$|\.)',
-            
-            # Direct name followed by "project" or at end of query
-            r'(?:^|\s+)(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom)))\s*(?:\?|$|\.)',
+            # Direct "what is X project" pattern
+            r'what is (?:the\s+)?([^?.]+?(?:\s+(?:project|block|building|school|hospital|bridge|road|center|centre|classroom)))\s*(?:\?|$|\.)',
             
             # Project name in quotes
-            r'["\']([^"\'\']+?)(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom))?["\']',
-            
-            # Simple project name extraction (fallback)
-            r'(?:^|\s+)([A-Z][^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom)))\s*(?:\?|$|\.)',
+            r'["\']([^"\']+?)(?:\s+(?:project|block|building|school|hospital|bridge|road|center|centre|classroom))?["\']',
             
             # Specific pattern for classroom blocks
-            r'(?:^|\s+)([\w\s]+?\s+Classroom\s+Block)(?:\s+project)?\s*(?:\?|$|\.)',
+            r'(?:^|\s+)([\w\s]+?\s+classroom\s+block)(?:\s+project)?\s*(?:\?|$|\.)',
             
-            # Fallback pattern for any capitalized word followed by common project terms
-            r'(?:^|\s+)([A-Z][\w]+(?:\s+[\w]+){0,5})\s*(?:\?|$|\.)'
+            # Pattern for project codes
+            r'(?:project|code)\s+(?:code\s+)?(MW-[A-Za-z]{2}-[A-Z0-9]{2})'
         ]
         
         # Try each pattern
