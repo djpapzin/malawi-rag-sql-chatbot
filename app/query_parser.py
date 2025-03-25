@@ -75,6 +75,7 @@ class QueryParser:
                 response["query"] = self._build_specific_project_sql(project_info)
                 response["type"] = "specific"
                 response["metadata"].update(project_info)
+                response["metadata"]["original_query"] = query
         else:
             # Handle general query using both LLM and pattern matching
             llm_filters = classification.get("context", {}).get("extracted_filters", {})
@@ -97,6 +98,7 @@ class QueryParser:
 
             response["query"] = self._build_general_query_sql(filters)
             response["metadata"]["filters"] = filters
+            response["metadata"]["original_query"] = query
 
         return response
 
@@ -175,6 +177,43 @@ class QueryParser:
             
         where_clause = " AND ".join(conditions) if conditions else "1=1"
         
+        # For sector queries, return both count and details
+        if sector:
+            return (
+                f"""
+                    SELECT COUNT(*) as total_count 
+                    FROM proj_dashboard 
+                    WHERE {where_clause};
+                """,
+                f"""
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM proj_dashboard
+                    WHERE {where_clause}
+                    ORDER BY budget DESC NULLS LAST
+                    LIMIT 10;
+                """
+            )
+        
+        # For non-sector queries, return all matching projects
         return f"""SELECT *
             FROM proj_dashboard
             WHERE {where_clause}
@@ -191,24 +230,56 @@ class QueryParser:
         )"""
 
     def _build_sector_condition(self, sector: str) -> str:
-        """Build sector filter condition with exact case matching"""
+        """Build sector filter condition with case-insensitive matching"""
         sector = sector.replace("'", "''")
         
         # Map common sector names to exact database values
         sector_mapping = {
             'health': 'Health',
+            'healthcare': 'Health',
+            'medical': 'Health',
+            'hospital': 'Health',
+            'clinic': 'Health',
             'education': 'Education',
+            'school': 'Education',
+            'university': 'Education',
+            'classroom': 'Education',
+            'infrastructure': 'Infrastructure',
+            'road': 'Infrastructure',
+            'bridge': 'Infrastructure',
+            'transport': 'Infrastructure',
             'water': 'Water and sanitation',
-            'transport': 'Roads and bridges',
-            'agriculture': 'Agriculture and environment',
-            'commercial': 'Commercial services',
-            'security': 'Community security initiatives'
+            'sanitation': 'Water and sanitation',
+            'irrigation': 'Water and sanitation',
+            'rural development': 'Rural Development',
+            'rural': 'Rural Development',
+            'village': 'Rural Development',
+            'rural roads': 'Rural Development',
+            'rural infrastructure': 'Rural Development',
+            'urban development': 'Urban Development',
+            'urban': 'Urban Development',
+            'city': 'Urban Development',
+            'environment': 'Environment',
+            'climate': 'Environment',
+            'forestry': 'Environment',
+            'governance': 'Governance',
+            'administration': 'Governance',
+            'agriculture': 'Agriculture',
+            'farming': 'Agriculture',
+            'energy': 'Energy',
+            'power': 'Energy',
+            'electricity': 'Energy'
         }
         
-        # Get the exact sector name from mapping or use the input
-        exact_sector = sector_mapping.get(sector.lower(), sector)
+        # Get the mapped sector name or use the original
+        mapped_sector = sector_mapping.get(sector.lower(), sector)
         
-        return f"PROJECTSECTOR = '{exact_sector}'"
+        # Build case-insensitive condition with fuzzy matching
+        return f"""(
+            LOWER(PROJECTSECTOR) = LOWER('{mapped_sector}') OR 
+            LOWER(PROJECTSECTOR) LIKE LOWER('%{mapped_sector}%') OR
+            similarity(LOWER(PROJECTSECTOR), LOWER('{mapped_sector}')) > 0.4
+        )"""
 
     def _build_status_condition(self, status: str) -> str:
         """Build status filter condition"""
@@ -236,19 +307,23 @@ class QueryParser:
         # Common patterns for sectors
         patterns = [
             # Direct sector mentions
-            r"\b(?:in\s+the\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector|projects?|facilities?|infrastructure)?\b",
-            r"(?:sector|projects?|facilities?|infrastructure)\s+(?:in|for|about)\s+(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\b",
+            r"\b(?:in\s+the\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming|rural|urban|infrastructure|environment|governance|energy)\s+(?:sector|projects?|facilities?|infrastructure|development)?\b",
+            r"(?:sector|projects?|facilities?|infrastructure|development)\s+(?:in|for|about)\s+(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming|rural|urban|infrastructure|environment|governance|energy)\b",
             
             # Question-based patterns
-            r"(?:what|which|show|list)\s+(?:are\s+the\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector\s+)?projects?\b",
-            r"(?:tell\s+me\s+about|show\s+me|list)\s+(?:the\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector\s+)?projects?\b",
+            r"(?:what|which|show|list)\s+(?:are\s+the\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming|rural|urban|infrastructure|environment|governance|energy)\s+(?:sector\s+)?projects?\b",
+            r"(?:tell\s+me\s+about|show\s+me|list)\s+(?:the\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming|rural|urban|infrastructure|environment|governance|energy)\s+(?:sector\s+)?projects?\b",
             
             # Natural language patterns
-            r"(?:i\s+want|need)\s+to\s+(?:see|find|get)\s+(?:information\s+about\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector\s+)?projects?\b",
-            r"(?:looking\s+for|interested\s+in)\s+(?:information\s+about\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\s+(?:sector\s+)?projects?\b",
+            r"(?:i\s+want|need)\s+to\s+(?:see|find|get)\s+(?:information\s+about\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming|rural|urban|infrastructure|environment|governance|energy)\s+(?:sector\s+)?projects?\b",
+            r"(?:looking\s+for|interested\s+in)\s+(?:information\s+about\s+)?(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming|rural|urban|infrastructure|environment|governance|energy)\s+(?:sector\s+)?projects?\b",
             
             # Simple patterns
-            r"\b(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming)\b"
+            r"\b(health|medical|hospital|clinic|education|school|classroom|water|sanitation|transport|road|bridge|agriculture|farming|rural|urban|infrastructure|environment|governance|energy)\b",
+            
+            # Special patterns for rural development
+            r"\b(?:rural\s+development|rural\s+roads|rural\s+infrastructure)\b",
+            r"\b(?:development|roads|infrastructure)\s+(?:in|for)\s+rural\s+areas?\b"
         ]
         
         # Sector mapping for variations
@@ -260,7 +335,10 @@ class QueryParser:
             'classroom': 'education',
             'road': 'transport',
             'bridge': 'transport',
-            'farming': 'agriculture'
+            'farming': 'agriculture',
+            'rural': 'rural development',
+            'rural roads': 'rural development',
+            'rural infrastructure': 'rural development'
         }
         
         query = query.lower()

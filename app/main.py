@@ -15,7 +15,7 @@ from .query_parser import QueryParser
 from .response_formatter import ResponseFormatter
 from .database.service import DatabaseService
 from .core.config import settings
-from .routers import chat, query
+from .routers import chat
 from .llm_classification.new_classifier import LLMClassifier
 from .services.llm_service import LLMService
 import ssl
@@ -52,9 +52,8 @@ app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 async def read_root():
     return FileResponse("frontend/templates/index.html")
 
-# Include routers
+# Include router
 app.include_router(chat.router, prefix="/api/rag-sql-chatbot")
-app.include_router(query.router, prefix="/api/rag-sql-chatbot/query")
 
 # Initialize services
 llm_service = LLMService()

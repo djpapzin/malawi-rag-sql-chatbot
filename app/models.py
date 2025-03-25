@@ -129,13 +129,17 @@ class DatabaseManager:
     def execute_query(self, query: str) -> Tuple[List[Dict[str, Any]], float]:
         start_time = datetime.now()
         try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query)
-                results = [dict(row) for row in cursor.fetchall()]
-                query_time = (datetime.now() - start_time).total_seconds()
-                return results, query_time
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query)
+            results = [dict(row) for row in cursor.fetchall()]
+            query_time = (datetime.now() - start_time).total_seconds()
+            return results, query_time
         except Exception as e:
             logger.error(f"Query execution error: {e}")
             logger.error(f"Failed query: {query}")
             raise
+        finally:
+            if conn:
+                conn.close()

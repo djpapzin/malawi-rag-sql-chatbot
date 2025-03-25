@@ -36,19 +36,49 @@ class ResponseFormatter:
             ("PROJECTSTATUS", "Status"),
             ("CONTRACTORNAME", "Contractor name"),
             ("SIGNINGDATE", "Contract start date", "date"),
-            ("TOTALEXPENDITURETODATE", "Expenditure to date", "currency"),
+            ("TOTALEXPENDITUREYEAR", "Expenditure to date", "currency"),
             ("PROJECTSECTOR", "Sector"),
             ("FUNDINGSOURCE", "Source of funding"),
             ("PROJECTCODE", "Project code"),
             ("LASTVISIT", "Date of last Council monitoring visit", "date")
         ]
         
+        # Updated sector names to match query parser
         self.sector_names = {
             'health': 'Health',
+            'healthcare': 'Health',
+            'medical': 'Health',
+            'hospital': 'Health',
+            'clinic': 'Health',
             'education': 'Education',
-            'water': 'Water and Sanitation',
-            'transport': 'Transport',
-            'agriculture': 'Agriculture'
+            'school': 'Education',
+            'university': 'Education',
+            'classroom': 'Education',
+            'infrastructure': 'Infrastructure',
+            'road': 'Infrastructure',
+            'bridge': 'Infrastructure',
+            'transport': 'Infrastructure',
+            'water': 'Water and sanitation',
+            'sanitation': 'Water and sanitation',
+            'irrigation': 'Water and sanitation',
+            'rural development': 'Rural Development',
+            'rural': 'Rural Development',
+            'village': 'Rural Development',
+            'rural roads': 'Rural Development',
+            'rural infrastructure': 'Rural Development',
+            'urban development': 'Urban Development',
+            'urban': 'Urban Development',
+            'city': 'Urban Development',
+            'environment': 'Environment',
+            'climate': 'Environment',
+            'forestry': 'Environment',
+            'governance': 'Governance',
+            'administration': 'Governance',
+            'agriculture': 'Agriculture',
+            'farming': 'Agriculture',
+            'energy': 'Energy',
+            'power': 'Energy',
+            'electricity': 'Energy'
         }
     
     def format_value(self, value: Any, format_type: str = None) -> str:
@@ -58,128 +88,154 @@ class ResponseFormatter:
             
         if format_type == "currency":
             try:
-                return f"MWK {float(value):,.2f}"
-            except:
-                return self.NULL_VALUE
+                # Handle string values with commas and currency symbols
+                if isinstance(value, str):
+                    # Remove currency symbols and commas
+                    value = value.replace('MWK', '').replace('MK', '').replace(',', '').strip()
+                    value = float(value)
+                elif isinstance(value, (int, float)):
+                    value = float(value)
+                else:
+                    return str(value)
+                
+                # Format as currency with MWK symbol
+                if value == 0:
+                    return "MWK 0.00"
+                return f"MWK {value:,.2f}"
+            except Exception as e:
+                logger.error(f"Error formatting currency value '{value}': {str(e)}")
+                return str(value)
+                
         elif format_type == "date":
             try:
-                date_obj = datetime.strptime(str(value), '%Y-%m-%d')
-                return date_obj.strftime('%B %d, %Y')
-            except:
-                return self.NULL_VALUE
+                if isinstance(value, str):
+                    # Try different date formats
+                    date_formats = [
+                        '%Y-%m-%d',
+                        '%d/%m/%Y',
+                        '%m/%d/%Y',
+                        '%Y/%m/%d',
+                        '%d-%m-%Y',
+                        '%m-%d-%Y'
+                    ]
+                    
+                    for fmt in date_formats:
+                        try:
+                            date_obj = datetime.strptime(value, fmt)
+                            return date_obj.strftime('%B %d, %Y')
+                        except:
+                            continue
+                            
+                    # If no format matches, return original
+                    return value
+                elif isinstance(value, datetime):
+                    return value.strftime('%B %d, %Y')
+                else:
+                    return str(value)
+            except Exception as e:
+                logger.error(f"Error formatting date value '{value}': {str(e)}")
+                return str(value)
+                
         elif format_type == "percentage":
             try:
+                if isinstance(value, str):
+                    value = value.replace('%', '').strip()
                 return f"{float(value):.1f}%"
-            except:
-                return self.NULL_VALUE
+            except Exception as e:
+                logger.error(f"Error formatting percentage value '{value}': {str(e)}")
+                return str(value)
         else:
             return str(value)
     
-    def format_response(self, query_type: str, results: List[Dict], parameters: Dict) -> Dict:
-        """Format the response based on query type and results"""
-        if not results:
-            return self._format_no_results(query_type, parameters)
-            
-        if query_type == "specific":
-            # Format specific project details
-            result = results[0]  # Take first result for specific queries
-            
-            # Create a descriptive summary
-            project_name = result.get("PROJECTNAME", "Unknown Project")
-            sector = result.get("PROJECTSECTOR", "Unknown Sector")
-            district = result.get("DISTRICT", "Unknown Location")
-            status = result.get("PROJECTSTATUS", "Unknown Status")
-            budget = result.get("TOTALBUDGET", 0)
-            
-            summary = f"{project_name} is a {sector} project"
-            if district != "Not available":
-                summary += f" in {district}"
-            summary += f". The project is currently {status}"
-            if budget > 0:
-                summary += f" with a budget of MWK {budget:,.2f}"
-            summary += "."
-            
-            # Format all required fields
-            formatted_data = {}
-            for field_info in self.specific_project_fields:
-                db_field = field_info[0]
-                display_name = field_info[1]
-                format_type = field_info[2] if len(field_info) > 2 else None
+    def format_response(self, results: List[Dict], query_type: str, metadata: Dict = None) -> Dict:
+        """Format query results into a natural language response"""
+        try:
+            if not results:
+                if query_type == "specific":
+                    return {
+                        "response": "I couldn't find any project matching that name. Please try a different project name or check the spelling.",
+                        "metadata": metadata or {}
+                    }
+                elif query_type == "sector_query":
+                    return {
+                        "response": "I couldn't find any projects in that sector. Please try a different sector.",
+                        "metadata": metadata or {}
+                    }
+                else:
+                    return {
+                        "response": "No results found for your query.",
+                        "metadata": metadata or {}
+                    }
+
+            if query_type == "sector_query":
+                # Get unique sectors and count projects
+                sectors = {}
+                for result in results:
+                    sector = result.get('PROJECTSECTOR', 'Unknown')
+                    if sector not in sectors:
+                        sectors[sector] = []
+                    sectors[sector].append(result)
+
+                response_parts = []
+                for sector, projects in sectors.items():
+                    response_parts.append(f"Found {len(projects)} project(s) in {sector}:")
+                    for project in projects[:5]:  # Limit to 5 projects per sector
+                        project_details = []
+                        if project.get('PROJECTNAME'):
+                            project_details.append(f"Name: {project['PROJECTNAME']}")
+                        if project.get('PROJECTSTATUS'):
+                            project_details.append(f"Status: {project['PROJECTSTATUS']}")
+                        if project.get('TOTALPROJECTCOST'):
+                            formatted_cost = self.format_value(project['TOTALPROJECTCOST'], 'currency')
+                            project_details.append(f"Budget: {formatted_cost}")
+                        if project.get('STARTDATE'):
+                            formatted_date = self.format_value(project['STARTDATE'], 'date')
+                            project_details.append(f"Start Date: {formatted_date}")
+                        response_parts.append("- " + ", ".join(project_details))
+                    if len(projects) > 5:
+                        response_parts.append(f"... and {len(projects) - 5} more project(s)")
+
+                response = "\n".join(response_parts)
+
+            elif query_type == "specific":
+                result = results[0]
+                project_details = []
+                if result.get('PROJECTNAME'):
+                    project_details.append(f"Project Name: {result['PROJECTNAME']}")
+                if result.get('PROJECTCODE'):
+                    project_details.append(f"Project Code: {result['PROJECTCODE']}")
+                if result.get('PROJECTSECTOR'):
+                    project_details.append(f"Sector: {result['PROJECTSECTOR']}")
+                if result.get('PROJECTSTATUS'):
+                    project_details.append(f"Status: {result['PROJECTSTATUS']}")
+                if result.get('TOTALPROJECTCOST'):
+                    formatted_cost = self.format_value(result['TOTALPROJECTCOST'], 'currency')
+                    project_details.append(f"Total Budget: {formatted_cost}")
+                if result.get('STARTDATE'):
+                    formatted_date = self.format_value(result['STARTDATE'], 'date')
+                    project_details.append(f"Start Date: {formatted_date}")
+                if result.get('ENDDATE'):
+                    formatted_date = self.format_value(result['ENDDATE'], 'date')
+                    project_details.append(f"End Date: {formatted_date}")
+                if result.get('IMPLEMENTINGAGENCY'):
+                    project_details.append(f"Implementing Agency: {result['IMPLEMENTINGAGENCY']}")
+                if result.get('DESCRIPTION'):
+                    project_details.append(f"Description: {result['DESCRIPTION']}")
                 
-                value = result.get(db_field, self.NULL_VALUE)
-                formatted_value = self.format_value(value, format_type)
-                formatted_data[display_name] = formatted_value
-            
-            return {
-                "results": [
-                    {
-                        "type": "text",
-                        "message": summary,
-                        "data": {}
-                    },
-                    {
-                        "type": "project_details",
-                        "message": "Project Details",
-                        "data": formatted_data
-                    }
-                ],
-                "metadata": {
-                    "total_results": 1,
-                    "query_type": "specific",
-                    "filters_applied": parameters.get("filters", {}),
-                    "project_name": project_name,
-                    "project_sector": sector
-                }
-            }
-        else:
-            # Format general project list
-            sector = parameters.get("filters", {}).get("sectors", [None])[0]
-            district = parameters.get("filters", {}).get("districts", [None])[0]
-            
-            # Build summary message
-            if sector:
-                sector_name = self.sector_names.get(sector, sector.title())
-                summary = f"I found {len(results)} projects in the {sector_name} sector."
-            elif district:
-                summary = f"I found {len(results)} projects in {district}."
+                response = "\n".join(project_details)
             else:
-                summary = f"I found {len(results)} projects matching your criteria."
-            
-            # Format project list
-            formatted_results = []
-            for r in results:
-                project_data = {}
-                for field_info in self.general_project_fields:
-                    db_field = field_info[0]
-                    display_name = field_info[1]
-                    format_type = field_info[2] if len(field_info) > 2 else None
-                    
-                    value = r.get(db_field, self.NULL_VALUE)
-                    formatted_value = self.format_value(value, format_type)
-                    project_data[display_name] = formatted_value
-                formatted_results.append(project_data)
-            
+                response = "I found some results but I'm not sure how to format them. Please try rephrasing your question."
+
             return {
-                "results": [
-                    {
-                        "type": "text",
-                        "message": summary,
-                        "data": {}
-                    },
-                    {
-                        "type": "list",
-                        "message": "Project List",
-                        "data": {
-                            "fields": [field[1] for field in self.general_project_fields],
-                            "values": formatted_results
-                        }
-                    }
-                ],
-                "metadata": {
-                    "total_results": len(results),
-                    "query_type": "general",
-                    "filters_applied": parameters.get("filters", {})
-                }
+                "response": response,
+                "metadata": metadata or {}
+            }
+
+        except Exception as e:
+            logger.error(f"Error formatting response: {str(e)}")
+            return {
+                "response": "I encountered an error while formatting the response. Please try again.",
+                "metadata": metadata or {}
             }
             
     def _format_no_results(self, query_type: str, parameters: Dict) -> Dict:
@@ -188,7 +244,7 @@ class ResponseFormatter:
         district = parameters.get("filters", {}).get("districts", [None])[0]
         
         if sector:
-            sector_name = self.sector_names.get(sector, sector.title())
+            sector_name = self.sector_names.get(sector.lower(), sector.title())
             message = f"I couldn't find any projects in the {sector_name} sector. Would you like to try a different sector?"
         elif district:
             message = f"I couldn't find any projects in {district}. Would you like to try a different district?"

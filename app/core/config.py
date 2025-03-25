@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["http://localhost:5000", "http://154.0.164.254:5000", "https://dziwani.kwantu.support"]
     
     # API Keys and External Services
-    TOGETHER_API_KEY: str = ""
+    TOGETHER_API_KEY: str = "tgp_v1_Szc4dceAlkTgtP-_rrcsoFKRO3Q-UCWJIS6jczCalj4"
     AZURE_TRANSLATION_KEY: str = ""
     AZURE_TRANSLATION_REGION: str = ""
     AZURE_TRANSLATION_ENDPOINT: str = "https://api.cognitive.microsofttranslator.com/"

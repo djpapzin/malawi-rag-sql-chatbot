@@ -1,10 +1,6 @@
 import re
 from typing import Optional, Dict
 from difflib import get_close_matches
-from llm_service import LLMService
-
-# Initialize LLM service
-llm_service = LLMService()
 
 # Complete list of Malawi districts
 MALAWI_DISTRICTS = [
@@ -26,6 +22,56 @@ DISTRICT_VARIATIONS = {
     "zomba city": "Zomba",
     "mzuzu": "Mzimba",  # Mzuzu is in Mzimba district
 }
+
+# Common sectors and their variations
+SECTORS = {
+    "agriculture": ["agriculture", "farming", "food security", "crop", "livestock"],
+    "education": ["education", "school", "university", "college", "learning"],
+    "health": ["health", "hospital", "clinic", "medical", "healthcare"],
+    "infrastructure": ["infrastructure", "road", "bridge", "transport", "construction"],
+    "energy": ["energy", "power", "electricity", "solar", "hydro"],
+    "water": ["water", "sanitation", "irrigation", "water supply", "wastewater"],
+    "rural development": ["rural", "village", "community", "development"],
+    "urban development": ["urban", "city", "town", "municipal"],
+    "environment": ["environment", "climate", "conservation", "forestry"],
+    "governance": ["governance", "administration", "public sector", "government"]
+}
+
+def validate_sector(sector_name: str) -> Optional[str]:
+    """Validate and normalize a sector name."""
+    sector_name = sector_name.lower().strip()
+    
+    # Check for exact matches in sector names
+    for main_sector, variations in SECTORS.items():
+        if sector_name in variations or sector_name == main_sector:
+            return main_sector.title()
+    
+    # Try fuzzy matching for close matches
+    for main_sector, variations in SECTORS.items():
+        for variation in variations:
+            if get_close_matches(sector_name, [variation], n=1, cutoff=0.7):
+                return main_sector.title()
+    
+    return None
+
+def clean_project_name(project_name: str) -> str:
+    """Clean and normalize a project name."""
+    # Remove common prefixes and suffixes
+    prefixes = ["the ", "a ", "an "]
+    suffixes = [" project", " scheme", " program", " programme"]
+    
+    name = project_name.strip()
+    name = name.lower()
+    
+    for prefix in prefixes:
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+    
+    for suffix in suffixes:
+        if name.endswith(suffix):
+            name = name[:-len(suffix)]
+    
+    return name.strip()
 
 def extract_district_from_query(query: str) -> Optional[str]:
     """Extract district name from a query using enhanced pattern matching."""
@@ -104,11 +150,17 @@ def parse_query(query: str) -> dict:
         
         # Add conditions based on extracted info
         if extracted_info.get("project_name"):
-            project_name = extracted_info["project_name"].strip()
+            project_name = clean_project_name(extracted_info["project_name"])
             conditions.append(f"LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%')")
-            order_by.append(f"CASE WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1 "
-                          f"WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 2 "
-                          "ELSE 3 END")
+            # Improved ordering for project name matches
+            order_by.append(f"""
+                CASE 
+                    WHEN LOWER(PROJECTNAME) = LOWER('{project_name}') THEN 1
+                    WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name}%') THEN 2
+                    WHEN LOWER(PROJECTNAME) LIKE LOWER('%{project_name.split()[0]}%') THEN 3
+                    ELSE 4
+                END
+            """)
     
     elif query_type == "district_query":
         base_query = """
@@ -144,7 +196,17 @@ def parse_query(query: str) -> dict:
         
         if extracted_info.get("sector"):
             sector = extracted_info["sector"].strip()
-            conditions.append(f"LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')")
+            validated_sector = validate_sector(sector)
+            if validated_sector:
+                conditions.append(f"LOWER(PROJECTSECTOR) LIKE LOWER('%{validated_sector}%')")
+                # Add ordering to prioritize exact sector matches
+                order_by.append(f"""
+                    CASE 
+                        WHEN LOWER(PROJECTSECTOR) = LOWER('{validated_sector}') THEN 1
+                        WHEN LOWER(PROJECTSECTOR) LIKE LOWER('%{validated_sector}%') THEN 2
+                        ELSE 3
+                    END
+                """)
     
     else:  # general_query
         base_query = """

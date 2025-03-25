@@ -182,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Handle the results
             if (data.results && data.results.length > 0) {
+                // Handle legacy format with 'results' array
                 const messageContainer = document.createElement('div');
                 messageContainer.className = 'bot-message-container';
                 
@@ -201,7 +202,66 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 chatMessages.appendChild(messageContainer);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
+            } else if (data.projects && data.projects.length > 0) {
+                // Handle new format with 'projects' array
+                const messageContainer = document.createElement('div');
+                messageContainer.className = 'bot-message-container';
+                
+                // First add the response message
+                if (data.response) {
+                    // Check if response is an array (new format) or a string (old format)
+                    if (Array.isArray(data.response)) {
+                        // Handle response array with objects
+                        data.response.forEach(item => {
+                            if (item.type === 'text') {
+                                appendMessage(item.message, false, false, messageContainer);
+                            } else if (item.type === 'table') {
+                                appendTable(item.message, item.data, messageContainer);
+                            } else if (item.type === 'list') {
+                                appendList(item.message, item.data, messageContainer);
+                            } else if (item.type === 'project_details') {
+                                appendProjectDetails(item.message, item.data, messageContainer);
+                            }
+                        });
+                    } else {
+                        // Handle legacy string response
+                        appendMessage(data.response, false, false, messageContainer);
+                    }
+                }
+                
+                // Then add the projects as a table
+                appendTable("Projects", data.projects, messageContainer);
+                
+                chatMessages.appendChild(messageContainer);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } else if (data.response) {
+                // If we have just a response message but no projects
+                const messageContainer = document.createElement('div');
+                messageContainer.className = 'bot-message-container';
+                
+                // Check if response is an array (new format) or a string (old format)
+                if (Array.isArray(data.response)) {
+                    // Handle response array with objects
+                    data.response.forEach(item => {
+                        if (item.type === 'text') {
+                            appendMessage(item.message, false, false, messageContainer);
+                        } else if (item.type === 'table') {
+                            appendTable(item.message, item.data, messageContainer);
+                        } else if (item.type === 'list') {
+                            appendList(item.message, item.data, messageContainer);
+                        } else if (item.type === 'project_details') {
+                            appendProjectDetails(item.message, item.data, messageContainer);
+                        }
+                    });
+                } else {
+                    // Handle legacy string response
+                    appendMessage(data.response, false, false, messageContainer);
+                }
+                
+                chatMessages.appendChild(messageContainer);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             } else {
+                // Fallback for no results
                 appendMessage("I couldn't find any results for your query.", false, false);
             }
         } catch (error) {

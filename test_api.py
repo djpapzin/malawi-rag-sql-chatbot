@@ -5,7 +5,7 @@ import time
 
 def test_query(query: str) -> Dict[str, Any]:
     """Send a query to the API and return the response"""
-    url = "https://dziwani.kwantu.support/api/rag-sql-chatbot/chat"
+    url = "http://localhost:5000/api/rag-sql-chatbot/chat"
     headers = {
         "Content-Type": "application/json"
     }
@@ -40,10 +40,11 @@ def run_tests():
         print(f"\nQuery: {query}")
         response = test_query(query)
         if response:
-            print(f"Results found: {len(response.get('results', []))}")
-            print("First result:")
-            if response.get('results'):
-                print(json.dumps(response['results'][0], indent=2))
+            print("Response:")
+            print(response.get('response', 'No response'))
+            if response.get('metadata'):
+                print("\nMetadata:")
+                print(json.dumps(response['metadata'], indent=2))
         print("-" * 50)
     
     # Test specific project queries
@@ -61,10 +62,11 @@ def run_tests():
         print(f"\nQuery: {query}")
         response = test_query(query)
         if response:
-            print(f"Results found: {len(response.get('results', []))}")
-            print("First result:")
-            if response.get('results'):
-                print(json.dumps(response['results'][0], indent=2))
+            print("Response:")
+            print(response.get('response', 'No response'))
+            if response.get('metadata'):
+                print("\nMetadata:")
+                print(json.dumps(response['metadata'], indent=2))
         print("-" * 50)
 
 if __name__ == "__main__":
