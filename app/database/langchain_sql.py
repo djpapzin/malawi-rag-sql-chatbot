@@ -445,7 +445,7 @@ Just ask me what you'd like to know about these projects!"""
             logger.error(traceback.format_exc())
             return None
 
-    async def generate_sql_query(self, query: str) -> Tuple[str, str]:
+    async def generate_sql_query(self, query: str) -> Union[str, Tuple[str, str], Tuple[str, str]]:
         """Generate SQL query based on user input."""
         logging.info(f"Generating SQL query for: {query}")
         
@@ -461,8 +461,8 @@ Just ask me what you'd like to know about these projects!"""
         if district_match:
             district = district_match.group(1)
             logging.info(f"Found district query: {district}")
-            sql = self._build_district_sql(district)
-            return sql, "district_query"
+            count_sql, results_sql = self._build_district_sql(district)
+            return (count_sql, results_sql), "district_query"
             
         # Check for sector query
         sector_keywords = ['health', 'education', 'agriculture', 'water', 'sanitation', 'transport', 'roads']
@@ -471,8 +471,8 @@ Just ask me what you'd like to know about these projects!"""
             sector = sector_match.group(1)
             if sector.lower() in sector_keywords:
                 logging.info(f"Found sector query: {sector}")
-                sql = self._build_sector_sql(sector)
-                return sql, "sector_query"
+                count_sql, results_sql = self._build_sector_sql(sector)
+                return (count_sql, results_sql), "sector_query"
         
         # Default to general query
         logging.info("No specific criteria found, using general query")
@@ -514,9 +514,15 @@ Just ask me what you'd like to know about these projects!"""
                     LIMIT 10;"""
         return sql
 
-    def _build_district_sql(self, district: str) -> str:
+    def _build_district_sql(self, district: str) -> Tuple[str, str]:
         """Build SQL query for district-specific search."""
-        sql = f"""SELECT 
+        # Count query
+        count_sql = f"""SELECT COUNT(*) as total_count
+                  FROM proj_dashboard
+                    WHERE LOWER(DISTRICT) LIKE LOWER('%{district}%')"""
+                    
+        # Results query
+        results_sql = f"""SELECT 
                         PROJECTNAME as project_name,
                         PROJECTCODE as project_code,
                         PROJECTSECTOR as project_sector,
@@ -540,7 +546,7 @@ Just ask me what you'd like to know about these projects!"""
                     WHERE LOWER(DISTRICT) LIKE LOWER('%{district}%')
                     ORDER BY BUDGET DESC NULLS LAST
                     LIMIT 10;"""
-        return sql
+        return (count_sql, results_sql)
 
     def _build_general_query_sql(self) -> str:
         """Build SQL query for general search."""
