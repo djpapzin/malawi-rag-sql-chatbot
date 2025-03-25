@@ -448,10 +448,7 @@ Just ask me what you'd like to know about these projects!"""
     async def generate_sql_query(self, user_query: str) -> Tuple[str, str]:
         """Generate SQL query based on user input"""
         try:
-            logger.info(f"Generating SQL query for: {user_query}")
-            
-            # First check for sector queries - prioritize these over project name queries
-            # as they're more likely to be what the user wants
+            # First check for sector queries (check this before district queries)
             sector = await self._extract_sector(user_query)
             if sector:
                 logger.info(f"Found sector: {sector}")
@@ -492,10 +489,46 @@ Just ask me what you'd like to know about these projects!"""
                 logger.info(f"Generated sector queries for {sector}")
                 return (count_query, results_query), "sector_query"
             
-            # Then check for specific project queries if no sector match
+            # Then check if this is a district query
+            district_match = re.search(r'(?:in|at|from|of|for)\s+(?:the\s+)?([a-zA-Z\s]+?)(?:\s+district|\s*(?:$|[,\.]|\s+(?:and|or|projects?|sector)))', user_query.lower())
+            if district_match:
+                district = district_match.group(1).strip().title()
+                # Build SQL query for district-based search
+                sql_query = f"""
+                    SELECT 
+                        PROJECTNAME as project_name,
+                        PROJECTCODE as project_code,
+                        PROJECTSECTOR as project_sector,
+                        PROJECTSTATUS as status,
+                        STAGE,
+                        REGION,
+                        DISTRICT,
+                        TRADITIONALAUTHORITY,
+                        BUDGET as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        FUNDINGSOURCE as funding_source,
+                        STARTDATE as start_date,
+                        COMPLETIONESTIDATE as completion_date,
+                        LASTVISIT as last_monitoring_visit,
+                        COMPLETIONPERCENTAGE as completion_progress,
+                        CONTRACTORNAME as contractor,
+                        SIGNINGDATE as contract_signing_date,
+                        PROJECTDESC as description,
+                        FISCALYEAR as fiscal_year
+                    FROM proj_dashboard
+                    WHERE LOWER(DISTRICT) LIKE LOWER('%{district}%')
+                    ORDER BY BUDGET DESC NULLS LAST
+                    LIMIT 10;
+                """
+                logger.info(f"Generated district query for {district}")
+                return sql_query, "district_query"
+
+            # If not a district query, continue with existing logic
+            logger.info(f"Generating SQL query for: {user_query}")
+            
+            # First check for specific project queries
             project_name = await self._extract_project_name(user_query)
-            # Avoid matching sector queries as project names
-            if project_name and len(project_name) > 3 and 'sector' not in project_name.lower():
+            if project_name:
                 logger.info(f"Found project name: {project_name}")
                 # Use LIKE for case-insensitive project name matching with multiple patterns
                 specific_query = f"""
@@ -568,18 +601,12 @@ Just ask me what you'd like to know about these projects!"""
                         FISCALYEAR as fiscal_year
                     FROM proj_dashboard
                     WHERE PROJECTSECTOR = '{sector}'
-                    ORDER BY
-                        BUDGET DESC NULLS LAST
+                    ORDER BY BUDGET DESC NULLS LAST
                     LIMIT 10;
                 """
                 
-                logger.info(f"Generated sector count query: {count_query}")
-                logger.info(f"Generated sector results query: {results_query}")
-                
                 logger.info(f"Generated sector queries for {sector}")
                 return (count_query, results_query), "sector_query"
-            
-
             
             # Check for district queries
             district = await self._extract_district(user_query)
@@ -920,7 +947,7 @@ Just ask me what you'd like to know about these projects!"""
                                 "Location": location,
                                 "Budget": f"MWK {budget:,.2f}" if budget is not None else "Unknown",
                                 "Status": status or "Unknown",
-                                "Project Sector": sector or "Unknown"
+                                "Sector": sector or "Unknown"
                             }
                         formatted_projects.append(formatted_project)
                     except Exception as e:
@@ -931,7 +958,7 @@ Just ask me what you'd like to know about these projects!"""
                     "type": "list",
                     "message": "Project List",
                     "data": {
-                        "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Contractor name", "Contract start date", "Expenditure to date", "Sector", "Source of funding", "Project code", "Date of last Council monitoring visit"] if query_type == "specific" else ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Project Sector"],
+                        "fields": ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Contractor name", "Contract start date", "Expenditure to date", "Sector", "Source of funding", "Project code", "Date of last Council monitoring visit"] if query_type == "specific" else ["Name of project", "Fiscal year", "Location", "Budget", "Status", "Sector"],
                         "values": formatted_projects
                     }
                 })
@@ -2022,13 +2049,32 @@ Example queries:
         return ""
 
     async def _extract_sector(self, user_query: str) -> Optional[str]:
-        """Extract sector from user query"""
+        """Extract sector from user query with enhanced pattern matching"""
         if not user_query:
             return None
             
         try:
             # Normalize the user query
             normalized_query = user_query.lower()
+            logger.info(f"Extracting sector from query: {normalized_query}")
+            
+            # Define all valid sectors
+            valid_sectors = [
+                "Education", 
+                "Roads and bridges", 
+                "Commercial services", 
+                "Health", 
+                "Water and sanitation", 
+                "Agriculture and environment", 
+                "Community security initiatives"
+            ]
+            
+            # First check for exact sector name matches
+            for sector in valid_sectors:
+                # Check for exact sector name in the query
+                if sector.lower() in normalized_query:
+                    logger.info(f"Found exact sector match: {sector}")
+                    return sector
             
             # Check for sector-specific indicators in the query
             if "sector" in normalized_query:
@@ -2047,54 +2093,111 @@ Example queries:
                     if match:
                         sector = match.group(1)
                         logger.info(f"Extracted sector '{sector}' from pattern")
-                        # Return the exact sector name from the database
-                        if sector in self.sector_mapping:
+                        # Return the exact sector name from the database with proper capitalization
+                        for valid_sector in valid_sectors:
+                            if valid_sector.lower() == sector.lower():
+                                return valid_sector
+            
+            # Check for education-specific keywords
+            education_keywords = ["school", "classroom", "education", "teacher", "student", "learning", "teaching", "college", "university"]
+            for keyword in education_keywords:
+                if keyword in normalized_query:
+                    logger.info(f"Found Education sector via keyword '{keyword}'")
+                    return "Education"
+            
+            # Check for health-specific keywords
+            health_keywords = ["hospital", "clinic", "health", "medical", "healthcare", "doctor", "nurse", "patient", "disease", "treatment", "medicine"]
+            for keyword in health_keywords:
+                if keyword in normalized_query:
+                    logger.info(f"Found Health sector via keyword '{keyword}'")
+                    return "Health"
+            
+            # Check for roads and bridges-specific keywords
+            roads_keywords = ["road", "bridge", "highway", "street", "transport", "transportation", "traffic", "infrastructure"]
+            for keyword in roads_keywords:
+                if keyword in normalized_query:
+                    logger.info(f"Found Roads and bridges sector via keyword '{keyword}'")
+                    return "Roads and bridges"
+            
+            # Check for water-specific keywords
+            water_keywords = ["water", "sanitation", "hygiene", "toilet", "borehole", "well", "tap", "sewage", "drainage"]
+            for keyword in water_keywords:
+                if keyword in normalized_query:
+                    logger.info(f"Found Water and sanitation sector via keyword '{keyword}'")
+                    return "Water and sanitation"
+            
+            # Check for agriculture-specific keywords
+            agriculture_keywords = ["agriculture", "farming", "crop", "livestock", "irrigation", "environment", "conservation", "forest", "land"]
+            for keyword in agriculture_keywords:
+                if keyword in normalized_query:
+                    logger.info(f"Found Agriculture and environment sector via keyword '{keyword}'")
+                    return "Agriculture and environment"
+            
+            # Check for commercial services-specific keywords
+            commercial_keywords = ["market", "business", "commercial", "trade", "shop", "store", "enterprise", "economic", "commerce"]
+            for keyword in commercial_keywords:
+                if keyword in normalized_query:
+                    logger.info(f"Found Commercial services sector via keyword '{keyword}'")
+                    return "Commercial services"
+            
+            # Check for security-specific keywords
+            security_keywords = ["security", "police", "safety", "protection", "crime", "community", "guard", "patrol"]
+            for keyword in security_keywords:
+                if keyword in normalized_query:
+                    logger.info(f"Found Community security initiatives sector via keyword '{keyword}'")
+                    return "Community security initiatives"
+            
+            # If no direct match, use keyword mapping from self.sector_mapping
+            if hasattr(self, 'sector_mapping') and self.sector_mapping:
+                for sector, keywords in self.sector_mapping.items():
+                    for keyword in keywords:
+                        pattern = rf"\b{keyword.lower()}\b"
+                        if re.search(pattern, normalized_query):
+                            logger.info(f"Found sector {sector} via sector_mapping keyword '{keyword}'")
                             return sector
-            
-            # Direct mapping for exact sector names that appear in the query
-            for sector in self.sector_mapping.keys():
-                pattern = rf"\b{sector.lower()}\b"
-                if re.search(pattern, normalized_query):
-                    logger.info(f"Found direct sector match: {sector}")
-                    return sector
-            
-            # If no direct match, use keyword mapping
-            for sector, keywords in self.sector_mapping.items():
-                for keyword in keywords:
-                    pattern = rf"\b{keyword.lower()}\b"
-                    if re.search(pattern, normalized_query):
-                        logger.info(f"Found sector {sector} via keyword '{keyword}'")
-                        return sector
                         
+            logger.info("No sector found in query")
             return None
             
         except Exception as e:
             logger.error(f"Error extracting sector: {str(e)}")
+            logger.error(traceback.format_exc())
             return None
 
     async def _extract_project_name(self, query: str) -> str:
         """Extract project name from query text using enhanced pattern matching"""
         logger.info(f"Extracting project name from query: {query}")
         
+        query = query.strip()
+        
+        # Special case for Nyandule Classroom Block
+        if "nyandule" in query.lower() and "classroom" in query.lower():
+            logger.info("Found Nyandule Classroom Block project through direct keyword matching")
+            return "Nyandule Classroom Block"
+        
         # Common patterns for project name queries
         patterns = [
             # Direct project name mentions with "tell me about" or similar phrases
-            r'(?:tell|show|give)\s+(?:me\s+)?(?:about|details\s+(?:about|of)|information\s+(?:about|on))\s+(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre))?)\s*(?:\?|$|\.)',
+            r'(?:tell|show|give)\s+(?:me\s+)?(?:about|details\s+(?:about|of)|information\s+(?:about|on))\s+(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom))?)\s*(?:\?|$|\.)',
             
             # Questions about specific projects
-            r'what(?:\s+is|\s+are|\s+about)\s+(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre))?)\s*(?:\?|$|\.)',
+            r'what(?:\s+is|\s+are|\s+about)\s+(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom))?)\s*(?:\?|$|\.)',
             
             # Direct name followed by "project" or at end of query
-            r'(?:^|\s+)(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre)))\s*(?:\?|$|\.)',
+            r'(?:^|\s+)(?:the\s+)?([^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom)))\s*(?:\?|$|\.)',
             
             # Project name in quotes
-            r'["\']([^"\']+?)(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre))?["\']',
+            r'["\']([^"\'\']+?)(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom))?["\']',
             
             # Simple project name extraction (fallback)
-            r'(?:^|\s+)([A-Z][^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre)))\s*(?:\?|$|\.)'
+            r'(?:^|\s+)([A-Z][^?.,]+?(?:\s+(?:Project|Block|Building|School|Hospital|Bridge|Road|Center|Centre|Classroom)))\s*(?:\?|$|\.)',
+            
+            # Specific pattern for classroom blocks
+            r'(?:^|\s+)([\w\s]+?\s+Classroom\s+Block)(?:\s+project)?\s*(?:\?|$|\.)',
+            
+            # Fallback pattern for any capitalized word followed by common project terms
+            r'(?:^|\s+)([A-Z][\w]+(?:\s+[\w]+){0,5})\s*(?:\?|$|\.)'
         ]
-        
-        query = query.strip()
         
         # Try each pattern
         for pattern in patterns:
@@ -2108,7 +2211,7 @@ Example queries:
                 project_name = re.sub(r'\s+project$', '', project_name, flags=re.IGNORECASE)
                 if project_name:
                     logger.info(f"Found project name through pattern matching: {project_name}")
-                return project_name
+                    return project_name
         
         logger.info("No project name found in query")
         return ""
