@@ -569,9 +569,15 @@ Just ask me what you'd like to know about these projects!"""
                     LIMIT 10;"""
         return sql
 
-    def _build_sector_sql(self, sector: str) -> str:
+    def _build_sector_sql(self, sector: str) -> Tuple[str, str]:
         """Build SQL query for sector-specific search."""
-        sql = f"""SELECT 
+        # Count query
+        count_sql = f"""SELECT COUNT(*) as total_count
+                  FROM proj_dashboard
+                    WHERE LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')"""
+                    
+        # Results query
+        results_sql = f"""SELECT 
                         PROJECTNAME as project_name,
                         PROJECTCODE as project_code,
                         PROJECTSECTOR as project_sector,
@@ -595,7 +601,7 @@ Just ask me what you'd like to know about these projects!"""
                     WHERE LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
                     ORDER BY BUDGET DESC NULLS LAST
                     LIMIT 10;"""
-        return sql
+        return (count_sql, results_sql)
 
     async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None, query_type: str = None) -> Dict[str, Any]:
         """Generate a natural language response from query results."""
