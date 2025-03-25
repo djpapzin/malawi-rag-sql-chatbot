@@ -20,7 +20,7 @@ class DatabaseService:
     
     def __init__(self):
         """Initialize Database Service"""
-        self.db_path = "malawi_projects.db"
+        self.db_path = "malawi_projects1.db"
         logger.info(f"Initializing DatabaseService with {self.db_path}")
     
     async def check_connection(self) -> bool:
