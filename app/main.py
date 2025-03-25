@@ -54,7 +54,7 @@ async def read_root():
 
 # Include routers
 app.include_router(chat.router, prefix="/api/rag-sql-chatbot")
-app.include_router(query.router, prefix="/api/rag-sql-chatbot")
+app.include_router(query.router, prefix="/api/rag-sql-chatbot/query")
 
 # Initialize services
 llm_service = LLMService()
