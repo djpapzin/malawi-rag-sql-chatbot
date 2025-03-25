@@ -1,9 +1,9 @@
 import sqlite3
 
 def analyze_both_dbs():
-    # First database: malawi_projects.db
+    # First database: malawi_projects1.db
     try:
-        conn1 = sqlite3.connect('malawi_projects.db')
+        conn1 = sqlite3.connect('malawi_projects1.db')
         cursor1 = conn1.cursor()
         
         # Get record count
@@ -14,12 +14,12 @@ def analyze_both_dbs():
         cursor1.execute("PRAGMA table_info(projects)")
         fields = cursor1.fetchall()
         
-        print("\nmalawi_projects.db analysis:")
+        print("\nmalawi_projects1.db analysis:")
         print(f"Number of fields in projects table: {len(fields)}")
         print(f"Number of records in projects table: {count}")
         
     except sqlite3.Error as e:
-        print(f"Error with malawi_projects.db: {e}")
+        print(f"Error with malawi_projects1.db: {e}")
     finally:
         if conn1:
             conn1.close()
