@@ -398,43 +398,54 @@ Just ask me what you'd like to know about these projects!"""
         try:
             query = user_query.lower()
             
-            # Define exact sector mappings
+            # Define exact sector mappings with their lowercase versions for matching
             sectors = {
-                'Education',
-                'Roads and bridges',
-                'Commercial services', 
-                'Health',
-                'Water and sanitation',
-                'Agriculture and environment',
-                'Community security initiatives'
+                'Education': ['education', 'school', 'classroom', 'teaching', 'learning', 'educational'],
+                'Roads and bridges': ['roads and bridges', 'road', 'bridge', 'transport', 'road infrastructure'],
+                'Commercial services': ['commercial services', 'commercial', 'business', 'trade', 'market'],
+                'Health': ['health', 'hospital', 'clinic', 'medical', 'healthcare', 'health center'],
+                'Water and sanitation': ['water and sanitation', 'water', 'sanitation', 'borehole', 'hygiene'],
+                'Agriculture and environment': ['agriculture and environment', 'agriculture', 'farming', 'crops', 'environment'],
+                'Community security initiatives': ['community security', 'security', 'police', 'safety']
             }
             
-            # Check for exact sector matches
-            for sector in sectors:
+            # Log what we're looking for
+            logger.info(f"Extracting sector from query: '{query}'")
+            
+            # First check for exact sector mentions
+            for sector, keywords in sectors.items():
+                # Check for exact name match first
                 if sector.lower() in query:
                     logger.info(f"Found exact sector match: {sector}")
                     return sector
+                
+                # Then check for keyword matches
+                for keyword in keywords:
+                    if f" {keyword} " in f" {query} ":
+                        logger.info(f"Found sector '{sector}' from keyword: '{keyword}'")
+                        return sector
             
-            # Check for sector keywords
-            keywords_map = {
-                'Education': ['school', 'classroom', 'teaching', 'learning'],
-                'Roads and bridges': ['road', 'bridge', 'transport'],
-                'Commercial services': ['commercial', 'business', 'trade'],
-                'Health': ['hospital', 'clinic', 'medical'],
-                'Water and sanitation': ['water', 'sanitation', 'borehole'],
-                'Agriculture and environment': ['agriculture', 'farming'],
-                'Community security initiatives': ['security', 'police']
-            }
+            # Second pass: check for partial matches at word boundaries
+            for sector, keywords in sectors.items():
+                for keyword in keywords:
+                    if keyword in query.split():
+                        logger.info(f"Found sector '{sector}' from word boundary match: '{keyword}'")
+                        return sector
             
-            for sector, keywords in keywords_map.items():
-                if any(kw in query for kw in keywords):
-                    logger.info(f"Found sector from keywords: {sector}")
-                    return sector
-                    
+            # Third pass: check for contains matches for short queries
+            if len(query.split()) <= 10:  # Only for short queries to avoid false positives
+                for sector, keywords in sectors.items():
+                    for keyword in keywords:
+                        if len(keyword) > 3 and keyword in query:  # Only match keywords longer than 3 chars
+                            logger.info(f"Found sector '{sector}' from substring match: '{keyword}'")
+                            return sector
+            
+            logger.info("No sector found in query")
             return None
             
         except Exception as e:
             logger.error(f"Error extracting sector: {str(e)}")
+            logger.error(traceback.format_exc())
             return None
 
     async def generate_sql_query(self, user_query: str) -> Tuple[str, str]:
@@ -442,14 +453,16 @@ Just ask me what you'd like to know about these projects!"""
         try:
             logger.info(f"Generating SQL query for: {user_query}")
             
-            # Extract sector
+            # First check for sector queries - prioritize these over project name queries
+            # as they're more likely to be what the user wants
             sector = await self._extract_sector(user_query)
             if sector:
                 logger.info(f"Found sector: {sector}")
+                # Use exact sector name matching
                 count_query = f"""
                     SELECT COUNT(*) as total_count
                     FROM proj_dashboard
-                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}') OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%');
+                    WHERE projectsector = '{sector}';
                 """
                 
                 results_query = f"""
@@ -474,7 +487,7 @@ Just ask me what you'd like to know about these projects!"""
                         projectdesc as description,
                         fiscalyear as fiscal_year
                     FROM proj_dashboard
-                    WHERE LOWER(PROJECTSECTOR) = LOWER('{sector}') OR LOWER(PROJECTSECTOR) LIKE LOWER('%{sector}%')
+                    WHERE projectsector = '{sector}'
                     ORDER BY budget DESC NULLS LAST
                     LIMIT 10;
                 """
@@ -482,11 +495,99 @@ Just ask me what you'd like to know about these projects!"""
                 logger.info(f"Generated sector queries for {sector}")
                 return (count_query, results_query), "sector_query"
             
-            # If no sector found, use the general query
+            # Then check for specific project queries if no sector match
+            project_name = await self._extract_project_name(user_query)
+            # Avoid matching sector queries as project names
+            if project_name and len(project_name) > 3 and 'sector' not in project_name.lower():
+                logger.info(f"Found project name: {project_name}")
+                # Use LIKE for case-insensitive project name matching with multiple patterns
+                specific_query = f"""
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM proj_dashboard
+                    WHERE LOWER(projectname) LIKE LOWER('%{project_name}%')
+                    ORDER BY 
+                        CASE 
+                            WHEN LOWER(projectname) = LOWER('{project_name}') THEN 1
+                            WHEN LOWER(projectname) LIKE LOWER('{project_name}%') THEN 2
+                            WHEN LOWER(projectname) LIKE LOWER('%{project_name}%') THEN 3
+                            ELSE 4
+                        END,
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                """
+                logger.info(f"Generated specific project query for: {project_name}")
+                return specific_query, "specific"
+            
+            # If no specific project found, check for sector queries
+            sector = await self._extract_sector(user_query)
+            if sector:
+                logger.info(f"Found sector: {sector}")
+                # Use case-insensitive matching with both exact and partial matches
+                count_query = f"""
+                    SELECT COUNT(*) as total_count
+                    FROM proj_dashboard
+                    WHERE projectsector = '{sector}';
+                """
+                
+                results_query = f"""
+                    SELECT 
+                        projectname as project_name,
+                        projectcode as project_code,
+                        projectsector as project_sector,
+                        projectstatus as status,
+                        stage,
+                        region,
+                        district,
+                        traditionalauthority,
+                        budget as total_budget,
+                        TOTALEXPENDITUREYEAR as total_expenditure,
+                        fundingsource as funding_source,
+                        startdate as start_date,
+                        completionestidate as completion_date,
+                        lastvisit as last_monitoring_visit,
+                        completionpercentage as completion_progress,
+                        contractorname as contractor,
+                        signingdate as contract_signing_date,
+                        projectdesc as description,
+                        fiscalyear as fiscal_year
+                    FROM proj_dashboard
+                    WHERE projectsector = '{sector}'
+                    ORDER BY
+                        budget DESC NULLS LAST
+                    LIMIT 10;
+                """
+                
+                logger.info(f"Generated sector queries for {sector}")
+                return (count_query, results_query), "sector_query"
+            
+
+            
+            # If no specific identifiers found, use the general query
+            logger.info("No specific identifiers found, using general query")
             return self._get_total_budget_query(), "total_budget"
             
         except Exception as e:
             logger.error(f"Error generating SQL query: {str(e)}")
+            logger.error(traceback.format_exc())
             return "", "error"
 
     async def generate_natural_response(self, results: List[Dict[str, Any]], user_query: str, sql_query: str = None, query_type: str = None) -> Dict[str, Any]:
@@ -563,7 +664,20 @@ Just ask me what you'd like to know about these projects!"""
                 # Get the sector name for sector queries
                 sector_name = None
                 if query_type == "sector_query" and results:
-                    sector_name = results[0].get("project_sector", "specified sector")
+                    logger.debug(f"Sector query results (first 100 chars): {str(results)[:100]}...")
+                    logger.debug(f"First result keys: {results[0].keys() if results else 'No results'}")
+                    # Keys can be uppercase or lowercase depending on the query
+                    sector_keys = ["project_sector", "projectsector", "PROJECTSECTOR"]
+                    for key in sector_keys:
+                        if key in results[0]:
+                            sector_name = results[0].get(key)
+                            if sector_name:
+                                break
+                    
+                    if not sector_name:
+                        sector_name = "specified sector"
+                    
+                    logger.info(f"Extracted sector name: {sector_name}")
                 
                 # Format the summary message
                 if query_type == "sector_query":
@@ -588,39 +702,181 @@ Just ask me what you'd like to know about these projects!"""
                     try:
                         # Get location based on query type
                         if query_type == "district_query":
+                            # Try to get district from query first
+                            district_from_query = None
                             district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-                            location = district_match.group(1).strip().title() + " District" if district_match else project.get("district", "")
+                            if district_match:
+                                district_from_query = district_match.group(1).strip().title() + " District"
+                            
+                            # Try to get district from result
+                            district_keys = ["district", "DISTRICT"]
+                            district_from_result = None
+                            for key in district_keys:
+                                if key in project and project[key]:
+                                    district_from_result = project[key]
+                                    break
+                            
+                            # Use the best available district information
+                            location = district_from_query or district_from_result or "Unknown"
                         else:
-                            location = project.get("district", "")
-                            if project.get("region"):
-                                location = f"{project.get('region')}, {location}".strip(", ")
+                            # For non-district queries, use district and region if available
+                            district_keys = ["district", "DISTRICT", "District"]
+                            region_keys = ["region", "REGION", "Region"]
+                            
+                            district = None
+                            for key in district_keys:
+                                if key in project and project[key]:
+                                    district = project[key]
+                                    break
+                            
+                            region = None
+                            for key in region_keys:
+                                if key in project and project[key]:
+                                    region = project[key]
+                                    break
+                            
+                            if region and district:
+                                location = f"{region}, {district}"
+                            elif district:
+                                location = district
+                            elif region:
+                                location = region
+                            else:
+                                location = "Unknown"
                         
                         formatted_project = {}
                         if query_type == "specific":
                             # Use all 12 fields for specific queries
+                            # Handle potential variations in field names
+                            project_name = None
+                            for key in ["project_name", "PROJECTNAME", "projectname"]:
+                                if key in project and project[key]:
+                                    project_name = project[key]
+                                    break
+                            
+                            fiscal_year = None
+                            for key in ["fiscal_year", "FISCALYEAR", "fiscalyear"]:
+                                if key in project and project[key]:
+                                    fiscal_year = project[key]
+                                    break
+                            
+                            budget = None
+                            for key in ["total_budget", "BUDGET", "budget"]:
+                                if key in project and project[key] is not None:
+                                    try:
+                                        budget = float(project[key])
+                                        break
+                                    except (ValueError, TypeError):
+                                        continue
+                            
+                            status = None
+                            for key in ["status", "PROJECTSTATUS", "projectstatus"]:
+                                if key in project and project[key]:
+                                    status = project[key]
+                                    break
+                            
+                            contractor = None
+                            for key in ["contractor", "CONTRACTORNAME", "contractorname"]:
+                                if key in project and project[key]:
+                                    contractor = project[key]
+                                    break
+                            
+                            contract_date = None
+                            for key in ["contract_signing_date", "SIGNINGDATE", "signingdate"]:
+                                if key in project and project[key]:
+                                    contract_date = project[key]
+                                    break
+                            
+                            expenditure = None
+                            for key in ["total_expenditure", "TOTALEXPENDITUREYEAR", "totalexpenditureyear"]:
+                                if key in project and project[key] is not None:
+                                    try:
+                                        expenditure = float(project[key])
+                                        break
+                                    except (ValueError, TypeError):
+                                        continue
+                            
+                            sector = None
+                            for key in ["project_sector", "PROJECTSECTOR", "projectsector"]:
+                                if key in project and project[key]:
+                                    sector = project[key]
+                                    break
+                            
+                            funding_source = None
+                            for key in ["funding_source", "FUNDINGSOURCE", "fundingsource"]:
+                                if key in project and project[key]:
+                                    funding_source = project[key]
+                                    break
+                            
+                            project_code = None
+                            for key in ["project_code", "PROJECTCODE", "projectcode"]:
+                                if key in project and project[key]:
+                                    project_code = project[key]
+                                    break
+                            
+                            monitoring_visit = None
+                            for key in ["last_monitoring_visit", "LASTVISIT", "lastvisit"]:
+                                if key in project and project[key]:
+                                    monitoring_visit = project[key]
+                                    break
+                            
                             formatted_project = {
-                                "Name of project": project.get("project_name", "Unknown"),
-                                "Fiscal year": project.get("fiscal_year", "Unknown"),
+                                "Name of project": project_name or "Unknown",
+                                "Fiscal year": fiscal_year or "Unknown",
                                 "Location": location,
-                                "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
-                                "Status": project.get("status", "Unknown"),
-                                "Contractor name": project.get("contractor", "Unknown"),
-                                "Contract start date": project.get("contract_signing_date", "Unknown"),
-                                "Expenditure to date": f"MWK {float(project.get('total_expenditure', 0)):,.2f}" if project.get('total_expenditure') is not None else "Unknown",
-                                "Sector": project.get("project_sector", "Unknown"),
-                                "Source of funding": project.get("funding_source", "Unknown"),
-                                "Project code": project.get("project_code", "Unknown"),
-                                "Date of last Council monitoring visit": project.get("last_monitoring_visit", "Unknown")
+                                "Budget": f"MWK {budget:,.2f}" if budget is not None else "Unknown",
+                                "Status": status or "Unknown",
+                                "Contractor name": contractor or "Unknown",
+                                "Contract start date": contract_date or "Unknown",
+                                "Expenditure to date": f"MWK {expenditure:,.2f}" if expenditure is not None else "Unknown",
+                                "Sector": sector or "Unknown",
+                                "Source of funding": funding_source or "Unknown",
+                                "Project code": project_code or "Unknown",
+                                "Date of last Council monitoring visit": monitoring_visit or "Unknown"
                             }
                         else:
                             # Use 6 fields for general queries
+                            # Handle potential variations in field names
+                            project_name = None
+                            for key in ["project_name", "PROJECTNAME", "projectname"]:
+                                if key in project and project[key]:
+                                    project_name = project[key]
+                                    break
+                            
+                            fiscal_year = None
+                            for key in ["fiscal_year", "FISCALYEAR", "fiscalyear"]:
+                                if key in project and project[key]:
+                                    fiscal_year = project[key]
+                                    break
+                            
+                            budget = None
+                            for key in ["total_budget", "BUDGET", "budget"]:
+                                if key in project and project[key] is not None:
+                                    try:
+                                        budget = float(project[key])
+                                        break
+                                    except (ValueError, TypeError):
+                                        continue
+                            
+                            status = None
+                            for key in ["status", "PROJECTSTATUS", "projectstatus"]:
+                                if key in project and project[key]:
+                                    status = project[key]
+                                    break
+                            
+                            sector = None
+                            for key in ["project_sector", "PROJECTSECTOR", "projectsector"]:
+                                if key in project and project[key]:
+                                    sector = project[key]
+                                    break
+                            
                             formatted_project = {
-                                "Name of project": project.get("PROJECTNAME", project.get("project_name", "Unknown")),
-                                "Fiscal year": project.get("FISCALYEAR", project.get("fiscal_year", "Unknown")),
+                                "Name of project": project_name or "Unknown",
+                                "Fiscal year": fiscal_year or "Unknown",
                                 "Location": location,
-                                "Budget": f"MWK {float(project.get('BUDGET', project.get('total_budget', 0))):,.2f}" if project.get('BUDGET') is not None or project.get('total_budget') is not None else "Unknown",
-                                "Status": project.get("PROJECTSTATUS", project.get("status", "Unknown")),
-                                "Project Sector": project.get("PROJECTSECTOR", project.get("project_sector", "Unknown"))
+                                "Budget": f"MWK {budget:,.2f}" if budget is not None else "Unknown",
+                                "Status": status or "Unknown",
+                                "Project Sector": sector or "Unknown"
                             }
                         formatted_projects.append(formatted_project)
                     except Exception as e:
@@ -671,7 +927,7 @@ Just ask me what you'd like to know about these projects!"""
         """Format query results into a response"""
         try:
             logger.info(f"Formatting response for query type: {query_type}")
-            logger.info(f"Query results: {query_results}")
+            logger.debug(f"Query results (first 100 chars): {str(query_results)[:100]}...")
             
             # Handle total budget query
             if query_type == "total_budget" and query_results:
@@ -755,19 +1011,74 @@ Just ask me what you'd like to know about these projects!"""
             # For other query types (district, sector, general)
             # Add summary message with total count
             if query_results:
-                shown_count = min(10, len(query_results))
-                
-                if query_type == "sector_query":
-                    # Extract sector name from the first result
-                    sector_name = query_results[0].get("project_sector", "specified sector")
-                    summary = f"Found {query_results[0].get('total_projects', 0)} projects in {sector_name}, showing the first {shown_count}"
-                elif query_type == "district_query":
-                    # Extract district name from the query
-                    district_match = re.search(r'(?:in|at|from|of)(?: the)? ([a-zA-Z\s]+?) district', user_query.lower())
-                    district_name = district_match.group(1).strip().title() if district_match else "specified district"
-                    summary = f"Found {query_results[0].get('total_projects', 0)} projects in {district_name} district, showing the first {shown_count}"
+                # For tuple results with count, handle appropriately
+                if isinstance(query_results, tuple) and len(query_results) == 2:
+                    total_count, actual_results = query_results
+                    logger.info(f"Tuple results with count {total_count} and {len(actual_results)} items")
+                    shown_count = min(10, len(actual_results))
+                    
+                    if query_type == "sector_query":
+                        # First try to get sector from results
+                        sector_name = None
+                        if actual_results:
+                            # Check different case variations of project_sector field
+                            sector_keys = ["project_sector", "projectsector", "PROJECTSECTOR"]
+                            for key in sector_keys:
+                                if key in actual_results[0] and actual_results[0][key]:
+                                    sector_name = actual_results[0].get(key)
+                                    logger.info(f"Found sector {sector_name} in key {key}")
+                                    break
+                        
+                        # If still no sector name, try to extract from query
+                        if not sector_name:
+                            extracted_sector = await self._extract_sector(user_query)
+                            sector_name = extracted_sector if extracted_sector else "specified sector"
+                            logger.info(f"Using extracted sector: {sector_name}")
+                            
+                        summary = f"Found {total_count} projects in {sector_name}, showing the first {shown_count}"
+                    elif query_type == "district_query":
+                        # Extract district directly from results first
+                        district_name = None
+                        if actual_results:
+                            for key in ["district", "DISTRICT"]:
+                                if key in actual_results[0] and actual_results[0][key]:
+                                    district_name = actual_results[0][key]
+                                    break
+                        
+                        # Fallback to extracting from query
+                        if not district_name:
+                            district_name = await self._extract_district(user_query)
+                            if not district_name:
+                                district_name = "specified district"
+                        
+                        summary = f"Found {total_count} projects in {district_name} district, showing the first {shown_count}"
+                    else:
+                        summary = f"Found {total_count} projects, showing the first {shown_count}"
+                    
+                    # Use actual_results for the rest of the processing
+                    query_results = actual_results
                 else:
-                    summary = f"Found {query_results[0].get('total_projects', 0)} projects, showing the first {shown_count}"
+                    # Regular results list
+                    shown_count = min(10, len(query_results))
+                    total_projects = query_results[0].get('total_projects', len(query_results)) if query_results else 0
+                    
+                    if query_type == "sector_query":
+                        sector_name = None
+                        for key in ["project_sector", "projectsector", "PROJECTSECTOR"]:
+                            if key in query_results[0] and query_results[0][key]:
+                                sector_name = query_results[0][key]
+                                break
+                        
+                        if not sector_name:
+                            extracted_sector = await self._extract_sector(user_query)
+                            sector_name = extracted_sector if extracted_sector else "specified sector"
+                            
+                        summary = f"Found {total_projects} projects in {sector_name}, showing the first {shown_count}"
+                    elif query_type == "district_query":
+                        district_name = await self._extract_district(user_query) or "specified district"
+                        summary = f"Found {total_projects} projects in {district_name} district, showing the first {shown_count}"
+                    else:
+                        summary = f"Found {total_projects} projects, showing the first {shown_count}"
                 
                 summary += "."
                 logger.info(f"Generated summary: {summary}")
@@ -781,9 +1092,9 @@ Just ask me what you'd like to know about these projects!"""
                 ]
 
             # Format project list
-                if len(query_results) > 0:
+            if len(query_results) > 0:
                 formatted_projects = []
-                    for project in query_results[:10]:
+                for project in query_results[:10]:
                     try:
                         # Get location based on query type
                         if query_type == "district_query":
@@ -794,13 +1105,47 @@ Just ask me what you'd like to know about these projects!"""
                             if project.get("region"):
                                 location = f"{project.get('region')}, {location}".strip(", ")
                         
+                        # Make sure to handle different case variations of field names
+                        project_name = None
+                        for key in ["project_name", "projectname", "PROJECTNAME"]:
+                            if key in project and project[key]:
+                                project_name = project[key]
+                                break
+                        
+                        fiscal_year = None
+                        for key in ["fiscal_year", "fiscalyear", "FISCALYEAR"]:
+                            if key in project and project[key]:
+                                fiscal_year = project[key]
+                                break
+                        
+                        budget = None
+                        for key in ["total_budget", "budget", "BUDGET"]:
+                            if key in project and project[key] is not None:
+                                try:
+                                    budget = float(project[key])
+                                    break
+                                except (ValueError, TypeError):
+                                    pass
+                        
+                        status = None
+                        for key in ["status", "projectstatus", "PROJECTSTATUS"]:
+                            if key in project and project[key]:
+                                status = project[key]
+                                break
+                        
+                        sector = None
+                        for key in ["project_sector", "projectsector", "PROJECTSECTOR"]:
+                            if key in project and project[key]:
+                                sector = project[key]
+                                break
+                        
                         formatted_project = {
-                            "Name of project": project.get("project_name", "Unknown"),
-                            "Fiscal year": project.get("fiscal_year", "Unknown"),
+                            "Name of project": project_name or "Unknown",
+                            "Fiscal year": fiscal_year or "Unknown",
                             "Location": location,
-                            "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
-                            "Status": project.get("status", "Unknown"),
-                            "Project Sector": project.get("project_sector", "Unknown")
+                            "Budget": f"MWK {budget:,.2f}" if budget is not None else "Unknown",
+                            "Status": status or "Unknown",
+                            "Project Sector": sector or "Unknown"
                         }
                         formatted_projects.append(formatted_project)
                     except Exception as e:
@@ -855,27 +1200,40 @@ Just ask me what you'd like to know about these projects!"""
     async def execute_query(self, query: Union[str, Tuple[str, str]]) -> Union[List[Dict[str, Any]], Tuple[int, List[Dict[str, Any]]]]:
         """Execute a SQL query and return results as a list of dictionaries"""
         try:
-            with self.db_manager.get_connection() as conn:
-                cursor = conn.cursor()
+            logger.info(f"Executing query: {query}")
+            
+            # Check if we have a tuple of count and results query
+            if isinstance(query, tuple) and len(query) == 2:
+                count_query, results_query = query
                 
-                # If we have a tuple of queries (count and results)
-                if isinstance(query, tuple):
-                    count_query, results_query = query
-                    
+                # Connect to the database
+                connection = self.db_manager.get_connection()
+                with connection.cursor() as cursor:
                     # Execute count query first
                     cursor.execute(count_query)
                     count_result = cursor.fetchone()
                     total_count = count_result[0] if count_result else 0
+                    logger.info(f"Count query returned: {total_count}")
+                    logger.info(f"Count query was: {count_query}")
                     
                     # Then execute results query
                     cursor.execute(results_query)
                     columns = [desc[0] for desc in cursor.description]
                     results = []
+                    logger.info(f"Results query columns: {columns}")
                     for row in cursor.fetchall():
                         result = {}
                         for i, value in enumerate(row):
                             result[columns[i]] = value
                         results.append(result)
+                    
+                    # If we have results, make sure each result has the total_count field for formatting
+                    if results:
+                        for result in results:
+                            result['total_count'] = total_count
+                            result['total_projects'] = total_count
+                    
+                    logger.info(f"Query results with total_count={total_count} and {len(results)} results")
                     return total_count, results
                 
                 # Single query case
@@ -981,6 +1339,7 @@ Just ask me what you'd like to know about these projects!"""
                     logger.info(f"Generated SQL query: {sql_query}")
                     
                     # Execute query
+                    logger.info(f"Executing SQL query: {sql_query}")
                     results = await self.execute_query(sql_query)
                     
                     # Format response using the format_response function
@@ -1127,7 +1486,7 @@ Just ask me what you'd like to know about these projects!"""
             logger.info(f"Processing natural language query: {user_query}")
             start_time = time.time()
             
-            # Generate SQL query
+            # Generate the SQL query
             try:
                 sql_query, query_type = await self.generate_sql_query(user_query)
                 logger.info(f"Generated SQL query: {sql_query}")
@@ -1704,7 +2063,7 @@ Example queries:
                 district = district.strip()
                 if district:
                     logger.info(f"Found district through pattern matching: {district}")
-                    return self._validate_district(district)
+                return self._validate_district(district)
         
         # If no pattern match, check for direct district mentions
         for district in self.valid_districts:
@@ -1746,42 +2105,74 @@ Example queries:
 
     async def _extract_sector(self, user_query: str) -> Optional[str]:
         """Extract sector from user query"""
-        try:
-            query = user_query.lower()
+        if not user_query:
+            return None
             
-            # Define exact sector mappings
+        try:
+            # Normalize the user query
+            normalized_query = user_query.lower()
+            
+            # Check for sector-specific indicators in the query
+            if "sector" in normalized_query:
+                logger.info(f"Found 'sector' keyword in query: {user_query}")
+                
+                # Extract what sector they're asking about
+                sector_patterns = [
+                    r"\b(health|education|water|agriculture|infrastructure|transport|energy|housing|sanitation|community security|commercial services)\s+sector",
+                    r"sector\s+of\s+(health|education|water|agriculture|infrastructure|transport|energy|housing|sanitation|community security|commercial services)",
+                    r"sector\s+projects\s+in\s+(health|education|water|agriculture|infrastructure|transport|energy|housing|sanitation|community security|commercial services)",
+                    r"(health|education|water|agriculture|infrastructure|transport|energy|housing|sanitation|community security|commercial services)\s+sector\s+projects"
+                ]
+                
+                for pattern in sector_patterns:
+                    match = re.search(pattern, normalized_query)
+                    if match:
+                        sector = match.group(1)
+                        logger.info(f"Extracted sector '{sector}' from pattern")                    
+                        # Return the properly capitalized sector name
+                        if sector.lower() == "community security":
+                            return "Community Security"
+                        elif sector.lower() == "commercial services":
+                            return "Commercial Services"
+                        else:
+                            return sector.capitalize()
+            
+            # Direct mapping for sector names that appear in the query
             sectors = {
                 'Education',
-                'Roads and bridges',
-                'Commercial services', 
                 'Health',
-                'Water and sanitation',
-                'Agriculture and environment',
-                'Community security initiatives'
+                'Water',
+                'Agriculture',
+                'Infrastructure',
+                'Transport',
+                'Energy',
+                'Housing',
+                'Sanitation',
+                'Community Security',
+                'Commercial Services'
             }
             
             # Check for exact sector matches
             for sector in sectors:
-                if sector.lower() in query:
-                    logger.info(f"Found exact sector match: {sector}")
+                pattern = rf"\b{sector.lower()}\b"
+                if re.search(pattern, normalized_query):
+                    logger.info(f"Found direct sector match: {sector}")
                     return sector
             
-            # Check for sector keywords
-            keywords_map = {
-                'Education': ['school', 'classroom', 'teaching', 'learning'],
-                'Roads and bridges': ['road', 'bridge', 'transport'],
-                'Commercial services': ['commercial', 'business', 'trade'],
-                'Health': ['hospital', 'clinic', 'medical'],
-                'Water and sanitation': ['water', 'sanitation', 'borehole'],
-                'Agriculture and environment': ['agriculture', 'farming'],
-                'Community security initiatives': ['security', 'police']
-            }
-            
-            for sector, keywords in keywords_map.items():
-                if any(kw in query for kw in keywords):
-                    logger.info(f"Found sector from keywords: {sector}")
-                    return sector
-        
+            # If no direct match, use keyword mapping
+            for sector, keywords in self.sector_mapping.items():
+                for keyword in keywords:
+                    pattern = rf"\b{keyword.lower()}\b"
+                    if re.search(pattern, normalized_query):
+                        # Return the properly capitalized sector name
+                        if sector.lower() == "community security":
+                            return "Community Security"
+                        elif sector.lower() == "commercial services":
+                            return "Commercial Services"
+                        else:
+                            logger.info(f"Found sector {sector.capitalize()} via keyword '{keyword}'")
+                            return sector.capitalize()
+                        
             return None
             
         except Exception as e:
