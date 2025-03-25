@@ -615,12 +615,12 @@ Just ask me what you'd like to know about these projects!"""
                         else:
                             # Use 6 fields for general queries
                             formatted_project = {
-                                "Name of project": project.get("project_name", "Unknown"),
-                                "Fiscal year": project.get("fiscal_year", "Unknown"),
+                                "Name of project": project.get("PROJECTNAME", project.get("project_name", "Unknown")),
+                                "Fiscal year": project.get("FISCALYEAR", project.get("fiscal_year", "Unknown")),
                                 "Location": location,
-                                "Budget": f"MWK {float(project.get('total_budget', 0)):,.2f}" if project.get('total_budget') is not None else "Unknown",
-                                "Status": project.get("status", "Unknown"),
-                                "Project Sector": project.get("project_sector", "Unknown")
+                                "Budget": f"MWK {float(project.get('BUDGET', project.get('total_budget', 0))):,.2f}" if project.get('BUDGET') is not None or project.get('total_budget') is not None else "Unknown",
+                                "Status": project.get("PROJECTSTATUS", project.get("status", "Unknown")),
+                                "Project Sector": project.get("PROJECTSECTOR", project.get("project_sector", "Unknown"))
                             }
                         formatted_projects.append(formatted_project)
                     except Exception as e:
